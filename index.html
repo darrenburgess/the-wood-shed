@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Practice Planner</title>
+
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" defer></script>
+    <script src="app.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="auth-container" class="container">
+        <h1>Music Practice Planner</h1>
+        <form id="auth-form">
+            <input type="email" id="auth-email" placeholder="Email" required>
+            <input type="password" id="auth-password" placeholder="Password" required>
+            <div class="auth-actions">
+                <button type="submit" id="sign-in-btn">Sign In</button>
+                <button type="button" id="sign-up-btn">Sign Up</button>
+            </div>
+        </form>
+        <p id="auth-error" class="error-message hidden"></p>
+    </div>
+
+    <div class="container hidden" id="app-container">
+        <div class="app-header">
+            <h1>Music Practice Planner</h1>
+            <button id="sign-out-btn">Sign Out</button>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-view="plan-view">Plan</button>
+            <button class="tab-btn" data-view="today-view">Logs</button>
+        </div>
+
+        <div id="plan-view" class="view active">
+            <div class="main-controls">
+                <button id="add-topic-btn" class="btn-new">New Topic</button>
+                <button id="expand-all-btn">Expand All</button>
+                <button id="collapse-all-btn">Collapse All</button>
+            </div>
+            <div id="planner-content"></div>
+        </div>
+
+        <div id="today-view" class="view">
+            <div class="log-view-header">
+                <div class="date-nav">
+                    <button id="prev-day-btn">&lt;</button>
+                    <h2 id="log-view-date">Today's Logs</h2>
+                    <button id="next-day-btn">&gt;</button>
+                </div>
+                <div class="date-range-search">
+                    <input type="date" id="start-date">
+                    <span>to</span>
+                    <input type="date" id="end-date">
+                    <button id="search-range-btn">Search</button>
+                </div>
+            </div>
+            <div id="log-view-content"></div>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="modal-title">Edit Item</h3>
+            <textarea id="modal-input"></textarea>
+            <div class="modal-actions">
+                <div>
+                    <button id="modal-delete-btn" class="btn-delete">Delete</button>
+                    <button id="modal-complete-btn">Complete Goal</button>
+                </div>
+                <div class="right-actions">
+                    <button id="modal-cancel-btn">Cancel</button>
+                    <button id="modal-save-btn" class="btn-save">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
