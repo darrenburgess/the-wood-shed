@@ -42,18 +42,66 @@ const startDateInput = document.getElementById('start-date');
 const endDateInput = document.getElementById('end-date');
 const searchRangeBtn = document.getElementById('search-range-btn');
 
+// FIX 3.3: Add references for the new YouTube modal elements
+const youtubeModal = document.getElementById('youtube-modal');
+const youtubeModalCloseBtn = document.getElementById('youtube-modal-close-btn');
+const youtubePlayerContainer = document.getElementById('youtube-player-container');
+
+
 // --- State Management ---
 let detailsState = {};
 let currentLogViewDate = new Date();
 let currentUser = null;
 
 // --- Helper Functions ---
+
+// New helper to extract YouTube video ID from various URL formats
+function getYoutubeVideoId(url) {
+    let videoId = null;
+    // This regex matches a wider variety of YouTube URL formats
+    const youtubeRegex = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})(?:\S+)?$/;
+    const match = url.match(youtubeRegex);
+
+    if (match && match[1]) {
+        videoId = match[1];
+    }
+
+    return videoId;
+}
+
+// Modified linkify to specifically handle YouTube links
 function linkify(text) {
     const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
     return text.replace(urlRegex, (url) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        const videoId = getYoutubeVideoId(url);
+        if (videoId) {
+            // If it's a YouTube link, give it a special class and data attribute
+            return `<a class="youtube-link" data-video-id="${videoId}">${url}</a>`;
+        } else {
+            // Otherwise, treat it as a normal link
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        }
     });
 }
+
+// FIX 3.3: New functions to open and close the YouTube modal
+function openYoutubeModal(videoId) {
+    youtubePlayerContainer.innerHTML = `
+        <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+        </iframe>
+    `;
+    youtubeModal.classList.remove('hidden');
+}
+
+function closeYoutubeModal() {
+    youtubeModal.classList.add('hidden');
+    // Important: Stop the video from playing in the background
+    youtubePlayerContainer.innerHTML = '';
+}
+
 
 // FIX 1.1: The entire renderPlanView function is updated for correct goal sorting.
 async function renderPlanView() {
@@ -272,6 +320,15 @@ if (addTopicBtn) {
 }
 
 appContainer.addEventListener('click', async (event) => {
+    // FIX 3.3: Add logic to handle clicks on YouTube links
+    const youtubeLink = event.target.closest('.youtube-link');
+    if (youtubeLink) {
+        event.preventDefault(); // Prevent the link from opening a new tab
+        const videoId = youtubeLink.dataset.videoId;
+        openYoutubeModal(videoId);
+        return;
+    }
+
     const editButton = event.target.closest('.edit-btn');
     const toggleLogsButton = event.target.closest('.toggle-logs-btn');
     const reopenButton = event.target.closest('.reopen-goal-btn');
@@ -518,5 +575,14 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         currentUser = null;
         appContainer.classList.add('hidden');
         authContainer.classList.remove('hidden');
+    }
+});
+
+// event listeners to close the YouTube modal
+youtubeModalCloseBtn.addEventListener('click', closeYoutubeModal);
+youtubeModal.addEventListener('click', (event) => {
+    // Only close if the click is on the overlay itself, not the content
+    if (event.target === event.currentTarget) {
+        closeYoutubeModal();
     }
 });
