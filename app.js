@@ -274,6 +274,21 @@ window.dataLayer = {
             return [];
         }
         return data;
+    },
+
+    async fetchLogsByDateRange(startDate, endDate) {
+        const { data, error } = await supabaseClient
+            .from('logs')
+            .select('*, goals(*, topics(*))')
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching logs:', error);
+            return [];
+        }
+        return data;
     }
 };
 

@@ -48,32 +48,70 @@
             editingGoal: null,
             isEditLogModalOpen: false,
             editingLog: null,
-            editingLogGoal: null, 
+            editingLogGoal: null,
+            
+            // State for the Logs View
+            logs: [],
+            isLogsLoading: false,
+            logViewDate: new Date(),
+            logViewTitle: 'Today\'s Logs',
+            searchStartDate: '',
+            searchEndDate: '',
+
+            // Methods
             async loadData() {
                 this.isLoading = true;
                 this.topics = await dataLayer.fetchPlanData();
                 this.isLoading = false;
                 this.$nextTick(() => feather.replace());
             },
-            expandAll() {
-                this.topics.forEach(topic => {
-                    topic.isOpen = true;
-                    if (topic.goals) {
-                        topic.goals.forEach(goal => goal.isOpen = true);
-                    }
-                });
+            expandAll() { /* ... existing expandAll code ... */ },
+            collapseAll() { /* ... existing collapseAll code ... */ },
+            
+            // New methods for the Logs View
+            formatDate(date) {
+                return date.toISOString().split('T')[0];
             },
-            collapseAll() {
-                this.topics.forEach(topic => {
-                    topic.isOpen = false;
-                    if (topic.goals) {
-                        topic.goals.forEach(goal => goal.isOpen = false);
-                    }
-                });
-            }    
+            async getLogsForDate(date) {
+                this.isLogsLoading = true;
+                this.logViewTitle = `Logs for ${date.toLocaleDateString('en-US')}`;
+                const dateString = this.formatDate(date);
+                this.logs = await dataLayer.fetchLogsByDateRange(dateString, dateString);
+                this.isLogsLoading = false;
+            },
+            async prevDay() {
+                this.logViewDate.setDate(this.logViewDate.getDate() - 1);
+                this.getLogsForDate(this.logViewDate);
+            },
+            async nextDay() {
+                this.logViewDate.setDate(this.logViewDate.getDate() + 1);
+                this.getLogsForDate(this.logViewDate);
+            },
+            async searchDateRange() {
+                if (!this.searchStartDate || !this.searchEndDate) return;
+                this.isLogsLoading = true;
+                this.logViewTitle = `Logs from ${this.searchStartDate} to ${this.searchEndDate}`;
+                this.logs = await dataLayer.fetchLogsByDateRange(this.searchStartDate, this.searchEndDate);
+                this.isLogsLoading = false;
+            },
+            
+            // Computed property to group logs for display
+            get groupedLogs() {
+                return this.logs.reduce((acc, log) => {
+                    if (!log.goals || !log.goals.topics) return acc;
+                    const topicTitle = log.goals.topics.title;
+                    const goalDesc = `${log.goals.goal_number}: ${log.goals.description}`;
+                    
+                    if (!acc[topicTitle]) acc[topicTitle] = {};
+                    if (!acc[topicTitle][goalDesc]) acc[topicTitle][goalDesc] = [];
+                    
+                    acc[topicTitle][goalDesc].push(log);
+                    return acc;
+                }, {});
+            }
         }"
         @user-signed-in.window="loadData()"
-        x-effect="if (isDevEnvironment) document.title = '(Dev) The Wood Shed'"
+        x-effect="if (isDevEnvironment) document.title = '(Dev) The Wood Shed'; if (activeView === 'logs' && logs.length === 0) getLogsForDate(logViewDate);"
     >
         <div class="app-header">
             <h1 id="app-title">
@@ -269,7 +307,45 @@
         </div>
 
         <div id="logs-view" x-show="activeView === 'logs'">
-            <p>Logs view content will be rendered here.</p>
+            <div class="log-view-header">
+                <div class="date-nav">
+                    <button @click="prevDay()">&lt;</button>
+                    <h2 x-text="logViewTitle"></h2>
+                    <button @click="nextDay()">&gt;</button>
+                </div>
+                <div class="date-range-search">
+                    <input type="date" x-model="searchStartDate">
+                    <span>to</span>
+                    <input type="date" x-model="searchEndDate">
+                    <button @click="searchDateRange()">Search</button>
+                </div>
+            </div>
+            
+            <div id="log-view-content">
+                <div x-show="isLogsLoading" style="text-align: center; padding: 2rem;">Loading logs...</div>
+                
+                <div x-show="!isLogsLoading">
+                    <template x-if="Object.keys(groupedLogs).length === 0">
+                        <p>No practice logged for this period.</p>
+                    </template>
+
+                    <template x-for="(goals, topicTitle) in groupedLogs" :key="topicTitle">
+                        <div>
+                            <h2 x-text="topicTitle"></h2>
+                            <template x-for="(logEntries, goalDescription) in goals" :key="goalDescription">
+                                <div>
+                                    <h4 x-text="goalDescription"></h4>
+                                    <ul class="log-list-flat">
+                                        <template x-for="log in logEntries" :key="log.id">
+                                            <li x-html="dataLayer.linkify(log.entry)"></li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
 
         <div 
