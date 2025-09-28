@@ -185,7 +185,7 @@
                                             </form>
 
                                             <ul class="log-list">
-                                                <template x-for="log in goal.logs" :key="log.id">
+                                                <template x-for="log in goal.logs.slice(0, goal.logsToShow)" :key="log.id">
                                                     <li>
                                                         <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
                                                         <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
@@ -195,6 +195,18 @@
                                                     </li>
                                                 </template>
                                             </ul>
+                                            <div class="log-controls">
+                                                <template x-if="goal.logs.length > 5 && goal.logsToShow < goal.logs.length">
+                                                    <button class="toggle-logs-btn" @click="goal.logsToShow = goal.logs.length">
+                                                        Show All (<span x-text="goal.logs.length"></span>)
+                                                    </button>
+                                                </template>
+                                                <template x-if="goal.logsToShow > 5">
+                                                    <button class="toggle-logs-btn" @click="goal.logsToShow = 5">
+                                                        Show Less
+                                                    </button>
+                                                </template>
+                                            </div>
                                         </div>
                                     </details>
                                 </template>                                

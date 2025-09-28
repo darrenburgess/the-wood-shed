@@ -57,10 +57,11 @@ window.dataLayer = {
 
         // Add isOpen property for UI state
         for (const topic of topics) {
-            topic.isOpen = true; // Topics start expanded
+            topic.isOpen = true;
             if (topic.goals) {
                 for (const goal of topic.goals) {
-                    goal.isOpen = false; // Goals start collapsed
+                    goal.isOpen = true;
+                    goal.logsToShow = 5; // This line initializes the property
                 }
             }
         }
