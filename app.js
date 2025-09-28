@@ -30,32 +30,34 @@ function initializeSupabaseClient() {
 const supabaseClient = initializeSupabaseClient();
 
 // --- DATA LAYER ---
-async function fetchPlanData() {
-    const { data: topics, error } = await supabaseClient
-        .from('topics')
-        .select('id, topic_number, title, goals(*, logs(*))')
-        .order('topic_number', { ascending: true });
+window.dataLayer = {
+    async fetchPlanData() {
+        const { data: topics, error } = await supabaseClient
+            .from('topics')
+            .select('id, topic_number, title, goals(*, logs(*))')
+            .order('topic_number', { ascending: true });
 
-    if (error) {
-        console.error('Error fetching plan data:', error);
-        return [];
-    }
-
-    // Handle numerical sorting of goals before returning the data
-    for (const topic of topics) {
-        if (topic.goals) {
-            topic.goals.sort((a, b) => {
-                const aParts = a.goal_number.split('.').map(Number);
-                const bParts = b.goal_number.split('.').map(Number);
-                if (aParts[0] !== bParts[0]) {
-                    return aParts[0] - bParts[0];
-                }
-                return aParts[1] - bParts[1];
-            });
+        if (error) {
+            console.error('Error fetching plan data:', error);
+            return [];
         }
+
+        // Handle numerical sorting of goals
+        for (const topic of topics) {
+            if (topic.goals) {
+                topic.goals.sort((a, b) => {
+                    const aParts = a.goal_number.split('.').map(Number);
+                    const bParts = b.goal_number.split('.').map(Number);
+                    if (aParts[0] !== bParts[0]) {
+                        return aParts[0] - bParts[0];
+                    }
+                    return aParts[1] - bParts[1];
+                });
+            }
+        }
+        return topics;
     }
-    return topics;
-}
+};
 
 // --- GLOBAL APP STATE ---
 

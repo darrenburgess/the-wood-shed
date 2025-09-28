@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jazz Guitar Practice Plan</title>
+    <title>The Wood Shed</title>
 
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" defer></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="app.js" defer></script>
-    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -19,7 +18,7 @@
 <body>
 
     <div id="auth-container" class="container">
-        <h1>Practice Planner</h1>
+        <h1>The Wood Shed</h1>
         <form id="auth-form">
             <input type="email" id="auth-email" placeholder="Email" required>
             <input type="password" id="auth-password" placeholder="Password" required>
@@ -41,14 +40,14 @@
             activeView: 'plan',
             async loadData() {
                 this.isLoading = true;
-                this.topics = await fetchPlanData();
+                this.topics = await dataLayer.fetchPlanData();
                 this.isLoading = false;
             }
         }"
         x-init="loadData()"
     >
         <div class="app-header">
-            <h1 id="app-title">Jazz Guitar Practice Plan</h1>
+            <h1 id="app-title">The Wood Shed</h1>
             <button id="sign-out-btn" @click="supabaseClient.auth.signOut()">Sign Out</button>
         </div>
         
@@ -70,9 +69,31 @@
                             </h2>
                             </summary>
                         <div class="topic-content">
-                            <p style="padding-left: 1.5rem; color: #718096;">
-                                <i>Goals will be rendered here...</i>
-                            </p>
+                            <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
+                                <details class="goal-details">
+                                    <summary class="summary-flex">
+                                        <span class="goal-text">
+                                            <strong><span x-text="goal.goal_number"></span>:</strong>
+                                            <span x-text="goal.description"></span>
+                                        </span>
+                                        </summary>
+                                    </details>
+                            </template>
+
+                            <template x-if="topic.goals.some(g => g.is_complete)">
+                                <div>
+                                    <h4>Completed Goals</h4>
+                                    <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
+                                        <div class="goal-details completed-goal">
+                                            <span class="goal-text">
+                                                <strong><span x-text="goal.goal_number"></span>:</strong>
+                                                <span x-text="goal.description"></span>
+                                                <em>(Completed: <span x-text="new Date(goal.date_completed).toLocaleDateString()"></span>)</em>
+                                            </span>
+                                            </div>
+                                    </template>
+                                </div>
+                            </template>
                         </div>
                     </details>
                 </template>
