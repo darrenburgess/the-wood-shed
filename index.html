@@ -71,7 +71,7 @@
             
             <div x-show="!isLoading">
                 <template x-for="topic in topics" :key="topic.id">
-                    <details class="topic-details" open>
+                    <details class="topic-details" :open="topic.isOpen" @toggle="topic.isOpen = $event.target.open">
                         <summary class="summary-flex">
                             <h2>
                                 Topic <span x-text="topic.topic_number"></span>: 

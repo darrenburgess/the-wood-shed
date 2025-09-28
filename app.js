@@ -55,7 +55,7 @@ window.dataLayer = {
             }
         }
 
-        // Add isOpen property for UI state
+        // Add isOpen property for UI state, making topics expanded by default
         for (const topic of topics) {
             topic.isOpen = true; 
         }
