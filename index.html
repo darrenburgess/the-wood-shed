@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Wood Shed</title>
+    <title>Jazz Guitar Practice Plan</title>
 
     <link rel="stylesheet" href="style.css">
     
@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" defer></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="app.js" defer></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -18,7 +19,7 @@
 <body>
 
     <div id="auth-container" class="container">
-        <h1>The Wood Shed</h1>
+        <h1>Practice Planner</h1>
         <form id="auth-form">
             <input type="email" id="auth-email" placeholder="Email" required>
             <input type="password" id="auth-password" placeholder="Password" required>
@@ -30,67 +31,45 @@
         <p id="auth-error" class="error-message hidden"></p>
     </div>
 
-    <div class="container hidden" id="app-container">
+    <div 
+        class="container hidden" 
+        id="app-container"
+        x-data="{ 
+            currentUser: null,
+            topics: [],
+            isLoading: true,
+            activeView: 'plan'
+        }"
+        x-init="
+            // This runs when the component is initialized
+            currentUser = supabaseClient.auth.getUser(); // Example of getting user
+            // We will add the function to fetch topics here
+            console.log('Alpine component initialized.');
+        "
+    >
         <div class="app-header">
             <h1 id="app-title">Jazz Guitar Practice Plan</h1>
-            <button id="sign-out-btn">Sign Out</button>
+            <button id="sign-out-btn" @click="supabaseClient.auth.signOut()">Sign Out</button>
         </div>
         
         <div class="tabs">
-            <button class="tab-btn active" data-view="plan-view">Plan</button>
-            <button class="tab-btn" data-view="today-view">Logs</button>
+            <button class="tab-btn" :class="{ 'active': activeView === 'plan' }" @click="activeView = 'plan'">Plan</button>
+            <button class="tab-btn" :class="{ 'active': activeView === 'logs' }" @click="activeView = 'logs'">Logs</button>
         </div>
 
-        <div id="plan-view" class="view active">
-            <div class="main-controls">
-                <button id="add-topic-btn" class="btn-new">New Topic</button>
-                <button id="expand-all-btn">Expand All</button>
-                <button id="collapse-all-btn">Collapse All</button>
+        <div id="plan-view" x-show="activeView === 'plan'">
+            <div x-show="isLoading">Loading your plan...</div>
+            
+            <div x-show="!isLoading">
+                <p>Plan content will be rendered here.</p>
             </div>
-            <div id="planner-content"></div>
         </div>
 
-        <div id="today-view" class="view">
-            <div class="log-view-header">
-                <div class="date-nav">
-                    <button id="prev-day-btn">&lt;</button>
-                    <h2 id="log-view-date">Today's Logs</h2>
-                    <button id="next-day-btn">&gt;</button>
-                </div>
-                <div class="date-range-search">
-                    <input type="date" id="start-date">
-                    <span>to</span>
-                    <input type="date" id="end-date">
-                    <button id="search-range-btn">Search</button>
-                </div>
-            </div>
-            <div id="log-view-content"></div>
+        <div id="logs-view" x-show="activeView === 'logs'">
+            <p>Logs view content will be rendered here.</p>
         </div>
+
     </div>
 
-    <div id="edit-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 id="modal-title">Edit Item</h3>
-            <textarea id="modal-input"></textarea>
-            <div class="modal-actions">
-                <div>
-                    <button id="modal-delete-btn" class="btn-delete">Delete</button>
-                    <button id="modal-complete-btn">Complete Goal</button>
-                </div>
-                <div class="right-actions">
-                    <button id="modal-cancel-btn">Cancel</button>
-                    <button id="modal-save-btn" class="btn-save">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="youtube-modal" class="modal-overlay hidden">
-        <div class="modal-content youtube-modal-content">
-        <button id="youtube-modal-close-btn" class="modal-close-btn">&times;</button>
-        <div id="youtube-player-container"></div>
-    </div>
-</div>
-</div>
-</body>
+    </body>
 </html>
