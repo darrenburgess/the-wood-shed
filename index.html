@@ -169,7 +169,9 @@
                             @click="
                                 const newTopic = await dataLayer.addTopic(newTopicTitle);
                                 if (newTopic) {
-                                    // Add the new topic to our local array so the UI updates
+                                    // Add the missing properties to match the expected data shape
+                                    newTopic.goals = []; 
+                                    newTopic.isOpen = true;
                                     topics.push(newTopic); 
                                 }
                                 // Close the modal and reset the input field

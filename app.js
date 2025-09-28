@@ -88,7 +88,14 @@ window.dataLayer = {
     },
 
     async addTopic(title) {
-        // Find the highest existing topic_number for the current user
+        // 1. Get the current user's ID using the new async method
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+        if (userError || !user) {
+            console.error("No user logged in or error fetching user:", userError);
+            return null;
+        }
+
+        // 2. Find the highest existing topic_number for this user
         const { data: topics, error: fetchError } = await supabaseClient
             .from('topics')
             .select('topic_number')
@@ -102,25 +109,25 @@ window.dataLayer = {
 
         const nextTopicNumber = topics.length > 0 ? topics[0].topic_number + 1 : 1;
 
-        // Insert the new topic
+        // 3. Insert the new topic with the correct user id
         const { data: newTopic, error: insertError } = await supabaseClient
             .from('topics')
             .insert({ 
                 title: title, 
                 topic_number: nextTopicNumber, 
-                user_id: supabaseClient.auth.user().id // Get current user's ID
+                user_id: user.id 
             })
-            .select()
+            .select('*') // Select all columns to get the full new topic object
             .single();
 
         if (insertError) {
             console.error('Error adding new topic:', insertError);
             return null;
         }
-
-        // Return the newly created topic object
+        
+        // 4. Return the newly created topic object so the UI can update instantly
         return newTopic;
-    }    
+    }
 
 };
 
