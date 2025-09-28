@@ -46,6 +46,9 @@
             editingTopic: null,
             isEditGoalModalOpen: false,
             editingGoal: null,
+            isEditLogModalOpen: false,
+            editingLog: null,
+            editingLogGoal: null, 
             async loadData() {
                 this.isLoading = true;
                 this.topics = await dataLayer.fetchPlanData();
@@ -124,17 +127,77 @@
                                             </button>
                                         </summary>
                                         <div>
+                                            <form 
+                                                class="add-log-form"
+                                                x-data="{ 
+                                                    newLogEntry: '',
+                                                    searchOpen: false, 
+                                                    searchTerm: '', 
+                                                    searchResults: [], 
+                                                    isLoading: false, 
+                                                    selectedContent: [] 
+                                                }"
+                                                @submit.prevent="
+                                                    const newLog = await dataLayer.addLog(goal.id, newLogEntry, selectedContent.map(c => c.id));
+                                                    if (newLog) {
+                                                        newLog.content = selectedContent; // Attach content locally for display
+                                                        goal.logs.unshift(newLog); // Add to beginning of logs list
+                                                        newLogEntry = '';
+                                                        selectedContent = [];
+                                                        $nextTick(() => feather.replace());
+                                                    }
+                                                "
+                                            >
+                                                <input type="text" name="logEntry" class="log-input" placeholder="New log entry..." required x-model="newLogEntry">
+                                                <button type="button" @click="searchOpen = !searchOpen" class="content-btn" title="Add Content">🔗</button>
+                                                <button type="submit">Add Log</button>
+
+                                                <div x-show="searchOpen" @click.outside="searchOpen = false" class="search-panel">
+                                                    <input 
+                                                        type="text" 
+                                                        x-model.debounce.300ms="
+                                                            isLoading = true; 
+                                                            dataLayer.searchContent(searchTerm).then(data => { 
+                                                                searchResults = data; 
+                                                                isLoading = false;
+                                                            })
+                                                        " 
+                                                        placeholder="Search your content library..." 
+                                                        class="search-input"
+                                                    >
+                                                    <ul x-show="!isLoading" class="results-list">
+                                                        <template x-for="result in searchResults" :key="result.id">
+                                                            <li @click="selectedContent.push(result); searchOpen = false; searchTerm = ''">
+                                                                <span x-text="result.title"></span>
+                                                            </li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+
+                                                <div class="pills-container">
+                                                    <template x-for="item in selectedContent" :key="item.id">
+                                                        <span class="pill">
+                                                            <span x-text="item.title"></span>
+                                                            <button type="button" @click="selectedContent = selectedContent.filter(c => c.id !== item.id)">×</button>
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </form>
+
                                             <ul class="log-list">
                                                 <template x-for="log in goal.logs" :key="log.id">
                                                     <li>
                                                         <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
                                                         <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+                                                        <button class="edit-btn" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
+                                                            <i data-feather="edit-2"></i>
+                                                        </button>
                                                     </li>
                                                 </template>
                                             </ul>
                                         </div>
                                     </details>
-                                </template>
+                                </template>                                
 
                                 <template x-if="topic.goals.some(g => g.is_complete)">
                                     <div>
@@ -319,6 +382,46 @@
             </div>
         </div>
 
+        <div 
+            class="modal-overlay" 
+            x-show="isEditLogModalOpen" 
+            x-cloak 
+            @keydown.escape.window="isEditLogModalOpen = false"
+        >
+            <div class="modal-content" @click.outside="isEditLogModalOpen = false">
+                <h3>Edit Log</h3>
+                <template x-if="editingLog">
+                    <textarea x-model="editingLog.entry"></textarea>
+                </template>
+                <div class="modal-actions">
+                    <div>
+                        <button 
+                            class="btn-delete"
+                            @click="
+                                if (confirm('Are you sure you want to delete this log entry?')) {
+                                    dataLayer.deleteLog(editingLog.id);
+                                    // Remove log from local state for instant UI update
+                                    if (editingLogGoal) {
+                                        editingLogGoal.logs = editingLogGoal.logs.filter(l => l.id !== editingLog.id);
+                                    }
+                                    isEditLogModalOpen = false;
+                                }
+                            "
+                        >Delete</button>
+                    </div>
+                    <div class="right-actions">
+                        <button @click="isEditLogModalOpen = false">Cancel</button>
+                        <button 
+                            class="btn-save"
+                            @click="
+                                dataLayer.updateLog(editingLog.id, editingLog.entry);
+                                isEditLogModalOpen = false; 
+                            "
+                        >Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

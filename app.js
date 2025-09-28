@@ -203,6 +203,76 @@ window.dataLayer = {
             return null;
         }
         return updatedGoal;
+    },
+
+    async addLog(goalId, entryText, contentIds = []) {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return null;
+
+        // 1. Insert the main log entry and get its new ID
+        const { data: newLog, error: logError } = await supabaseClient
+            .from('logs')
+            .insert({ 
+                goal_id: goalId, 
+                entry: entryText, 
+                date: new Date().toISOString().split('T')[0], 
+                user_id: user.id 
+            })
+            .select()
+            .single();
+
+        if (logError) {
+            console.error('Error creating log:', logError);
+            return null;
+        }
+
+        // 2. If content was selected, link it to the new log
+        if (contentIds.length > 0) {
+            const linksToCreate = contentIds.map(contentId => ({
+                log_id: newLog.id,
+                content_id: contentId
+            }));
+            
+            const { error: linkError } = await supabaseClient
+                .from('log_content')
+                .insert(linksToCreate);
+            
+            if (linkError) {
+                console.error('Error linking content:', linkError);
+            }
+        }
+        return newLog;
+    },
+
+    async updateLog(logId, newEntry) {
+        const { error } = await supabaseClient
+            .from('logs')
+            .update({ entry: newEntry })
+            .eq('id', logId);
+        if (error) console.error('Error updating log:', error);
+    },
+
+    async deleteLog(logId) {
+        const { error } = await supabaseClient
+            .from('logs')
+            .delete()
+            .eq('id', logId);
+        if (error) console.error('Error deleting log:', error);
+    },
+
+    async searchContent(searchTerm) {
+        if (searchTerm.length < 2) return [];
+        const { data, error } = await supabaseClient
+            .from('content')
+            .select('id, title')
+            .ilike('title', `%${searchTerm}%`)
+            .limit(10);
+
+        if (error) {
+            console.error('Error searching content:', error);
+            return [];
+        }
+        return data;
     }
 };
 
