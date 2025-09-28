@@ -39,6 +39,8 @@
             isLoading: true,
             activeView: 'plan',
             isDevEnvironment: (window.location.hostname === 'localhost' || window.location.protocol === 'file:'),
+            isNewTopicModalOpen: false,
+            newTopicTitle: '',
             async loadData() {
                 this.isLoading = true;
                 this.topics = await dataLayer.fetchPlanData();
@@ -91,74 +93,98 @@
                                 <span x-text="topic.title"></span>
                             </h2>
                         </summary>
-                    <div class="topic-content">
-                        <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
-                            <details class="goal-details" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
-                                <summary class="summary-flex">
-                                    <span class="goal-text">
-                                        <strong><span x-text="goal.goal_number"></span>:</strong>
-                                        <span x-text="goal.description"></span>
-                                    </span>
-                                    </summary>
-                                <div>
-                                    <ul class="log-list">
-                                        <template x-for="log in goal.logs" :key="log.id">
-                                            <li>
-                                                <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
-                                                <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
-                                                </li>
-                                        </template>
-                                    </ul>
-                                </div>
-                            </details>
-                        </template>
-
-                        <template x-if="topic.goals.some(g => g.is_complete)">
-                            <div>
-                                <h4>Completed Goals</h4>
-                                <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
-                                    <details class="goal-details :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
-                                        <summary class="summary-flex">
-                                            <span class="goal-text">
-                                                <strong><span x-text="goal.goal_number"></span>:</strong>
-                                                <span x-text="goal.description"></span>
-                                                <em>(Completed: <span x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
-                                            </span>
-                                            </summary>
-                                        <div>
+                        
+                        <div class="topic-content">
+                            <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
+                                <details class="goal-details" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
+                                    <summary class="summary-flex">
+                                        <span class="goal-text">
+                                            <strong><span x-text="goal.goal_number"></span>:</strong>
+                                            <span x-text="goal.description"></span>
+                                        </span>
+                                        </summary>
+                                    <div>
                                         <ul class="log-list">
                                             <template x-for="log in goal.logs" :key="log.id">
                                                 <li>
                                                     <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
                                                     <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
-                                                </li>
+                                                    </li>
                                             </template>
                                         </ul>
                                     </div>
-                                    </details>
-                                </template>
-                            </div>
-                        </template>
-                    </div>                        
-                    </details>
+                                </details>
+                            </template>
+
+                            <template x-if="topic.goals.some(g => g.is_complete)">
+                                <div>
+                                    <h4>Completed Goals</h4>
+                                    <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
+                                        <details class="goal-details completed-goal" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
+                                            <summary class="summary-flex">
+                                                <span class="goal-text">
+                                                    <strong><span x-text="goal.goal_number"></span>:</strong>
+                                                    <span x-text="goal.description"></span>
+                                                    <em>(Completed: <span x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
+                                                </span>
+                                                </summary>
+                                            <div>
+                                            <ul class="log-list">
+                                                <template x-for="log in goal.logs" :key="log.id">
+                                                    <li>
+                                                        <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
+                                                        <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                        </details>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>                        
+
+                   </details>
                 </template>
             </div>
         </div>
 
-        <div id="logs-view" x-show="activeView === 'logs'">
-            <div>
-                <ul class="log-list">
-                    <template x-for="log in goal.logs" :key="log.id">
-                        <li>
-                            <span class="log-date" x-text="new Date(log.date).toLocaleDateString()"></span>:
-                            <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
-                            </li>
-                    </template>
-                </ul>
+        <div 
+            class="modal-overlay" 
+            x-show="isNewTopicModalOpen" 
+            x-cloak 
+            @keydown.escape.window="isNewTopicModalOpen = false"
+        >
+            <div class="modal-content" @click.outside="isNewTopicModalOpen = false">
+                <h3>Add New Topic</h3>
+                <textarea 
+                    x-model="newTopicTitle" 
+                    placeholder="Enter title for the new topic..."
+                ></textarea>
+                <div class="modal-actions">
+                    <div></div> <div class="right-actions">
+                        <button @click="isNewTopicModalOpen = false; newTopicTitle = ''">Cancel</button>
+                        <button 
+                            class="btn-save"
+                            @click="
+                                const newTopic = await dataLayer.addTopic(newTopicTitle);
+                                if (newTopic) {
+                                    // Add the new topic to our local array so the UI updates
+                                    topics.push(newTopic); 
+                                }
+                                // Close the modal and reset the input field
+                                isNewTopicModalOpen = false; 
+                                newTopicTitle = '';
+                            "
+                        >Save</button>
+                    </div>
+                </div>
             </div>
         </div>
 
+        <div id="logs-view" x-show="activeView === 'logs'">
+            <p>Logs view content will be rendered here.</p>
+        </div>
     </div>
-
 </body>
 </html>
