@@ -57,13 +57,18 @@ window.dataLayer = {
 
         // Add isOpen property for UI state
         for (const topic of topics) {
-            topic.isOpen = true; 
+            topic.isOpen = true; // Topics start expanded
+            if (topic.goals) {
+                for (const goal of topic.goals) {
+                    goal.isOpen = false; // Goals start collapsed
+                }
+            }
         }
 
         return topics;
-    }, // <-- Add this comma
-
-    // This is the same function from your old app.js
+    },
+    
+    // youtube links are turned into clickable links in the log
     linkify(text) {
         const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
         const youtubeRegex = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})(?:\S+)?$/;
@@ -80,7 +85,43 @@ window.dataLayer = {
                 return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
             }
         });
-    }
+    },
+
+    async addTopic(title) {
+        // Find the highest existing topic_number for the current user
+        const { data: topics, error: fetchError } = await supabaseClient
+            .from('topics')
+            .select('topic_number')
+            .order('topic_number', { ascending: false })
+            .limit(1);
+
+        if (fetchError) {
+            console.error('Error fetching latest topic number:', fetchError);
+            return null;
+        }
+
+        const nextTopicNumber = topics.length > 0 ? topics[0].topic_number + 1 : 1;
+
+        // Insert the new topic
+        const { data: newTopic, error: insertError } = await supabaseClient
+            .from('topics')
+            .insert({ 
+                title: title, 
+                topic_number: nextTopicNumber, 
+                user_id: supabaseClient.auth.user().id // Get current user's ID
+            })
+            .select()
+            .single();
+
+        if (insertError) {
+            console.error('Error adding new topic:', insertError);
+            return null;
+        }
+
+        // Return the newly created topic object
+        return newTopic;
+    }    
+
 };
 
 // SET UP AUTH LISTENER (This section USES the supabaseClient)

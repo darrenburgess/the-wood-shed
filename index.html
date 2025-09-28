@@ -15,8 +15,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
-<body>
 
+<body>
     <div id="auth-container" class="container">
         <h1>The Wood Shed</h1>
         <form id="auth-form">
@@ -43,7 +43,19 @@
                 this.isLoading = true;
                 this.topics = await dataLayer.fetchPlanData();
                 this.isLoading = false;
-            }
+            },
+            expandAll() {
+                this.topics.forEach(topic => {
+                    topic.isOpen = true;
+                    topic.goals.forEach(goal => goal.isOpen = true);
+                });
+            },
+            collapseAll() {
+                this.topics.forEach(topic => {
+                    topic.isOpen = false;
+                    topic.goals.forEach(goal => goal.isOpen = false);
+                });
+            }    
         }"
         @user-signed-in.window="loadData()"
         x-effect="if (isDevEnvironment) document.title = '(Dev) The Wood Shed'"
@@ -62,9 +74,10 @@
         </div>
 
         <div id="plan-view" x-show="activeView === 'plan'">
-            <div class="main-controls">
-               <button @click="topics.forEach(topic => topic.isOpen = true)">Expand All</button>
-                <button @click="topics.forEach(topic => topic.isOpen = false)">Collapse All</button>
+           <div class="main-controls">
+                <button id="add-topic-btn" @click="isNewTopicModalOpen = true" class="btn-new">New Topic</button>
+                <button @click="expandAll()">Expand All</button>
+                <button @click="collapseAll()">Collapse All</button>
             </div>
 
             <div x-show="isLoading" style="text-align: center; padding: 2rem;">Loading your plan...</div>
@@ -80,7 +93,7 @@
                         </summary>
                     <div class="topic-content">
                         <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
-                            <details class="goal-details">
+                            <details class="goal-details" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
                                 <summary class="summary-flex">
                                     <span class="goal-text">
                                         <strong><span x-text="goal.goal_number"></span>:</strong>
@@ -104,7 +117,7 @@
                             <div>
                                 <h4>Completed Goals</h4>
                                 <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
-                                    <details class="goal-details completed-goal">
+                                    <details class="goal-details :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
                                         <summary class="summary-flex">
                                             <span class="goal-text">
                                                 <strong><span x-text="goal.goal_number"></span>:</strong>
