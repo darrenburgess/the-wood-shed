@@ -64,7 +64,6 @@ window.dataLayer = {
     }
 };
 
-
 // SET UP AUTH LISTENER (This section USES the supabaseClient)
 supabaseClient.auth.onAuthStateChange((event, session) => {
     const authContainer = document.getElementById('auth-container');
@@ -83,4 +82,53 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         appContainer.classList.add('hidden');
         authContainer.classList.remove('hidden');
     }
+});
+// --- AUTH UI LISTENERS ---
+
+// Get references to the authentication form elements
+const authForm = document.getElementById('auth-form');
+const emailInput = document.getElementById('auth-email');
+const passwordInput = document.getElementById('auth-password');
+const signUpBtn = document.getElementById('sign-up-btn');
+const authError = document.getElementById('auth-error');
+const signOutBtn = document.getElementById('sign-out-btn');
+
+
+// Handle Sign In (when the form is submitted)
+authForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const { error } = await supabaseClient.auth.signInWithPassword({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+
+    if (error) {
+        authError.textContent = error.message;
+        authError.classList.remove('hidden');
+    } else {
+        authError.classList.add('hidden');
+        // The onAuthStateChange listener will automatically show the app
+    }
+});
+
+// Handle Sign Up
+signUpBtn.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signUp({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+
+    if (error) {
+        authError.textContent = error.message;
+        authError.classList.remove('hidden');
+    } else {
+        // Clear any previous errors and show a success message
+        authError.textContent = 'Check your email for a confirmation link!';
+        authError.classList.remove('hidden');
+    }
+});
+
+// Handle Sign Out
+signOutBtn.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
 });
