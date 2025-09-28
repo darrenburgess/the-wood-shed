@@ -1,15 +1,12 @@
-// ============================================================================
-// APP.JS - The "Brain" of the Application
-// ============================================================================
-
+// DEFINE HOW TO CREATE THE CLIENT
 function initializeSupabaseClient() {
     // Production Keys
     const PROD_SUPABASE_URL = 'https://qjjjxesxlfmrnmzibdzg.supabase.co';
-    const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqamp4ZXN4bGZtcm5temliZHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1Njc5NTcsImV4cCI6MjA3MjE0Mzk1N30.ytUXWzmzsIcsfRqSLI6zZbBElrOTUnG6kI1EnLEqQvU'; 
+    const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqamp4ZXN4bGZtcm5temliZHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1Njc5NTcsImV4cCI6MjA3MjE0Mzk1N30.ytUXWzmzsIcsfRqSLI6zZbBElrOTUnG6kI1EnLEqQvU'; // Make sure this is filled in
 
     // Development Keys
-    const DEV_SUPABASE_URL = 'https://aqtowjfapsviqlpiqxky.supabase.co'; 
-    const DEV_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxdG93amZhcHN2aXFscGlxeGt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwNjEwNTIsImV4cCI6MjA3NDYzNzA1Mn0.TCSdF3ZSJmydJdW4-vXf68ABbWwu7UGWe5VRapA5-wE'; // Paste your new dev project key here
+    const DEV_SUPABASE_URL = 'https://aqtowjfapsviqlpiqxky.supabase.co';
+    const DEV_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxdG93amZhcHN2aXFscGlxeGt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwNjEwNTIsImV4cCI6MjA3NDYzNzA1Mn0.TCSdF3ZSJmydJdW4-vXf68ABbWwu7UGWe5VRapA5-wE'; // Make sure this is filled in
 
     let supabaseUrl;
     let supabaseAnonKey;
@@ -27,9 +24,11 @@ function initializeSupabaseClient() {
     return supabase.createClient(supabaseUrl, supabaseAnonKey);
 }
 
+// CREATE THE CLIENT (MUST BE BEFORE ANYTHING THAT USES IT)
 const supabaseClient = initializeSupabaseClient();
 
-// --- DATA LAYER ---
+
+// DEFINE THE DATA LAYER (This section USES the supabaseClient)
 window.dataLayer = {
     async fetchPlanData() {
         const { data: topics, error } = await supabaseClient
@@ -55,14 +54,18 @@ window.dataLayer = {
                 });
             }
         }
+
+        // Add isOpen property for UI state
+        for (const topic of topics) {
+            topic.isOpen = true; 
+        }
+
         return topics;
     }
 };
 
-// --- GLOBAL APP STATE ---
 
-// The main Alpine.js component will control the UI, but we can listen for auth
-// changes to show/hide the main app vs the login form.
+// SET UP AUTH LISTENER (This section USES the supabaseClient)
 supabaseClient.auth.onAuthStateChange((event, session) => {
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
@@ -71,6 +74,10 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         // User is signed in
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
+        
+        // Send the "ready" signal to our Alpine component
+        window.dispatchEvent(new CustomEvent('user-signed-in'));
+
     } else {
         // User is signed out
         appContainer.classList.add('hidden');

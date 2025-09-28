@@ -45,7 +45,7 @@
                 this.isLoading = false;
             }
         }"
-        x-init="loadData()"
+        @user-signed-in.window="loadData()"
         x-effect="if (isDevEnvironment) document.title = '(Dev) The Wood Shed'"
     >
         <div class="app-header">
@@ -62,6 +62,11 @@
         </div>
 
         <div id="plan-view" x-show="activeView === 'plan'">
+            <div class="main-controls">
+               <button @click="topics.forEach(topic => topic.isOpen = true)">Expand All</button>
+                <button @click="topics.forEach(topic => topic.isOpen = false)">Collapse All</button>
+            </div>
+
             <div x-show="isLoading" style="text-align: center; padding: 2rem;">Loading your plan...</div>
             
             <div x-show="!isLoading">
