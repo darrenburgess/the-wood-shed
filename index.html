@@ -38,14 +38,14 @@
             currentUser: null,
             topics: [],
             isLoading: true,
-            activeView: 'plan'
+            activeView: 'plan',
+            async loadData() {
+                this.isLoading = true;
+                this.topics = await fetchPlanData();
+                this.isLoading = false;
+            }
         }"
-        x-init="
-            // This runs when the component is initialized
-            currentUser = supabaseClient.auth.getUser(); // Example of getting user
-            // We will add the function to fetch topics here
-            console.log('Alpine component initialized.');
-        "
+        x-init="loadData()"
     >
         <div class="app-header">
             <h1 id="app-title">Jazz Guitar Practice Plan</h1>
@@ -58,10 +58,24 @@
         </div>
 
         <div id="plan-view" x-show="activeView === 'plan'">
-            <div x-show="isLoading">Loading your plan...</div>
+            <div x-show="isLoading" style="text-align: center; padding: 2rem;">Loading your plan...</div>
             
             <div x-show="!isLoading">
-                <p>Plan content will be rendered here.</p>
+                <template x-for="topic in topics" :key="topic.id">
+                    <details class="topic-details" open>
+                        <summary class="summary-flex">
+                            <h2>
+                                Topic <span x-text="topic.topic_number"></span>: 
+                                <span x-text="topic.title"></span>
+                            </h2>
+                            </summary>
+                        <div class="topic-content">
+                            <p style="padding-left: 1.5rem; color: #718096;">
+                                <i>Goals will be rendered here...</i>
+                            </p>
+                        </div>
+                    </details>
+                </template>
             </div>
         </div>
 
@@ -71,5 +85,5 @@
 
     </div>
 
-    </body>
+</body>
 </html>
