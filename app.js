@@ -30,8 +30,32 @@ function initializeSupabaseClient() {
 const supabaseClient = initializeSupabaseClient();
 
 // --- DATA LAYER ---
-// (We will add all our data-fetching functions here, e.g., fetchPlanData, addLog, etc.)
+async function fetchPlanData() {
+    const { data: topics, error } = await supabaseClient
+        .from('topics')
+        .select('id, topic_number, title, goals(*, logs(*))')
+        .order('topic_number', { ascending: true });
 
+    if (error) {
+        console.error('Error fetching plan data:', error);
+        return [];
+    }
+
+    // Handle numerical sorting of goals before returning the data
+    for (const topic of topics) {
+        if (topic.goals) {
+            topic.goals.sort((a, b) => {
+                const aParts = a.goal_number.split('.').map(Number);
+                const bParts = b.goal_number.split('.').map(Number);
+                if (aParts[0] !== bParts[0]) {
+                    return aParts[0] - bParts[0];
+                }
+                return aParts[1] - bParts[1];
+            });
+        }
+    }
+    return topics;
+}
 
 // --- GLOBAL APP STATE ---
 
