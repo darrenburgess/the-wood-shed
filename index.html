@@ -38,6 +38,7 @@
             topics: [],
             isLoading: true,
             activeView: 'plan',
+            isDevEnvironment: (window.location.hostname === 'localhost' || window.location.protocol === 'file:'),
             async loadData() {
                 this.isLoading = true;
                 this.topics = await dataLayer.fetchPlanData();
@@ -45,9 +46,13 @@
             }
         }"
         x-init="loadData()"
+        x-effect="if (isDevEnvironment) document.title = '(Dev) The Wood Shed'"
     >
         <div class="app-header">
-            <h1 id="app-title">The Wood Shed</h1>
+            <h1 id="app-title">
+                The Wood Shed
+                <span x-show="isDevEnvironment" style="font-weight: 500; color: #a0aec0;">(Dev)</span>
+            </h1>
             <button id="sign-out-btn" @click="supabaseClient.auth.signOut()">Sign Out</button>
         </div>
         
