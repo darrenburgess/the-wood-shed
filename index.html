@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="app.js" defer></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" defer></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,21 +42,28 @@
             isDevEnvironment: (window.location.hostname === 'localhost' || window.location.protocol === 'file:'),
             isNewTopicModalOpen: false,
             newTopicTitle: '',
+            isEditTopicModalOpen: false,
+            editingTopic: null,
             async loadData() {
                 this.isLoading = true;
                 this.topics = await dataLayer.fetchPlanData();
                 this.isLoading = false;
+                this.$nextTick(() => feather.replace());
             },
             expandAll() {
                 this.topics.forEach(topic => {
                     topic.isOpen = true;
-                    topic.goals.forEach(goal => goal.isOpen = true);
+                    if (topic.goals) {
+                        topic.goals.forEach(goal => goal.isOpen = true);
+                    }
                 });
             },
             collapseAll() {
                 this.topics.forEach(topic => {
                     topic.isOpen = false;
-                    topic.goals.forEach(goal => goal.isOpen = false);
+                    if (topic.goals) {
+                        topic.goals.forEach(goal => goal.isOpen = false);
+                    }
                 });
             }    
         }"
@@ -92,43 +100,25 @@
                                 Topic <span x-text="topic.topic_number"></span>: 
                                 <span x-text="topic.title"></span>
                             </h2>
+                            <button 
+                                class="edit-btn" 
+                                @click.prevent="isEditTopicModalOpen = true; editingTopic = topic"
+                            >
+                                <i data-feather="edit-2"></i>
+                            </button> 
                         </summary>
                         
-                        <div class="topic-content">
-                            <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
-                                <details class="goal-details" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
-                                    <summary class="summary-flex">
-                                        <span class="goal-text">
-                                            <strong><span x-text="goal.goal_number"></span>:</strong>
-                                            <span x-text="goal.description"></span>
-                                        </span>
-                                        </summary>
-                                    <div>
-                                        <ul class="log-list">
-                                            <template x-for="log in goal.logs" :key="log.id">
-                                                <li>
-                                                    <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
-                                                    <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
-                                                    </li>
-                                            </template>
-                                        </ul>
-                                    </div>
-                                </details>
-                            </template>
-
-                            <template x-if="topic.goals.some(g => g.is_complete)">
-                                <div>
-                                    <h4>Completed Goals</h4>
-                                    <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
-                                        <details class="goal-details completed-goal" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
-                                            <summary class="summary-flex">
-                                                <span class="goal-text">
-                                                    <strong><span x-text="goal.goal_number"></span>:</strong>
-                                                    <span x-text="goal.description"></span>
-                                                    <em>(Completed: <span x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
-                                                </span>
-                                                </summary>
-                                            <div>
+                        <div>
+                            <div class="topic-content">
+                                <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
+                                    <details class="goal-details" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
+                                        <summary class="summary-flex">
+                                            <span class="goal-text">
+                                                <strong><span x-text="goal.goal_number"></span>:</strong>
+                                                <span x-text="goal.description"></span>
+                                            </span>
+                                            </summary>
+                                        <div>
                                             <ul class="log-list">
                                                 <template x-for="log in goal.logs" :key="log.id">
                                                     <li>
@@ -138,15 +128,44 @@
                                                 </template>
                                             </ul>
                                         </div>
-                                        </details>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>                        
+                                    </details>
+                                </template>
 
-                   </details>
+                                <template x-if="topic.goals.some(g => g.is_complete)">
+                                    <div>
+                                        <h4>Completed Goals</h4>
+                                        <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
+                                            <details class="goal-details completed-goal" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
+                                                <summary class="summary-flex">
+                                                    <span class="goal-text">
+                                                        <strong><span x-text="goal.goal_number"></span>:</strong>
+                                                        <span x-text="goal.description"></span>
+                                                        <em>(Completed: <span x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
+                                                    </span>
+                                                    </summary>
+                                                <div>
+                                                <ul class="log-list">
+                                                    <template x-for="log in goal.logs" :key="log.id">
+                                                        <li>
+                                                            <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
+                                                            <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </div>
+                                            </details>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>                       
+                        </div>
+                    </details>
                 </template>
             </div>
+        </div>
+
+        <div id="logs-view" x-show="activeView === 'logs'">
+            <p>Logs view content will be rendered here.</p>
         </div>
 
         <div 
@@ -169,12 +188,11 @@
                             @click="
                                 const newTopic = await dataLayer.addTopic(newTopicTitle);
                                 if (newTopic) {
-                                    // Add the missing properties to match the expected data shape
                                     newTopic.goals = []; 
                                     newTopic.isOpen = true;
                                     topics.push(newTopic); 
+                                    $nextTick(() => feather.replace());
                                 }
-                                // Close the modal and reset the input field
                                 isNewTopicModalOpen = false; 
                                 newTopicTitle = '';
                             "
@@ -184,9 +202,33 @@
             </div>
         </div>
 
-        <div id="logs-view" x-show="activeView === 'logs'">
-            <p>Logs view content will be rendered here.</p>
+        <div 
+            class="modal-overlay" 
+            x-show="isEditTopicModalOpen" 
+            x-cloak 
+            @keydown.escape.window="isEditTopicModalOpen = false"
+        >
+            <div class="modal-content" @click.outside="isEditTopicModalOpen = false">
+                <h3>Edit Topic</h3>
+                <template x-if="editingTopic">
+                    <textarea x-model="editingTopic.title"></textarea>
+                </template>
+                <div class="modal-actions">
+                    <div></div> <div class="right-actions">
+                        <button @click="isEditTopicModalOpen = false; editingTopic = null">Cancel</button>
+                        <button 
+                            class="btn-save"
+                            @click="
+                                dataLayer.updateTopicTitle(editingTopic.id, editingTopic.title);
+                                isEditTopicModalOpen = false; 
+                                editingTopic = null;
+                            "
+                        >Save Changes</button>
+                    </div>
+                </div>
+            </div>
         </div>
+
     </div>
 </body>
 </html>

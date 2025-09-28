@@ -127,6 +127,18 @@ window.dataLayer = {
         
         // 4. Return the newly created topic object so the UI can update instantly
         return newTopic;
+    },
+
+    async updateTopicTitle(topicId, newTitle) {
+        const { error } = await supabaseClient
+            .from('topics')
+            .update({ title: newTitle })
+            .eq('id', topicId);
+
+        if (error) {
+            console.error('Error updating topic title:', error);
+        }
+        // No need to return anything, the UI is already updated optimistically
     }
 
 };
