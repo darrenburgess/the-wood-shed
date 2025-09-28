@@ -55,12 +55,31 @@ window.dataLayer = {
             }
         }
 
-        // Add isOpen property for UI state, making topics expanded by default
+        // Add isOpen property for UI state
         for (const topic of topics) {
             topic.isOpen = true; 
         }
 
         return topics;
+    }, // <-- Add this comma
+
+    // This is the same function from your old app.js
+    linkify(text) {
+        const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+        const youtubeRegex = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})(?:\S+)?$/;
+
+        // This regex is simplified to just process URLs, not Markdown
+        return text.replace(urlRegex, (url) => {
+            const match = url.match(youtubeRegex);
+            const videoId = match ? match[1] : null;
+
+            if (videoId) {
+                // Use href="#" to prevent navigation, as Alpine will handle the click
+                return `<a class="youtube-link" data-video-id="${videoId}" href="#">${url}</a>`;
+            } else {
+                return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            }
+        });
     }
 };
 

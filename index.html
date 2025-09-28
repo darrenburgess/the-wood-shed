@@ -77,41 +77,72 @@
                                 Topic <span x-text="topic.topic_number"></span>: 
                                 <span x-text="topic.title"></span>
                             </h2>
-                            </summary>
-                        <div class="topic-content">
-                            <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
-                                <details class="goal-details">
-                                    <summary class="summary-flex">
-                                        <span class="goal-text">
-                                            <strong><span x-text="goal.goal_number"></span>:</strong>
-                                            <span x-text="goal.description"></span>
-                                        </span>
-                                        </summary>
-                                    </details>
-                            </template>
-
-                            <template x-if="topic.goals.some(g => g.is_complete)">
+                        </summary>
+                    <div class="topic-content">
+                        <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
+                            <details class="goal-details">
+                                <summary class="summary-flex">
+                                    <span class="goal-text">
+                                        <strong><span x-text="goal.goal_number"></span>:</strong>
+                                        <span x-text="goal.description"></span>
+                                    </span>
+                                    </summary>
                                 <div>
-                                    <h4>Completed Goals</h4>
-                                    <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
-                                        <div class="goal-details completed-goal">
+                                    <ul class="log-list">
+                                        <template x-for="log in goal.logs" :key="log.id">
+                                            <li>
+                                                <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
+                                                <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+                                                </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </details>
+                        </template>
+
+                        <template x-if="topic.goals.some(g => g.is_complete)">
+                            <div>
+                                <h4>Completed Goals</h4>
+                                <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
+                                    <details class="goal-details completed-goal">
+                                        <summary class="summary-flex">
                                             <span class="goal-text">
                                                 <strong><span x-text="goal.goal_number"></span>:</strong>
                                                 <span x-text="goal.description"></span>
-                                                <em>(Completed: <span x-text="new Date(goal.date_completed).toLocaleDateString()"></span>)</em>
+                                                <em>(Completed: <span x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
                                             </span>
-                                            </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
+                                            </summary>
+                                        <div>
+                                        <ul class="log-list">
+                                            <template x-for="log in goal.logs" :key="log.id">
+                                                <li>
+                                                    <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
+                                                    <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                    </details>
+                                </template>
+                            </div>
+                        </template>
+                    </div>                        
                     </details>
                 </template>
             </div>
         </div>
 
         <div id="logs-view" x-show="activeView === 'logs'">
-            <p>Logs view content will be rendered here.</p>
+            <div>
+                <ul class="log-list">
+                    <template x-for="log in goal.logs" :key="log.id">
+                        <li>
+                            <span class="log-date" x-text="new Date(log.date).toLocaleDateString()"></span>:
+                            <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+                            </li>
+                    </template>
+                </ul>
+            </div>
         </div>
 
     </div>
