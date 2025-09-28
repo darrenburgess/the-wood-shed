@@ -139,8 +139,42 @@ window.dataLayer = {
             console.error('Error updating topic title:', error);
         }
         // No need to return anything, the UI is already updated optimistically
-    }
+    },
 
+    async updateGoal(goalId, newDescription) {
+        const { error } = await supabaseClient
+            .from('goals')
+            .update({ description: newDescription })
+            .eq('id', goalId);
+        if (error) console.error('Error updating goal:', error);
+    },
+
+    async deleteGoal(goalId) {
+        const { error } = await supabaseClient
+            .from('goals')
+            .delete()
+            .eq('id', goalId);
+        if (error) console.error('Error deleting goal:', error);
+    },
+
+    async toggleGoalComplete(goal) {
+        const isNowComplete = !goal.is_complete;
+        const { data: updatedGoal, error } = await supabaseClient
+            .from('goals')
+            .update({
+                is_complete: isNowComplete,
+                date_completed: isNowComplete ? new Date().toISOString().split('T')[0] : null
+            })
+            .eq('id', goal.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error toggling goal complete status:', error);
+            return null;
+        }
+        return updatedGoal;
+    }
 };
 
 // SET UP AUTH LISTENER (This section USES the supabaseClient)
