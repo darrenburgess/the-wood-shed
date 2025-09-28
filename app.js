@@ -157,6 +157,35 @@ window.dataLayer = {
         if (error) console.error('Error deleting goal:', error);
     },
 
+    async addGoal(topic, description) {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return null;
+
+        // Calculate the next goal sub-number for this topic
+        const nextGoalSubNumber = topic.goals.length > 0 
+            ? Math.max(...topic.goals.map(g => Number(g.goal_number.split('.')[1] || 0))) + 1 
+            : 1;
+        const newGoalNumber = `${topic.topic_number}.${nextGoalSubNumber}`;
+
+        const { data: newGoal, error } = await supabaseClient
+            .from('goals')
+            .insert({
+                topic_id: topic.id,
+                description: description,
+                goal_number: newGoalNumber,
+                is_complete: false,
+                user_id: user.id
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error adding goal:', error);
+            return null;
+        }
+        return newGoal;
+    },
+
     async toggleGoalComplete(goal) {
         const isNowComplete = !goal.is_complete;
         const { data: updatedGoal, error } = await supabaseClient
@@ -196,6 +225,7 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         authContainer.classList.remove('hidden');
     }
 });
+
 // --- AUTH UI LISTENERS ---
 
 // Get references to the authentication form elements

@@ -167,6 +167,27 @@
                                 </template>
                             </div>                       
                         </div>
+
+                        <form 
+                            class="add-goal-form" 
+                            x-data="{ newGoalDescription: '' }"
+                            @submit.prevent="
+                                const newGoal = await dataLayer.addGoal(topic, newGoalDescription);
+                                if (newGoal) {
+                                    // Add the new goal to the topic's local array
+                                    newGoal.logs = [];
+                                    newGoal.isOpen = false;
+                                    topic.goals.push(newGoal);
+                                    $nextTick(() => feather.replace());
+                                    // Reset the input field
+                                    newGoalDescription = '';
+                                }
+                            "
+                        >
+                            <input type="text" x-model="newGoalDescription" class="goal-input" placeholder="New goal description..." required>
+                            <button type="submit">Add Goal</button>
+                        </form>
+
                     </details>
                 </template>
             </div>
