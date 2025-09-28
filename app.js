@@ -10,20 +10,6 @@ const DEV_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJz
 let supabaseUrl;
 let supabaseAnonKey;
 
-// Detect if we are running locally
-if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
-    console.log("Running in development mode.");
-    supabaseUrl = DEV_SUPABASE_URL;
-    supabaseAnonKey = DEV_SUPABASE_ANON_KEY;
-} else {
-    console.log("Running in production mode.");
-    supabaseUrl = PROD_SUPABASE_URL;
-    supabaseAnonKey = PROD_SUPABASE_ANON_KEY;
-}
-
-const { createClient } = supabase;
-const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-
 // --- Element References ---
 // Auth elements
 const authContainer = document.getElementById('auth-container');
@@ -37,6 +23,7 @@ const signOutBtn = document.getElementById('sign-out-btn');
 
 // App elements
 const appContainer = document.getElementById('app-container');
+const appTitle = document.getElementById('app-title');
 const plannerContent = document.getElementById('planner-content');
 const expandAllBtn = document.getElementById('expand-all-btn');
 const collapseAllBtn = document.getElementById('collapse-all-btn');
@@ -66,8 +53,21 @@ const youtubeModal = document.getElementById('youtube-modal');
 const youtubeModalCloseBtn = document.getElementById('youtube-modal-close-btn');
 const youtubePlayerContainer = document.getElementById('youtube-player-container');
 
+// Detect if we are running locally
+if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
+    console.log("Running in development mode.");
+    supabaseUrl = DEV_SUPABASE_URL;
+    supabaseAnonKey = DEV_SUPABASE_ANON_KEY;
+    if (appTitle) appTitle.textContent += ' (Dev)';
+} else {
+    console.log("Running in production mode.");
+    supabaseUrl = PROD_SUPABASE_URL;
+    supabaseAnonKey = PROD_SUPABASE_ANON_KEY;
+}
 
-// --- State Management ---
+const { createClient } = supabase;
+const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);// --- State Management ---
+
 let detailsState = {};
 let currentLogViewDate = new Date();
 let currentUser = null;
