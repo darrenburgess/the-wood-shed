@@ -89,6 +89,13 @@ h4 {
     background-color: #3f905f;
 }
 
+.btn-new {
+    background-color: var(--success-color);
+    color: white;
+}
+.btn-new:hover {
+    background-color: #3f905f;
+}
 
 /* --- New Tab Interface Styles --- */
 .tabs {

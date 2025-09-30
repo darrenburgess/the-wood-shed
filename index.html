@@ -49,6 +49,8 @@
             isEditLogModalOpen: false,
             editingLog: null,
             editingLogGoal: null,
+            isAddLogModalOpen: false,
+            loggingForGoal: null,
             isContentModalOpen: false,
             editingContent: null,
 
@@ -204,21 +206,15 @@
                                             </button>
                                         </summary>
 
-                                        <form 
-                                            class="add-log-form" 
-                                            x-data="{ newLogEntry: '' }"
-                                            @submit.prevent="
-                                                const newLog = await dataLayer.addLog(goal.id, newLogEntry);
-                                                if (newLog) {
-                                                    goal.logs.unshift(newLog);
-                                                    newLogEntry = '';
-                                                    $nextTick(() => feather.replace());
-                                                }
-                                            "
-                                        >
-                                            <input type="text" class="log-input" placeholder="New log entry..." required x-model="newLogEntry">
-                                            <button type="submit">Add Log</button>
-                                        </form>
+                                        <div class="add-log-container">
+                                            <button 
+                                                class="btn-new" 
+                                                style="margin-left: 1.5rem; margin-bottom: 1rem;"
+                                                @click="isAddLogModalOpen = true; loggingForGoal = goal"
+                                            >
+                                                Add Log
+                                            </button>
+                                        </div>
 
                                             <ul class="log-list">
                                                 <template x-for="log in goal.logs.slice(0, goal.logsToShow)" :key="log.id">
@@ -516,6 +512,46 @@
                                 editingGoal = null;
                             "
                         >Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div 
+            class="modal-overlay" 
+            x-show="isAddLogModalOpen" 
+            x-cloak 
+            @keydown.escape.window="isAddLogModalOpen = false"
+        >
+            <div 
+                class="modal-content" 
+                @click.outside="isAddLogModalOpen = false"
+                x-data="{ newLogEntry: '' }"
+            >
+                <h3 x-show="loggingForGoal">Add Log for Goal: <span x-text="loggingForGoal?.goal_number"></span></h3>
+                
+                <textarea 
+                    x-model="newLogEntry" 
+                    placeholder="New log entry..."
+                ></textarea>
+
+                <div class="pills-container" style="min-height: 24px;"></div>
+
+                <div class="modal-actions">
+                    <div></div> <div class="right-actions">
+                        <button @click="isAddLogModalOpen = false; newLogEntry = ''">Cancel</button>
+                        <button 
+                            class="btn-save"
+                            @click="
+                                const newLog = await dataLayer.addLog(loggingForGoal.id, newLogEntry);
+                                if (newLog) {
+                                    loggingForGoal.logs.unshift(newLog); // Add to the top of the list
+                                    $nextTick(() => feather.replace());
+                                }
+                                isAddLogModalOpen = false;
+                                newLogEntry = '';
+                            "
+                        >Save Log</button>
                     </div>
                 </div>
             </div>
