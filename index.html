@@ -123,6 +123,7 @@
                 this.isContentLoading = true;
                 this.content = await dataLayer.fetchContentLibrary();
                 this.isContentLoading = false;
+                this.$nextTick(() => feather.replace());
             },
             
             // --- COMPUTED PROPERTIES ---
@@ -371,7 +372,10 @@
                                 <td x-text="item.title"></td>
                                 <td><a :href="item.url" target="_blank" x-text="item.url"></a></td>
                                 <td>
-                                    <button class="edit-btn" @click="editingContent = { ...item }; isContentModalOpen = true;">
+                                    <button 
+                                        class="edit-btn" 
+                                        @click="editingContent = { ...item }; isContentModalOpen = true;"
+                                    >
                                         <i data-feather="edit-2"></i>
                                     </button>
                                 </td>
