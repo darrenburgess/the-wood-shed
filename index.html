@@ -49,7 +49,11 @@
             isEditLogModalOpen: false,
             editingLog: null,
             editingLogGoal: null,
-            
+            isContentModalOpen: false,
+            editingContent: null,
+            newContentTitle: '',
+            newContentUrl: '',
+
             // State for the Logs View
             logs: [],
             isLogsLoading: false,
@@ -200,63 +204,22 @@
                                                 <i data-feather="edit-2"></i>
                                             </button>
                                         </summary>
-                                        <div>
-                                            <form 
-                                                class="add-log-form"
-                                                x-data="{ 
-                                                    newLogEntry: '',
-                                                    searchOpen: false, 
-                                                    searchTerm: '', 
-                                                    searchResults: [], 
-                                                    isLoading: false, 
-                                                    selectedContent: [] 
-                                                }"
-                                                @submit.prevent="
-                                                    const newLog = await dataLayer.addLog(goal.id, newLogEntry, selectedContent.map(c => c.id));
-                                                    if (newLog) {
-                                                        newLog.content = selectedContent; // Attach content locally for display
-                                                        goal.logs.unshift(newLog); // Add to beginning of logs list
-                                                        newLogEntry = '';
-                                                        selectedContent = [];
-                                                        $nextTick(() => feather.replace());
-                                                    }
-                                                "
-                                            >
-                                                <input type="text" name="logEntry" class="log-input" placeholder="New log entry..." required x-model="newLogEntry">
-                                                <button type="button" @click="searchOpen = !searchOpen" class="content-btn" title="Add Content">🔗</button>
-                                                <button type="submit">Add Log</button>
 
-                                                <div x-show="searchOpen" @click.outside="searchOpen = false" class="search-panel">
-                                                    <input 
-                                                        type="text" 
-                                                        x-model.debounce.300ms="
-                                                            isLoading = true; 
-                                                            dataLayer.searchContent(searchTerm).then(data => { 
-                                                                searchResults = data; 
-                                                                isLoading = false;
-                                                            })
-                                                        " 
-                                                        placeholder="Search your content library..." 
-                                                        class="search-input"
-                                                    >
-                                                    <ul x-show="!isLoading" class="results-list">
-                                                        <template x-for="result in searchResults" :key="result.id">
-                                                            <li @click="selectedContent.push(result); searchOpen = false; searchTerm = ''">
-                                                                <span x-text="result.title"></span>
-                                                            </li>
-                                                        </template>
-                                                    </ul>
-                                                </div>
-
-                                                <div class="pills-container">
-                                                    <template x-for="item in selectedContent" :key="item.id">
-                                                        <span class="pill">
-                                                            <span x-text="item.title"></span>
-                                                            <button type="button" @click="selectedContent = selectedContent.filter(c => c.id !== item.id)">×</button>
-                                                        </span>
-                                                    </template>
-                                                </div>
-                                            </form>
+                                        <form 
+                                            class="add-log-form" 
+                                            x-data="{ newLogEntry: '' }"
+                                            @submit.prevent="
+                                                const newLog = await dataLayer.addLog(goal.id, newLogEntry);
+                                                if (newLog) {
+                                                    goal.logs.unshift(newLog);
+                                                    newLogEntry = '';
+                                                    $nextTick(() => feather.replace());
+                                                }
+                                            "
+                                        >
+                                            <input type="text" class="log-input" placeholder="New log entry..." required x-model="newLogEntry">
+                                            <button type="submit">Add Log</button>
+                                        </form>
 
                                             <ul class="log-list">
                                                 <template x-for="log in goal.logs.slice(0, goal.logsToShow)" :key="log.id">
@@ -386,7 +349,9 @@
 
         <div id="content-view" x-show="activeView === 'content'">
             <div class="main-controls">
-                <button class="btn-new">New Content</button>
+                <button class="btn-new" @click="editingContent = { title: '', url: '' }; isContentModalOpen = true;">
+                    New Content
+                </button>
             </div>
 
             <div x-show="isContentLoading" style="text-align: center; padding: 2rem;">Loading Content Library...</div>
@@ -405,7 +370,11 @@
                             <tr>
                                 <td x-text="item.title"></td>
                                 <td><a :href="item.url" target="_blank" x-text="item.url"></a></td>
-                                <td></td>
+                                <td>
+                                    <button class="edit-btn" @click="editingContent = { ...item }; isContentModalOpen = true;">
+                                        <i data-feather="edit-2"></i>
+                                    </button>
+                                </td>
                             </tr>
                         </template>
                     </tbody>
@@ -459,7 +428,20 @@
                     <textarea x-model="editingTopic.title"></textarea>
                 </template>
                 <div class="modal-actions">
-                    <div></div> <div class="right-actions">
+                    <div>
+                        <button 
+                            class="btn-delete"
+                            @click="
+                                if (confirm('Are you sure you want to delete this topic and ALL its goals and logs?')) {
+                                    dataLayer.deleteTopic(editingTopic.id);
+                                    topics = topics.filter(t => t.id !== editingTopic.id);
+                                    isEditTopicModalOpen = false;
+                                    editingTopic = null;
+                                }
+                            "
+                        >Delete</button>
+                    </div>
+                    <div class="right-actions">
                         <button @click="isEditTopicModalOpen = false; editingTopic = null">Cancel</button>
                         <button 
                             class="btn-save"
@@ -575,6 +557,65 @@
                 </div>
             </div>
         </div>
+    
+<div 
+    class="modal-overlay" 
+    x-show="isContentModalOpen" 
+    x-cloak 
+    @keydown.escape.window="isContentModalOpen = false"
+>
+    <div class="modal-content" @click.outside="isContentModalOpen = false">
+        <h3 x-text="editingContent?.id ? 'Edit Content' : 'Add New Content'"></h3>
+        
+        <template x-if="editingContent">
+            <div class="create-content-panel" style="border: none; padding: 0; background: none;">
+                <input type="text" x-model="editingContent.title" placeholder="Title">
+                <input type="url" x-model="editingContent.url" placeholder="https://...">
+            </div>
+        </template>
+
+        <div class="modal-actions">
+            <div>
+                <button 
+                    class="btn-delete"
+                    x-show="editingContent?.id"
+                    @click="
+                        if (confirm('Are you sure? This will also remove links from any logs.')) {
+                            dataLayer.deleteContent(editingContent.id);
+                            content = content.filter(c => c.id !== editingContent.id);
+                            isContentModalOpen = false;
+                        }
+                    "
+                >Delete</button>
+            </div>
+           
+            <div class="right-actions">
+                <button @click="isContentModalOpen = false; editingContent = null">Cancel</button>
+                <button 
+                    class="btn-save"
+                    @click="
+                        if (editingContent.id) {
+                            // Update existing content
+                            const updated = await dataLayer.updateContent(editingContent.id, editingContent.title, editingContent.url);
+                            if (updated) {
+                                const index = content.findIndex(c => c.id === updated.id);
+                                content[index] = updated;
+                            }
+                        } else {
+                            // Create new content
+                            const newContent = await dataLayer.createContent(editingContent.title, editingContent.url);
+                            if (newContent) {
+                                content.unshift(newContent);
+                            }
+                        }
+                        isContentModalOpen = false;
+                    "
+                >Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+    
     </div>
 </body>
 </html>

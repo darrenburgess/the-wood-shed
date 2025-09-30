@@ -632,6 +632,31 @@ td a:hover {
     text-decoration: underline;
 }
 
+/* Style the container for the content modal's form fields */
+.modal-content .create-content-panel {
+    display: flex;
+    flex-direction: column; /* This ensures fields stack vertically */
+    gap: 1rem; /* Increase the space between fields */
+    margin-bottom: 1rem; /* Add space below the fields, like the textarea */
+}
+
+/* Style the input fields themselves */
+.modal-content .create-content-panel input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: inherit; /* Use the app's font */
+    font-size: 1rem; /* Match the textarea font size */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.modal-content .create-content-panel input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px #cbe5f8;
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;

@@ -142,6 +142,17 @@ window.dataLayer = {
         // No need to return anything, the UI is already updated optimistically
     },
 
+    async deleteTopic(topicId) {
+        const { error } = await supabaseClient
+            .from('topics')
+            .delete()
+            .eq('id', topicId);
+
+        if (error) {
+            console.error('Error deleting topic:', error);
+        }
+    },
+
     async updateGoal(goalId, newDescription) {
         const { error } = await supabaseClient
             .from('goals')
@@ -206,12 +217,11 @@ window.dataLayer = {
         return updatedGoal;
     },
 
-    async addLog(goalId, entryText, contentIds = []) {
+    async addLog(goalId, entryText) {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return null;
 
-        // 1. Insert the main log entry and get its new ID
-        const { data: newLog, error: logError } = await supabaseClient
+        const { data: newLog, error } = await supabaseClient
             .from('logs')
             .insert({ 
                 goal_id: goalId, 
@@ -222,25 +232,9 @@ window.dataLayer = {
             .select()
             .single();
 
-        if (logError) {
-            console.error('Error creating log:', logError);
+        if (error) {
+            console.error('Error creating log:', error);
             return null;
-        }
-
-        // 2. If content was selected, link it to the new log
-        if (contentIds.length > 0) {
-            const linksToCreate = contentIds.map(contentId => ({
-                log_id: newLog.id,
-                content_id: contentId
-            }));
-            
-            const { error: linkError } = await supabaseClient
-                .from('log_content')
-                .insert(linksToCreate);
-            
-            if (linkError) {
-                console.error('Error linking content:', linkError);
-            }
         }
         return newLog;
     },
