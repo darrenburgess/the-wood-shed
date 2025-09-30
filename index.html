@@ -58,7 +58,11 @@
             searchStartDate: '',
             searchEndDate: '',
 
-            // Methods
+            // State for the Content View
+            content: [],
+            isContentLoading: false,
+
+            // --- METHODS ---
             async loadData() {
                 this.isLoading = true;
                 this.topics = await dataLayer.fetchPlanData();
@@ -82,7 +86,7 @@
                 });
             },
             
-            // New methods for the Logs View
+            // Logs View Methods
             formatDate(date) {
                 return date.toISOString().split('T')[0];
             },
@@ -109,7 +113,14 @@
                 this.isLogsLoading = false;
             },
             
-            // Computed property to group logs for display
+            // Content View Method
+            async loadContent() {
+                this.isContentLoading = true;
+                this.content = await dataLayer.fetchContentLibrary();
+                this.isContentLoading = false;
+            },
+            
+            // --- COMPUTED PROPERTIES ---
             get groupedLogs() {
                 return this.logs.reduce((acc, log) => {
                     if (!log.goals || !log.goals.topics) return acc;
@@ -123,7 +134,7 @@
                     return acc;
                 }, {});
             }
-        }"
+        }"       
         @user-signed-in.window="loadData()"
         x-effect="if (isDevEnvironment) document.title = '(Dev) The Wood Shed'; if (activeView === 'logs' && logs.length === 0) getLogsForDate(logViewDate);"
     >
@@ -138,6 +149,7 @@
         <div class="tabs">
             <button class="tab-btn" :class="{ 'active': activeView === 'plan' }" @click="activeView = 'plan'">Plan</button>
             <button class="tab-btn" :class="{ 'active': activeView === 'logs' }" @click="activeView = 'logs'">Logs</button>
+            <button class="tab-btn" :class="{ 'active': activeView === 'content' }" @click="activeView = 'content'">Content</button>
         </div>
 
         <div id="plan-view" x-show="activeView === 'plan'">
@@ -359,6 +371,35 @@
                         </div>
                     </template>
                 </div>
+            </div>
+        </div>
+
+        <div id="content-view" x-show="activeView === 'content'">
+            <div class="main-controls">
+                <button class="btn-new">New Content</button>
+            </div>
+
+            <div x-show="isContentLoading" style="text-align: center; padding: 2rem;">Loading Content Library...</div>
+
+            <div x-show="!isContentLoading">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>URL</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="item in content" :key="item.id">
+                            <tr>
+                                <td x-text="item.title"></td>
+                                <td><a :href="item.url" target="_blank" x-text="item.url"></a></td>
+                                <td></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
             </div>
         </div>
 

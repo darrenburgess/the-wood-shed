@@ -608,6 +608,30 @@ li span {
     margin-bottom: 0.5rem;
 }
 
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+}
+th, td {
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+th {
+    background-color: var(--hover-bg);
+}
+tbody tr:hover {
+    background-color: var(--hover-bg);
+}
+td a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+td a:hover {
+    text-decoration: underline;
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;

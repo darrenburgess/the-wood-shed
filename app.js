@@ -302,7 +302,50 @@ window.dataLayer = {
             return [];
         }
         return data;
-    }
+    },
+
+    async createContent(title, url) {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return null;
+
+        const { data: newContent, error } = await supabaseClient
+            .from('content')
+            .insert({ title, url, user_id: user.id })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating content:', error);
+            return null;
+        }
+        return newContent;
+    },
+
+    async updateContent(contentId, title, url) {
+        const { data: updatedContent, error } = await supabaseClient
+            .from('content')
+            .update({ title, url })
+            .eq('id', contentId)
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('Error updating content:', error);
+            return null;
+        }
+        return updatedContent;
+    },
+
+    async deleteContent(contentId) {
+        const { error } = await supabaseClient
+            .from('content')
+            .delete()
+            .eq('id', contentId);
+
+        if (error) {
+            console.error('Error deleting content:', error);
+        }
+    },
 };
 
 // SET UP AUTH LISTENER (This section USES the supabaseClient)
