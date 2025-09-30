@@ -586,7 +586,18 @@
 
                 <div class="modal-actions">
                     <div>
-                        </div>
+                        <button 
+                            class="btn-delete"
+                            x-show="editingContent?.id"
+                            @click="
+                                if (confirm('Are you sure? This will also remove links from any logs.')) {
+                                    dataLayer.deleteContent(editingContent.id);
+                                    content = content.filter(c => c.id !== editingContent.id);
+                                    isContentModalOpen = false;
+                                }
+                            "
+                        >Delete</button>
+                    </div>
                     <div class="right-actions">
                         <button @click="isContentModalOpen = false; editingContent = null">Cancel</button>
                         <button 
