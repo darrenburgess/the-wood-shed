@@ -53,6 +53,7 @@
             // State for the Logs View
             logs: [],
             isLogsLoading: false,
+            logsLoaded: false,
             logViewDate: new Date(),
             logViewTitle: 'Today\'s Logs',
             searchStartDate: '',
@@ -136,7 +137,16 @@
             }
         }"       
         @user-signed-in.window="loadData()"
-        x-effect="if (isDevEnvironment) document.title = '(Dev) The Wood Shed'; if (activeView === 'logs' && logs.length === 0) getLogsForDate(logViewDate);"
+        x-effect="
+            if (isDevEnvironment) document.title = '(Dev) The Wood Shed';
+            if (activeView === 'content' && content.length === 0) loadContent();
+            
+            // New logic for the logs tab
+            if (activeView === 'logs' && !logsLoaded) {
+                getLogsForDate(logViewDate);
+                logsLoaded = true; // Mark as loaded so this only runs once per session
+            }
+        " 
     >
         <div class="app-header">
             <h1 id="app-title">
