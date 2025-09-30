@@ -289,6 +289,19 @@ window.dataLayer = {
             return [];
         }
         return data;
+    },
+
+    async fetchContentLibrary() {
+        const { data, error } = await supabaseClient
+            .from('content')
+            .select('*')
+            .order('created_at', { descending: true });
+
+        if (error) {
+            console.error('Error fetching content library:', error);
+            return [];
+        }
+        return data;
     }
 };
 

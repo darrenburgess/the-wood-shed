@@ -65,8 +65,22 @@
                 this.isLoading = false;
                 this.$nextTick(() => feather.replace());
             },
-            expandAll() { /* ... existing expandAll code ... */ },
-            collapseAll() { /* ... existing collapseAll code ... */ },
+            expandAll() {
+                this.topics.forEach(topic => {
+                    topic.isOpen = true;
+                    if (topic.goals) {
+                        topic.goals.forEach(goal => goal.isOpen = true);
+                    }
+                });
+            },
+            collapseAll() {
+                this.topics.forEach(topic => {
+                    topic.isOpen = false;
+                    if (topic.goals) {
+                        topic.goals.forEach(goal => goal.isOpen = false);
+                    }
+                });
+            },
             
             // New methods for the Logs View
             formatDate(date) {
