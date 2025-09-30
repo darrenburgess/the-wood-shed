@@ -51,8 +51,6 @@
             editingLogGoal: null,
             isContentModalOpen: false,
             editingContent: null,
-            newContentTitle: '',
-            newContentUrl: '',
 
             // State for the Logs View
             logs: [],
@@ -140,7 +138,7 @@
                     return acc;
                 }, {});
             }
-        }"       
+        }" 
         @user-signed-in.window="loadData()"
         x-effect="
             if (isDevEnvironment) document.title = '(Dev) The Wood Shed';
@@ -350,7 +348,7 @@
 
         <div id="content-view" x-show="activeView === 'content'">
             <div class="main-controls">
-                <button class="btn-new" @click="editingContent = { title: '', url: '' }; isContentModalOpen = true;">
+                <button class="btn-new" @click="editingContent = { title: '', url: '', type: 'YouTube' }; isContentModalOpen = true;">
                     New Content
                 </button>
             </div>
@@ -363,6 +361,7 @@
                         <tr>
                             <th>Title</th>
                             <th>URL</th>
+                            <th>Type</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -371,6 +370,7 @@
                             <tr>
                                 <td x-text="item.title"></td>
                                 <td><a :href="item.url" target="_blank" x-text="item.url"></a></td>
+                                <td x-text="item.type"></td>
                                 <td>
                                     <button 
                                         class="edit-btn" 
@@ -562,63 +562,58 @@
             </div>
         </div>
     
-<div 
-    class="modal-overlay" 
-    x-show="isContentModalOpen" 
-    x-cloak 
-    @keydown.escape.window="isContentModalOpen = false"
->
-    <div class="modal-content" @click.outside="isContentModalOpen = false">
-        <h3 x-text="editingContent?.id ? 'Edit Content' : 'Add New Content'"></h3>
-        
-        <template x-if="editingContent">
-            <div class="create-content-panel" style="border: none; padding: 0; background: none;">
-                <input type="text" x-model="editingContent.title" placeholder="Title">
-                <input type="url" x-model="editingContent.url" placeholder="https://...">
-            </div>
-        </template>
+        <div 
+            class="modal-overlay" 
+            x-show="isContentModalOpen" 
+            x-cloak 
+            @keydown.escape.window="isContentModalOpen = false"
+        >
+            <div class="modal-content" @click.outside="isContentModalOpen = false">
+                <h3 x-text="editingContent?.id ? 'Edit Content' : 'Add New Content'"></h3>
+                
+                <template x-if="editingContent">
+                    <div class="create-content-panel">
+                        <input type="text" x-model="editingContent.title" placeholder="Title">
+                        <input type="url" x-model="editingContent.url" placeholder="https://...">
+                        <select x-model="editingContent.type">
+                            <option>YouTube</option>
+                            <option>Article</option>
+                            <option>Image</option>
+                            <option>PDF</option>
+                        </select>
+                    </div>
+                </template>
 
-        <div class="modal-actions">
-            <div>
-                <button 
-                    class="btn-delete"
-                    x-show="editingContent?.id"
-                    @click="
-                        if (confirm('Are you sure? This will also remove links from any logs.')) {
-                            dataLayer.deleteContent(editingContent.id);
-                            content = content.filter(c => c.id !== editingContent.id);
-                            isContentModalOpen = false;
-                        }
-                    "
-                >Delete</button>
-            </div>
-           
-            <div class="right-actions">
-                <button @click="isContentModalOpen = false; editingContent = null">Cancel</button>
-                <button 
-                    class="btn-save"
-                    @click="
-                        if (editingContent.id) {
-                            // Update existing content
-                            const updated = await dataLayer.updateContent(editingContent.id, editingContent.title, editingContent.url);
-                            if (updated) {
-                                const index = content.findIndex(c => c.id === updated.id);
-                                content[index] = updated;
-                            }
-                        } else {
-                            // Create new content
-                            const newContent = await dataLayer.createContent(editingContent.title, editingContent.url);
-                            if (newContent) {
-                                content.unshift(newContent);
-                            }
-                        }
-                        isContentModalOpen = false;
-                    "
-                >Save</button>
+                <div class="modal-actions">
+                    <div>
+                        </div>
+                    <div class="right-actions">
+                        <button @click="isContentModalOpen = false; editingContent = null">Cancel</button>
+                        <button 
+                            class="btn-save"
+                            @click="
+                                if (editingContent.id) {
+                                    // Update existing content
+                                    const updated = await dataLayer.updateContent(editingContent.id, editingContent.title, editingContent.url, editingContent.type);
+                                    if (updated) {
+                                        const index = content.findIndex(c => c.id === updated.id);
+                                        content[index] = updated;
+                                    }
+                                } else {
+                                    // Create new content
+                                    const newContent = await dataLayer.createContent(editingContent.title, editingContent.url, editingContent.type);
+                                    if (newContent) {
+                                        content.unshift(newContent);
+                                        $nextTick(() => feather.replace());
+                                    }
+                                }
+                                isContentModalOpen = false;
+                            "
+                        >Save</button>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
     
     </div>
 </body>

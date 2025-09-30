@@ -298,13 +298,13 @@ window.dataLayer = {
         return data;
     },
 
-    async createContent(title, url) {
+    async createContent(title, url, type) {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return null;
 
         const { data: newContent, error } = await supabaseClient
             .from('content')
-            .insert({ title, url, user_id: user.id })
+            .insert({ title, url, type, user_id: user.id })
             .select()
             .single();
 
@@ -315,10 +315,10 @@ window.dataLayer = {
         return newContent;
     },
 
-    async updateContent(contentId, title, url) {
+    async updateContent(contentId, title, url, type) {
         const { data: updatedContent, error } = await supabaseClient
             .from('content')
-            .update({ title, url })
+            .update({ title, url, type })
             .eq('id', contentId)
             .select()
             .single();
