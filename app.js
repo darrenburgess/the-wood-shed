@@ -411,14 +411,10 @@ window.dataLayer = {
 
 // SET UP AUTH LISTENER (This section USES the supabaseClient)
 supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log("Auth state changed. Event:", event); // <-- ADD THIS LINE
-
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app-container');
 
     if (session) {
-        console.log("User has a session. Hiding auth form."); // <-- ADD THIS LINE
-
         // User is signed in
         appContainer.classList.remove('hidden');
         authContainer.classList.add('hidden');
@@ -426,7 +422,6 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         window.dispatchEvent(new CustomEvent('user-signed-in'));
 
     } else {
-        console.log("User has no session. Showing auth form."); // (Optional) You can add this too.
         // User is signed out
         appContainer.classList.add('hidden');
         authContainer.classList.remove('hidden');

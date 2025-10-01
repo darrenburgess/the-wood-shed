@@ -234,10 +234,9 @@
                                                                     "
                                                                 ></span>
                                                                 <button @click="
-                                                                        dataLayer.unlinkContentFromLog(log.id, item.id);
-                                                                        log.content = log.content.filter(c => c.id !== item.id);
-                                                                    "
-                                                                >×</button>
+                                                                    dataLayer.unlinkContentFromGoal(goal.id, item.id);
+                                                                    goal.content = goal.content.filter(c => c.id !== item.id);
+                                                                ">×</button>
                                                             </li>
                                                         </template>
                                                         <template x-if="!goal.content || goal.content.length === 0">
@@ -259,6 +258,10 @@
                                                                 x-for="result in searchResults.filter(r => (!goal.content || !goal.content.some(linked => linked.id === r.id)))">
                                                                 <li @click="
                                                                     dataLayer.linkContentToGoal(goal.id, result.id);
+                                                                    // First, check if the content array exists. If not, create it.
+                                                                    if (!goal.content) {
+                                                                        goal.content = [];
+                                                                    }
                                                                     goal.content.push(result);
                                                                     searchTerm = '';
                                                                     searchResults = [];
@@ -315,8 +318,8 @@
                                                                         "
                                                                     ></span>
                                                                     <button @click="
-                                                                            dataLayer.unlinkContentFromGoal(goal.id, item.id);
-                                                                            goal.content = goal.content.filter(c => c.id !== item.id);
+                                                                            dataLayer.unlinkContentFromLog(log.id, item.id);
+                                                                            log.content = goal.content.filter(c => c.id !== item.id);
                                                                         "
                                                                     >×</button>
 
