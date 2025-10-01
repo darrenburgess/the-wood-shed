@@ -500,13 +500,25 @@
                         <template x-for="item in content" :key="item.id">
                             <tr>
                                 <td x-text="item.title"></td>
-                                <td><a :href="item.url" target="_blank" x-text="item.url"></a></td>
+                                <td>
+                                    <template x-if="item.type === 'YouTube'">
+                                        <button class="link-button" @click="
+                                            const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                            if (videoId) {
+                                                youTubeVideoId = videoId;
+                                                isYouTubeModalOpen = true;
+                                            }
+                                        ">
+                                            <span x-text="item.url"></span>
+                                        </button>
+                                    </template>
+                                    <template x-if="item.type !== 'YouTube'">
+                                        <a :href="item.url" target="_blank" x-text="item.url"></a>
+                                    </template>
+                                </td>
                                 <td x-text="item.type"></td>
                                 <td>
-                                    <button 
-                                        class="edit-btn" 
-                                        @click="editingContent = { ...item }; isContentModalOpen = true;"
-                                    >
+                                    <button class="edit-btn" @click="editingContent = { ...item }; isContentModalOpen = true;">
                                         <i data-feather="edit-2"></i>
                                     </button>
                                 </td>
