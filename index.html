@@ -144,6 +144,11 @@
             }
         }" 
         @user-signed-in.window="loadData()"
+        @keydown.window="
+            if ($event.key === ' ' && isYouTubeModalOpen) {
+                $event.preventDefault();
+            }
+        "
         x-effect="
             if (isDevEnvironment) document.title = '(Dev) The Wood Shed';
             if (activeView === 'content' && content.length === 0) loadContent();
@@ -221,17 +226,17 @@
                                                         <template x-for="item in goal.content" :key="item.id">
                                                             <li class="linked-item">
                                                                 <span class="clickable-title" x-text="item.title" @click="
-                                                                        if (item.type === 'YouTube') {
-                                                                            const videoId = dataLayer.getYoutubeVideoId(item.url);
-                                                                            if (videoId) {
-                                                                                youTubeVideoId = videoId; // Corrected variable name
-                                                                                isYouTubeModalOpen = true;
-                                                                            }
-                                                                        } else {
-                                                                            window.open(item.url, '_blank');
+                                                                    if (item.type === 'YouTube') {
+                                                                        const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                        if (videoId) {
+                                                                            youTubeVideoId = videoId;
+                                                                            isYouTubeModalOpen = true;
                                                                         }
-                                                                        log.isContentPopoverOpen = false;
-                                                                    "
+                                                                    } else {
+                                                                        window.open(item.url, '_blank');
+                                                                    }
+                                                                    isOpen = false; // This line closes the popover
+"
                                                                 ></span>
                                                                 <button @click="
                                                                     dataLayer.unlinkContentFromGoal(goal.id, item.id);
@@ -305,17 +310,17 @@
                                                             <template x-for="item in log.content" :key="item.id">
                                                                 <li class="linked-item">
                                                                     <span class="clickable-title" x-text="item.title" @click="
-                                                                            if (item.type === 'YouTube') {
-                                                                                const videoId = dataLayer.getYoutubeVideoId(item.url);
-                                                                                if (videoId) {
-                                                                                    youTubeVideoId = videoId; // Corrected variable name
-                                                                                    isYouTubeModalOpen = true;
-                                                                                }
-                                                                            } else {
-                                                                                window.open(item.url, '_blank');
+                                                                        if (item.type === 'YouTube') {
+                                                                            const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                            if (videoId) {
+                                                                                youTubeVideoId = videoId;
+                                                                                isYouTubeModalOpen = true;
                                                                             }
-                                                                            goal.isContentPopoverOpen = false;
-                                                                        "
+                                                                        } else {
+                                                                            window.open(item.url, '_blank');
+                                                                        }
+                                                                        isOpen = false; // This line closes the popover
+                                                                    "
                                                                     ></span>
                                                                     <button @click="
                                                                             dataLayer.unlinkContentFromLog(log.id, item.id);
@@ -792,9 +797,9 @@
             <div class="modal-content youtube-modal-content" @click.outside="isYouTubeModalOpen = false">
                 <button @click="isYouTubeModalOpen = false" class="modal-close-btn">&times;</button>
                 <div id="youtube-player-container">
-                    <iframe 
+                    <iframe
                         x-show="isYouTubeModalOpen"
-                        :src="isYouTubeModalOpen ? `https://www.youtube.com/embed/${youTubeVideoId}?autoplay=1` : ''"
+                        :src="isYouTubeModalOpen ? `https://www.youtube.com/embed/${youTubeVideoId}` : ''"
                         frameborder="0" 
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                         allowfullscreen>
