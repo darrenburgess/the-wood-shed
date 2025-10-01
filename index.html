@@ -223,25 +223,31 @@
                                                 <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
                                                 <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
 
-                                                <div class="pills-container" style="justify-content: flex-start; margin-top: 0.5rem; margin-left: 1rem;">
-                                                    <template x-for="item in log.content" :key="item.id">
-                                                        <button 
-                                                            class="pill"
-                                                            @click="
-                                                                if (item.type === 'YouTube') {
-                                                                    const videoId = dataLayer.getYoutubeVideoId(item.url);
-                                                                    if (videoId) {
-                                                                        youTubeVideoId = videoId;
-                                                                        isYouTubeModalOpen = true;
-                                                                    }
-                                                                } else {
-                                                                    window.open(item.url, '_blank');
-                                                                }
-                                                            "
-                                                        >
-                                                            <span x-text="item.title"></span>
+                                                <div class="popover-container">
+                                                    <template x-if="log.content && log.content.length > 0">
+                                                        <button class="content-link-btn" @click="log.isContentPopoverOpen = !log.isContentPopoverOpen">
+                                                            <i data-feather="link"></i>
+                                                            <span x-text="log.content.length"></span>
                                                         </button>
                                                     </template>
+
+                                                    <div class="popover" x-show="log.isContentPopoverOpen" @click.outside="log.isContentPopoverOpen = false" x-cloak>
+                                                        <ul>
+                                                            <template x-for="item in log.content" :key="item.id">
+                                                                <li @click="
+                                                                    if (item.type === 'YouTube') {
+                                                                        const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                        if (videoId) { youYouTubeVideoId = videoId; isYouTubeModalOpen = true; }
+                                                                    } else {
+                                                                        window.open(item.url, '_blank');
+                                                                    }
+                                                                    log.isContentPopoverOpen = false;
+                                                                ">
+                                                                    <span x-text="item.title"></span>
+                                                                </li>
+                                                            </template>
+                                                        </ul>
+                                                    </div>
                                                 </div>
 
                                                 <button class="edit-btn" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">

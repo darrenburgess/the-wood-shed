@@ -664,6 +664,63 @@ td a:hover {
     box-shadow: 0 0 0 2px #cbe5f8;
 }
 
+.popover-container {
+    position: relative;
+    margin-left: 1rem;
+    margin-top: 0.5rem;
+}
+
+.content-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.content-link-btn:hover {
+    background: var(--hover-bg);
+}
+.content-link-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.popover {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 20;
+    min-width: 200px;
+    padding: 0.5rem;
+}
+
+.popover ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: none;
+}
+.popover li {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+.popover li:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;
