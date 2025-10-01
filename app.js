@@ -11,7 +11,7 @@ function initializeSupabaseClient() {
     let supabaseUrl;
     let supabaseAnonKey;
 
-    if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') {
         console.log("Running in development mode.");
         supabaseUrl = DEV_SUPABASE_URL;
         supabaseAnonKey = DEV_SUPABASE_ANON_KEY;
