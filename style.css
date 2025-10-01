@@ -721,6 +721,34 @@ td a:hover {
     color: var(--text-primary);
 }
 
+.popover h5 {
+    margin: 0 0.75rem 0.5rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+.popover-search {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+.linked-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.linked-item button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--danger-color);
+    font-weight: bold;
+    opacity: 0.5;
+}
+.linked-item button:hover {
+    opacity: 1;
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;

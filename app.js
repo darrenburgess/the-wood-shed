@@ -33,7 +33,7 @@ window.dataLayer = {
     async fetchPlanData() {
         const { data: topics, error } = await supabaseClient
             .from('topics')
-            .select('id, topic_number, title, goals(*, logs(*, content(*)))')
+            .select('id, topic_number, title, goals(*, content(*), logs(*, content(*)))')
             .order('topic_number', { ascending: true });
 
         if (error) {
@@ -365,6 +365,27 @@ window.dataLayer = {
             console.error('Error deleting content:', error);
         }
     },
+
+    async linkContentToGoal(goalId, contentId) {
+        const { error } = await supabaseClient
+            .from('goal_content')
+            .insert({ goal_id: goalId, content_id: contentId });
+
+        if (error) {
+            console.error('Error linking content to goal:', error);
+        }
+    },
+
+    async unlinkContentFromGoal(goalId, contentId) {
+        const { error } = await supabaseClient
+            .from('goal_content')
+            .delete()
+            .match({ goal_id: goalId, content_id: contentId });
+
+        if (error) {
+            console.error('Error unlinking content from goal:', error);
+        }
+    }
 };
 
 // SET UP AUTH LISTENER (This section USES the supabaseClient)
