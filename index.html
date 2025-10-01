@@ -618,87 +618,28 @@
             </div>
         </div>
 
-        <div 
-            class="modal-overlay" 
-            x-show="isAddLogModalOpen" 
-            x-cloak 
-            @keydown.escape.window="isAddLogModalOpen = false"
-        >
-            <div 
-                class="modal-content" 
-                @click.outside="isAddLogModalOpen = false"
-                x-data="{ 
-                    newLogEntry: '',
-                    searchOpen: false, 
-                    searchTerm: '', 
-                    searchResults: [], 
-                    isLoading: false, 
-                    selectedContent: []
-                }"
-                x-init="$watch('isAddLogModalOpen', open => { if (!open) { newLogEntry = ''; selectedContent = []; searchOpen = false; searchTerm = ''; } })"
-            >
+        <div class="modal-overlay" x-show="isAddLogModalOpen" x-cloak @keydown.escape.window="isAddLogModalOpen = false">
+            <div class="modal-content" @click.outside="isAddLogModalOpen = false" x-data="{ newLogEntry: '' }"
+                x-init="$watch('isAddLogModalOpen', open => { if (!open) { newLogEntry = ''; } })">
                 <h3 x-show="loggingForGoal">Add Log for Goal: <span x-text="loggingForGoal?.goal_number"></span></h3>
-                
+
                 <textarea x-model="newLogEntry" placeholder="New log entry..."></textarea>
 
-                <div class="pills-container">
-                    <template x-for="item in selectedContent" :key="item.id">
-                        <span class="pill">
-                            <span x-text="item.title"></span>
-                            <button type="button" @click="selectedContent = selectedContent.filter(c => c.id !== item.id)">×</button>
-                        </span>
-                    </template>
-                </div>
-
-                <div style="margin-top: 1rem;">
-                    <button type="button" @click="searchOpen = !searchOpen" class="content-btn">
-                        🔗 Link Content
-                    </button>
-                </div>
-
-                <div x-show="searchOpen" class="search-panel">
-                    <input 
-                        type="text" 
-                        class="search-input"
-                        placeholder="Search your content library..." 
-                        x-model="searchTerm"
-                        @input.debounce.300ms="
-                            isLoading = true; 
-                            dataLayer.searchContent(searchTerm).then(data => { 
-                                searchResults = data; 
-                                isLoading = false;
-                            })
-                        "
-                    > 
-                    <ul x-show="!isLoading" class="results-list">
-                        <template x-for="result in searchResults" :key="result.id">
-                            <li @click="selectedContent.push(result); searchOpen = false; searchTerm = ''">
-                                <span x-text="result.title"></span>
-                            </li>
-                        </template>
-                        <template x-if="!isLoading && searchResults.length === 0 && searchTerm.length > 1">
-                            <li class="no-results">
-                                No results found. Add new items in the 'Content' tab.
-                            </li>
-                        </template>
-                    </ul>
-                </div>
-                
                 <div class="modal-actions">
-                    <div></div> <div class="right-actions">
+                    <div></div>
+                    <div class="right-actions">
                         <button @click="isAddLogModalOpen = false">Cancel</button>
-                        <button 
-                            class="btn-save"
-                            @click="
-                                const newLog = await dataLayer.addLog(loggingForGoal.id, newLogEntry, selectedContent.map(c => c.id));
-                                if (newLog) {
-                                    newLog.content = selectedContent;
-                                    loggingForGoal.logs.unshift(newLog);
-                                    $nextTick(() => feather.replace());
+                        <button class="btn-save" @click="
+                                if (newLogEntry.trim()) {
+                                    const newLog = await dataLayer.addLog(loggingForGoal.id, newLogEntry);
+                                    if (newLog) {
+                                        newLog.content = []; // Initialize empty content array
+                                        loggingForGoal.logs.unshift(newLog);
+                                        $nextTick(() => feather.replace());
+                                    }
                                 }
                                 isAddLogModalOpen = false;
-                            "
-                        >Save Log</button>
+                            ">Save Log</button>
                     </div>
                 </div>
             </div>
