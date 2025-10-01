@@ -710,12 +710,14 @@ td a:hover {
     margin: 0;
     border: none;
 }
+
 .popover li {
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     border-radius: 4px;
     white-space: nowrap;
 }
+
 .popover li:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
@@ -727,16 +729,19 @@ td a:hover {
     text-transform: uppercase;
     color: var(--text-secondary);
 }
+
 .popover-search {
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border-color);
 }
+
 .linked-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
+
 .linked-item button {
     background: none;
     border: none;
@@ -745,8 +750,17 @@ td a:hover {
     font-weight: bold;
     opacity: 0.5;
 }
+
 .linked-item button:hover {
     opacity: 1;
+}
+
+.clickable-title {
+    cursor: pointer;
+}
+
+.clickable-title:hover {
+    text-decoration: underline;
 }
 
 /* --- Utility Classes --- */

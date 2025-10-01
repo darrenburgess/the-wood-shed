@@ -220,11 +220,22 @@
                                                     <ul>
                                                         <template x-for="item in goal.content" :key="item.id">
                                                             <li class="linked-item">
-                                                                <span x-text="item.title"></span>
-                                                                <button 
-                                                                    @click="
-                                                                        dataLayer.unlinkContentFromGoal(goal.id, item.id);
-                                                                        goal.content = goal.content.filter(c => c.id !== item.id);
+                                                                <span class="clickable-title" x-text="item.title" @click="
+                                                                        if (item.type === 'YouTube') {
+                                                                            const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                            if (videoId) {
+                                                                                youTubeVideoId = videoId; // Corrected variable name
+                                                                                isYouTubeModalOpen = true;
+                                                                            }
+                                                                        } else {
+                                                                            window.open(item.url, '_blank');
+                                                                        }
+                                                                        log.isContentPopoverOpen = false;
+                                                                    "
+                                                                ></span>
+                                                                <button @click="
+                                                                        dataLayer.unlinkContentFromLog(log.id, item.id);
+                                                                        log.content = log.content.filter(c => c.id !== item.id);
                                                                     "
                                                                 >×</button>
                                                             </li>
@@ -244,7 +255,8 @@
                                                             @input.debounce.300ms="dataLayer.searchContent(searchTerm).then(data => searchResults = data)"
                                                         >
                                                         <ul class="results-list" x-show="searchTerm.length > 1">
-                                                            <template x-for="result in searchResults.filter(r => !goal.content.some(linked => linked.id === r.id))">
+                                                            <template
+                                                                x-for="result in searchResults.filter(r => (!goal.content || !goal.content.some(linked => linked.id === r.id)))">
                                                                 <li @click="
                                                                     dataLayer.linkContentToGoal(goal.id, result.id);
                                                                     goal.content.push(result);
@@ -289,11 +301,25 @@
                                                         <ul>
                                                             <template x-for="item in log.content" :key="item.id">
                                                                 <li class="linked-item">
-                                                                    <span x-text="item.title"></span>
+                                                                    <span class="clickable-title" x-text="item.title" @click="
+                                                                            if (item.type === 'YouTube') {
+                                                                                const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                                if (videoId) {
+                                                                                    youTubeVideoId = videoId; // Corrected variable name
+                                                                                    isYouTubeModalOpen = true;
+                                                                                }
+                                                                            } else {
+                                                                                window.open(item.url, '_blank');
+                                                                            }
+                                                                            goal.isContentPopoverOpen = false;
+                                                                        "
+                                                                    ></span>
                                                                     <button @click="
-                                                                        dataLayer.unlinkContentFromLog(log.id, item.id);
-                                                                        log.content = log.content.filter(c => c.id !== item.id);
-                                                                    ">×</button>
+                                                                            dataLayer.unlinkContentFromGoal(goal.id, item.id);
+                                                                            goal.content = goal.content.filter(c => c.id !== item.id);
+                                                                        "
+                                                                    >×</button>
+
                                                                 </li>
                                                             </template>
                                                             <template x-if="!log.content || log.content.length === 0">
