@@ -34,7 +34,8 @@ window.dataLayer = {
         const { data: topics, error } = await supabaseClient
             .from('topics')
             .select('id, topic_number, title, goals(*, content(*), logs(*, content(*)))')
-            .order('topic_number', { ascending: true });
+            .order('topic_number', { ascending: true })
+            .order('created_at', { foreignTable: 'goals.logs', ascending: false });
 
         if (error) {
             console.error('Error fetching plan data:', error);
