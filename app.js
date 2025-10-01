@@ -385,6 +385,27 @@ window.dataLayer = {
         if (error) {
             console.error('Error unlinking content from goal:', error);
         }
+    },
+
+    async linkContentToLog(logId, contentId) {
+        const { error } = await supabaseClient
+            .from('log_content')
+            .insert({ log_id: logId, content_id: contentId });
+
+        if (error) {
+            console.error('Error linking content to log:', error);
+        }
+    },
+
+    async unlinkContentFromLog(logId, contentId) {
+        const { error } = await supabaseClient
+            .from('log_content')
+            .delete()
+            .match({ log_id: logId, content_id: contentId });
+
+        if (error) {
+            console.error('Error unlinking content from log:', error);
+        }
     }
 };
 
