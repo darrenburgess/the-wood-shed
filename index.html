@@ -53,6 +53,8 @@
             loggingForGoal: null,
             isContentModalOpen: false,
             editingContent: null,
+            isYouTubeModalOpen: false,
+            youTubeVideoId: '',
 
             // State for the Logs View
             logs: [],
@@ -208,25 +210,46 @@
 
                                         <div class="add-log-container">
                                             <button 
-                                                class="btn-new" 
-                                                style="margin-left: 1.5rem; margin-bottom: 1rem;"
+                                                class=".btn-new" 
                                                 @click="isAddLogModalOpen = true; loggingForGoal = goal"
                                             >
                                                 Add Log
                                             </button>
                                         </div>
 
-                                            <ul class="log-list">
-                                                <template x-for="log in goal.logs.slice(0, goal.logsToShow)" :key="log.id">
-                                                    <li>
-                                                        <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
-                                                        <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
-                                                        <button class="edit-btn" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
-                                                            <i data-feather="edit-2"></i>
+                                    <ul class="log-list">
+                                        <template x-for="log in goal.logs.slice(0, goal.logsToShow)" :key="log.id">
+                                            <li>
+                                                <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
+                                                <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+
+                                                <div class="pills-container" style="justify-content: flex-start; margin-top: 0.5rem; margin-left: 1rem;">
+                                                    <template x-for="item in log.content" :key="item.id">
+                                                        <button 
+                                                            class="pill"
+                                                            @click="
+                                                                if (item.type === 'YouTube') {
+                                                                    const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                    if (videoId) {
+                                                                        youTubeVideoId = videoId;
+                                                                        isYouTubeModalOpen = true;
+                                                                    }
+                                                                } else {
+                                                                    window.open(item.url, '_blank');
+                                                                }
+                                                            "
+                                                        >
+                                                            <span x-text="item.title"></span>
                                                         </button>
-                                                    </li>
-                                                </template>
-                                            </ul>
+                                                    </template>
+                                                </div>
+
+                                                <button class="edit-btn" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
+                                                    <i data-feather="edit-2"></i>
+                                                </button>
+                                            </li>
+                                        </template>
+                                    </ul>
                                             <div class="log-controls">
                                                 <template x-if="goal.logs.length > 5 && goal.logsToShow < goal.logs.length">
                                                     <button class="toggle-logs-btn" @click="goal.logsToShow = goal.logs.length">
@@ -526,30 +549,76 @@
             <div 
                 class="modal-content" 
                 @click.outside="isAddLogModalOpen = false"
-                x-data="{ newLogEntry: '' }"
+                x-data="{ 
+                    newLogEntry: '',
+                    searchOpen: false, 
+                    searchTerm: '', 
+                    searchResults: [], 
+                    isLoading: false, 
+                    selectedContent: []
+                }"
+                x-init="$watch('isAddLogModalOpen', open => { if (!open) { newLogEntry = ''; selectedContent = []; searchOpen = false; searchTerm = ''; } })"
             >
                 <h3 x-show="loggingForGoal">Add Log for Goal: <span x-text="loggingForGoal?.goal_number"></span></h3>
                 
-                <textarea 
-                    x-model="newLogEntry" 
-                    placeholder="New log entry..."
-                ></textarea>
+                <textarea x-model="newLogEntry" placeholder="New log entry..."></textarea>
 
-                <div class="pills-container" style="min-height: 24px;"></div>
+                <div class="pills-container">
+                    <template x-for="item in selectedContent" :key="item.id">
+                        <span class="pill">
+                            <span x-text="item.title"></span>
+                            <button type="button" @click="selectedContent = selectedContent.filter(c => c.id !== item.id)">×</button>
+                        </span>
+                    </template>
+                </div>
 
+                <div style="margin-top: 1rem;">
+                    <button type="button" @click="searchOpen = !searchOpen" class="content-btn">
+                        🔗 Link Content
+                    </button>
+                </div>
+
+                <div x-show="searchOpen" class="search-panel">
+                    <input 
+                        type="text" 
+                        class="search-input"
+                        placeholder="Search your content library..." 
+                        x-model="searchTerm"
+                        @input.debounce.300ms="
+                            isLoading = true; 
+                            dataLayer.searchContent(searchTerm).then(data => { 
+                                searchResults = data; 
+                                isLoading = false;
+                            })
+                        "
+                    > 
+                    <ul x-show="!isLoading" class="results-list">
+                        <template x-for="result in searchResults" :key="result.id">
+                            <li @click="selectedContent.push(result); searchOpen = false; searchTerm = ''">
+                                <span x-text="result.title"></span>
+                            </li>
+                        </template>
+                        <template x-if="!isLoading && searchResults.length === 0 && searchTerm.length > 1">
+                            <li class="no-results">
+                                No results found. Add new items in the 'Content' tab.
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+                
                 <div class="modal-actions">
                     <div></div> <div class="right-actions">
-                        <button @click="isAddLogModalOpen = false; newLogEntry = ''">Cancel</button>
+                        <button @click="isAddLogModalOpen = false">Cancel</button>
                         <button 
                             class="btn-save"
                             @click="
-                                const newLog = await dataLayer.addLog(loggingForGoal.id, newLogEntry);
+                                const newLog = await dataLayer.addLog(loggingForGoal.id, newLogEntry, selectedContent.map(c => c.id));
                                 if (newLog) {
-                                    loggingForGoal.logs.unshift(newLog); // Add to the top of the list
+                                    newLog.content = selectedContent;
+                                    loggingForGoal.logs.unshift(newLog);
                                     $nextTick(() => feather.replace());
                                 }
                                 isAddLogModalOpen = false;
-                                newLogEntry = '';
                             "
                         >Save Log</button>
                     </div>
@@ -662,6 +731,25 @@
             </div>
         </div>
     
+        <div 
+            class="modal-overlay" 
+            x-show="isYouTubeModalOpen" 
+            x-cloak 
+            @keydown.escape.window="isYouTubeModalOpen = false"
+        >
+            <div class="modal-content youtube-modal-content" @click.outside="isYouTubeModalOpen = false">
+                <button @click="isYouTubeModalOpen = false" class="modal-close-btn">&times;</button>
+                <div id="youtube-player-container">
+                    <iframe 
+                        x-show="isYouTubeModalOpen"
+                        :src="isYouTubeModalOpen ? `https://www.youtube.com/embed/${youTubeVideoId}?autoplay=1` : ''"
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div> 
+            </div>
+        </div>
     </div>
 </body>
 </html>

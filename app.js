@@ -33,7 +33,7 @@ window.dataLayer = {
     async fetchPlanData() {
         const { data: topics, error } = await supabaseClient
             .from('topics')
-            .select('id, topic_number, title, goals(*, logs(*))')
+            .select('id, topic_number, title, goals(*, logs(*, content(*)))')
             .order('topic_number', { ascending: true });
 
         if (error) {
@@ -86,6 +86,16 @@ window.dataLayer = {
                 return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
             }
         });
+    },
+
+    getYoutubeVideoId(url) {
+        let videoId = null;
+        const youtubeRegex = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})(?:\S+)?$/;
+        const match = url.match(youtubeRegex);
+        if (match && match[1]) {
+            videoId = match[1];
+        }
+        return videoId;
     },
 
     async addTopic(title) {
@@ -217,11 +227,12 @@ window.dataLayer = {
         return updatedGoal;
     },
 
-    async addLog(goalId, entryText) {
+    async addLog(goalId, entryText, contentIds = []) {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return null;
 
-        const { data: newLog, error } = await supabaseClient
+        // 1. Insert the main log entry
+        const { data: newLog, error: logError } = await supabaseClient
             .from('logs')
             .insert({ 
                 goal_id: goalId, 
@@ -232,9 +243,25 @@ window.dataLayer = {
             .select()
             .single();
 
-        if (error) {
-            console.error('Error creating log:', error);
+        if (logError) {
+            console.error('Error creating log:', logError);
             return null;
+        }
+
+        // 2. If content was selected, link it to the new log
+        if (contentIds && contentIds.length > 0) {
+            const linksToCreate = contentIds.map(contentId => ({
+                log_id: newLog.id,
+                content_id: contentId
+            }));
+            
+            const { error: linkError } = await supabaseClient
+                .from('log_content')
+                .insert(linksToCreate);
+            
+            if (linkError) {
+                console.error('Error linking content:', linkError);
+            }
         }
         return newLog;
     },
@@ -256,18 +283,14 @@ window.dataLayer = {
     },
 
     async searchContent(searchTerm) {
-        if (searchTerm.length < 2) return [];
+        if (!searchTerm || searchTerm.length < 2) return [];
         const { data, error } = await supabaseClient
             .from('content')
             .select('id, title')
             .ilike('title', `%${searchTerm}%`)
             .limit(10);
-
-        if (error) {
-            console.error('Error searching content:', error);
-            return [];
-        }
-        return data;
+        if (error) console.error('Error searching content:', error);
+        return data || [];
     },
 
     async fetchLogsByDateRange(startDate, endDate) {
