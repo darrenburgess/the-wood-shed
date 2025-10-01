@@ -410,7 +410,7 @@
                                 if (newGoal) {
                                     // Add the new goal to the topic's local array
                                     newGoal.logs = [];
-                                    newGoal.isOpen = false;
+                                    newGoal.isOpen = true;
                                     topic.goals.push(newGoal);
                                     $nextTick(() => feather.replace());
                                     // Reset the input field

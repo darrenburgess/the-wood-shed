@@ -751,6 +751,22 @@ td a:hover {
     opacity: 0.5;
 }
 
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent-color);
+    text-decoration: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.link-button:hover {
+    text-decoration: underline;
+}
+
 .linked-item button:hover {
     opacity: 1;
 }
