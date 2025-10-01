@@ -263,11 +263,17 @@
                                                                 x-for="result in searchResults.filter(r => (!goal.content || !goal.content.some(linked => linked.id === r.id)))">
                                                                 <li @click="
                                                                     dataLayer.linkContentToGoal(goal.id, result.id);
-                                                                    // First, check if the content array exists. If not, create it.
                                                                     if (!goal.content) {
                                                                         goal.content = [];
                                                                     }
                                                                     goal.content.push(result);
+
+                                                                    // Force Alpine to re-evaluate the 'open' state
+                                                                    goal.isOpen = false;
+                                                                    $nextTick(() => {
+                                                                        goal.isOpen = true;
+                                                                    });
+
                                                                     searchTerm = '';
                                                                     searchResults = [];
                                                                 ">
