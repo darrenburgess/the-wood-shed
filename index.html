@@ -88,6 +88,7 @@
                     } else {
                         // If it's a brand new topic, set a default state
                         newTopic.isOpen = true;
+                        newTopic.isCompletedGoalsOpen = false;
                     }
 
                     if (newTopic.goals) {
@@ -112,7 +113,8 @@
                 this.topics.forEach(topic => {
                     topic.isOpen = true;
                     if (topic.goals) {
-                        topic.goals.forEach(goal => goal.isOpen = true);
+                        // Only loop through ACTIVE goals
+                        topic.goals.filter(g => !g.is_complete).forEach(goal => goal.isOpen = true);
                     }
                 });
             },
@@ -120,11 +122,11 @@
                 this.topics.forEach(topic => {
                     topic.isOpen = false;
                     if (topic.goals) {
-                        topic.goals.forEach(goal => goal.isOpen = false);
+                        // Only loop through ACTIVE goals
+                        topic.goals.filter(g => !g.is_complete).forEach(goal => goal.isOpen = false);
                     }
                 });
-            },
-            
+            },            
             // Logs View Methods
             formatDate(date) {
                 return date.toISOString().split('T')[0];
@@ -415,31 +417,28 @@
 
                                 <template x-if="topic.goals.some(g => g.is_complete)">
                                     <div>
-                                        <h4>Completed Goals</h4>
-                                        <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
-                                            <details class="goal-details completed-goal" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
-                                                <summary class="summary-flex">
+                                        <h4 @click="topic.isCompletedGoalsOpen = !topic.isCompletedGoalsOpen"
+                                            style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+                                            <span>Completed Goals</span>
+                                            <span x-show="!topic.isCompletedGoalsOpen">▼</span>
+                                            <span x-show="topic.isCompletedGoalsOpen" x-cloak>▲</span>
+                                        </h4>
+                                        <div x-show="topic.isCompletedGoalsOpen" x-cloak>
+                                            <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
+                                                <div class="goal-details completed-goal"
+                                                    style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem;">
                                                     <span class="goal-text">
                                                         <strong><span x-text="goal.goal_number"></span>:</strong>
                                                         <span x-text="goal.description"></span>
-                                                        <em>(Completed: <span x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
+                                                        <em>(Completed: <span
+                                                                x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
                                                     </span>
                                                     <button class="edit-btn" @click.prevent="isEditGoalModalOpen = true; editingGoal = goal">
                                                         <i data-feather="edit-2"></i>
-                                                    </button>    
-                                                </summary>
-                                                <div>
-                                                <ul class="log-list">
-                                                    <template x-for="log in goal.logs" :key="log.id">
-                                                        <li>
-                                                            <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
-                                                            <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
-                                                        </li>
-                                                    </template>
-                                                </ul>
-                                            </div>
-                                            </details>
-                                        </template>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </div>
                                 </template>
                             </div>                       
