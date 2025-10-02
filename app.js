@@ -44,16 +44,20 @@ window.dataLayer = {
 
         // Handle numerical sorting of goals
         for (const topic of topics) {
-            topic.isOpen = true; // Topics start expanded
             if (topic.goals) {
-                for (const goal of topic.goals) {
-                    goal.isOpen = true; // Goals start expanded
-                    goal.logsToShow = 5;
-                    if (goal.logs) {
-                        for (const log of goal.logs) {
-                            log.isContentPopoverOpen = false; // Add this line
-                        }
+                topic.goals.sort((a, b) => {
+                    const aParts = a.goal_number.split('.').map(Number);
+                    const bParts = b.goal_number.split('.').map(Number);
+                    if (aParts[0] !== bParts[0]) {
+                        return aParts[0] - bParts[0];
                     }
+                    // Sort by the second part (the goal number) in DESCENDING order
+                    return bParts[1] - aParts[1];
+                });
+
+                // Add UI state properties needed for each goal
+                for (const goal of topic.goals) {
+                    goal.logsToShow = 5;
                 }
             }
         }

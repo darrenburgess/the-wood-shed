@@ -426,12 +426,19 @@
                             @submit.prevent="
                                 const newGoal = await dataLayer.addGoal(topic, newGoalDescription);
                                 if (newGoal) {
-                                    // Add the new goal to the topic's local array
+                                    newGoal.content = [];
                                     newGoal.logs = [];
                                     newGoal.isOpen = true;
                                     topic.goals.push(newGoal);
+
+                                    // Re-sort the array to place the new goal at the top
+                                    topic.goals.sort((a, b) => {
+                                        const aParts = a.goal_number.split('.').map(Number);
+                                        const bParts = b.goal_number.split('.').map(Number);
+                                        return bParts[1] - aParts[1];
+                                    });
+
                                     $nextTick(() => feather.replace());
-                                    // Reset the input field
                                     newGoalDescription = '';
                                 }
                             "
