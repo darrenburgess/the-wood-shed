@@ -322,6 +322,7 @@
                                                                 <li class="linked-item">
                                                                     <span class="clickable-title" x-text="item.title" @click="
                                                                             if (item.type === 'YouTube') {
+                                                                                console.log('Clicked Log Content Item:', item);
                                                                                 const videoId = dataLayer.getYoutubeVideoId(item.url);
                                                                                 if (videoId) {
                                                                                     youTubeVideoId = videoId;
