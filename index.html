@@ -77,7 +77,34 @@
             // --- METHODS ---
             async loadData() {
                 this.isLoading = true;
-                this.topics = await dataLayer.fetchPlanData();
+                const newTopics = await dataLayer.fetchPlanData();
+
+                // Smart merge: update data while preserving UI state
+                newTopics.forEach(newTopic => {
+                    const oldTopic = this.topics.find(t => t.id === newTopic.id);
+                    if (oldTopic) {
+                        // If topic already exists, just update its data but keep its UI state
+                        newTopic.isOpen = oldTopic.isOpen;
+                    } else {
+                        // If it's a brand new topic, set a default state
+                        newTopic.isOpen = true;
+                    }
+
+                    if (newTopic.goals) {
+                        newTopic.goals.forEach(newGoal => {
+                            const oldGoal = oldTopic?.goals.find(g => g.id === newGoal.id);
+                            if (oldGoal) {
+                                newGoal.isOpen = oldGoal.isOpen;
+                                newGoal.logsToShow = oldGoal.logsToShow;
+                            } else {
+                                newGoal.isOpen = false;
+                                newGoal.logsToShow = 5;
+                            }
+                        });
+                    }
+                });
+
+                this.topics = newTopics;
                 this.isLoading = false;
                 this.$nextTick(() => feather.replace());
             },

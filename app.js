@@ -51,28 +51,10 @@ window.dataLayer = {
                     if (aParts[0] !== bParts[0]) {
                         return aParts[0] - bParts[0];
                     }
-                    // Sort by the second part (the goal number) in DESCENDING order
                     return bParts[1] - aParts[1];
                 });
-
-                // Add UI state properties needed for each goal
-                for (const goal of topic.goals) {
-                    goal.logsToShow = 5;
-                }
             }
         }
-
-        // Add isOpen property for UI state
-        for (const topic of topics) {
-            topic.isOpen = true;
-            if (topic.goals) {
-                for (const goal of topic.goals) {
-                    goal.isOpen = true;
-                    goal.logsToShow = 5; // This line initializes the property
-                }
-            }
-        }
-
         return topics;
     },
     
