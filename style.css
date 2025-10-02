@@ -666,14 +666,12 @@ td a:hover {
 
 .popover-container {
     position: relative;
-    margin-left: 1rem;
-    margin-top: 0.5rem;
 }
 
 .content-link-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+    justify-content: center;
     background: none;
     border: 1px solid var(--border-color);
     border-radius: 6px;
@@ -681,13 +679,12 @@ td a:hover {
     font-size: 0.8rem;
     color: var(--text-secondary);
     cursor: pointer;
+    min-width: 28px;
+    /* Prevents resizing */
 }
+
 .content-link-btn:hover {
     background: var(--hover-bg);
-}
-.content-link-btn svg {
-    width: 14px;
-    height: 14px;
 }
 
 .popover {

@@ -247,8 +247,8 @@
                                                 <button 
                                                     class="content-link-btn" 
                                                     @click.prevent="isOpen = !isOpen"
+                                                    x-init="$nextTick(() => feather.replace())"
                                                 >
-                                                    <i data-feather="link"></i>
                                                     <span x-text="goal.content?.length || 0"></span>
                                                 </button>
 
@@ -338,7 +338,6 @@
                                             
                                                 <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
                                                     <button class="content-link-btn" @click.prevent="isOpen = !isOpen">
-                                                        <i data-feather="link"></i>
                                                         <span x-text="log.content?.length || 0"></span>
                                                     </button>
                                                 
@@ -349,7 +348,6 @@
                                                                 <li class="linked-item">
                                                                     <span class="clickable-title" x-text="item.title" @click="
                                                                             if (item.type === 'YouTube') {
-                                                                                console.log('Clicked Log Content Item:', item);
                                                                                 const videoId = dataLayer.getYoutubeVideoId(item.url);
                                                                                 if (videoId) {
                                                                                     youTubeVideoId = videoId;
@@ -725,7 +723,6 @@
                                     if (newLog) {
                                         newLog.content = []; // Initialize empty content array
                                         loggingForGoal.logs.unshift(newLog);
-                                        $nextTick(() => feather.replace());
                                     }
                                 }
                                 isAddLogModalOpen = false;
