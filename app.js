@@ -92,9 +92,11 @@ window.dataLayer = {
     },
 
     getYoutubeVideoId(url) {
+        if (!url) return null; // Safety check for bad data
         let videoId = null;
         const youtubeRegex = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})(?:\S+)?$/;
-        const match = url.match(youtubeRegex);
+        const match = url.trim().match(youtubeRegex);
+
         if (match && match[1]) {
             videoId = match[1];
         }
