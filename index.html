@@ -314,47 +314,45 @@
                                                         <i data-feather="link"></i>
                                                         <span x-text="log.content?.length || 0"></span>
                                                     </button>
-                                            
+                                                
                                                     <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
                                                         <h5>Linked Content</h5>
                                                         <ul>
                                                             <template x-for="item in log.content" :key="item.id">
                                                                 <li class="linked-item">
                                                                     <span class="clickable-title" x-text="item.title" @click="
-                                                                        if (item.type === 'YouTube') {
-                                                                            const videoId = dataLayer.getYoutubeVideoId(item.url);
-                                                                            if (videoId) {
-                                                                                youTubeVideoId = videoId;
-                                                                                isYouTubeModalOpen = true;
+                                                                            if (item.type === 'YouTube') {
+                                                                                const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                                if (videoId) {
+                                                                                    youTubeVideoId = videoId;
+                                                                                    isYouTubeModalOpen = true;
+                                                                                }
+                                                                            } else {
+                                                                                window.open(item.url, '_blank');
                                                                             }
-                                                                        } else {
-                                                                            window.open(item.url, '_blank');
-                                                                        }
-                                                                        isOpen = false; // This line closes the popover
-                                                                    "
-                                                                    ></span>
+                                                                            isOpen = false;
+                                                                        "></span>
                                                                     <button @click="
-                                                                            dataLayer.unlinkContentFromLog(log.id, item.id);
-                                                                            log.content = goal.content.filter(c => c.id !== item.id);
-                                                                        "
-                                                                    >×</button>
-
+                                                                        dataLayer.unlinkContentFromLog(log.id, item.id);
+                                                                        log.content = log.content.filter(c => c.id !== item.id);
+                                                                    ">×</button>
                                                                 </li>
                                                             </template>
                                                             <template x-if="!log.content || log.content.length === 0">
                                                                 <li class="no-results" style="padding: 0.5rem;">No content linked yet.</li>
                                                             </template>
                                                         </ul>
-                                            
+                                                
                                                         <div class="popover-search">
                                                             <h5>Add Content</h5>
                                                             <input type="text" class="search-input" placeholder="Search library..." x-model="searchTerm"
                                                                 @input.debounce.300ms="dataLayer.searchContent(searchTerm).then(data => searchResults = data)">
                                                             <ul class="results-list" x-show="searchTerm.length > 1">
                                                                 <template
-                                                                    x-for="result in searchResults.filter(r => !log.content.some(linked => linked.id === r.id))">
+                                                                    x-for="result in searchResults.filter(r => !log.content || !log.content.some(linked => linked.id === r.id))">
                                                                     <li @click="
                                                                         dataLayer.linkContentToLog(log.id, result.id);
+                                                                        if (!log.content) log.content = [];
                                                                         log.content.push(result);
                                                                         searchTerm = '';
                                                                         searchResults = [];
