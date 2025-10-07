@@ -14,6 +14,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="app.js" defer></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" defer></script>
 
@@ -75,6 +76,11 @@
             isContentLoading: false,
 
             // --- METHODS ---
+            uiState: $persist({ 
+                topicStates: {}, 
+                goalStates: {},
+                completedGoalStates: {} 
+            }),
             async loadData() {
                 this.isLoading = true;
                 const newTopics = await dataLayer.fetchPlanData();
@@ -111,22 +117,20 @@
             },
             expandAll() {
                 this.topics.forEach(topic => {
-                    topic.isOpen = true;
+                    this.uiState.topicStates[topic.id] = true;
                     if (topic.goals) {
-                        // Only loop through ACTIVE goals
-                        topic.goals.filter(g => !g.is_complete).forEach(goal => goal.isOpen = true);
+                        topic.goals.filter(g => !g.is_complete).forEach(goal => this.uiState.goalStates[goal.id] = true);
                     }
                 });
             },
             collapseAll() {
                 this.topics.forEach(topic => {
-                    topic.isOpen = false;
+                    this.uiState.topicStates[topic.id] = false;
                     if (topic.goals) {
-                        // Only loop through ACTIVE goals
-                        topic.goals.filter(g => !g.is_complete).forEach(goal => goal.isOpen = false);
+                        topic.goals.forEach(goal => this.uiState.goalStates[goal.id] = false);
                     }
                 });
-            },            
+            },
             // Logs View Methods
             formatDate(date) {
                 return date.toISOString().split('T')[0];
@@ -219,7 +223,7 @@
             
             <div x-show="!isLoading">
                 <template x-for="topic in topics" :key="topic.id">
-                    <details class="topic-details" :open="topic.isOpen" @toggle="topic.isOpen = $event.target.open">
+                    <details class="topic-details" :open="uiState.topicStates[topic.id] ?? true" @toggle="uiState.topicStates[topic.id] = $event.target.open">
                         <summary class="summary-flex">
                             <h2>
                                 Topic <span x-text="topic.topic_number"></span>: 
@@ -236,7 +240,7 @@
                         <div>
                             <div class="topic-content">
                                 <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
-                                    <details class="goal-details" :open="goal.isOpen" @toggle="goal.isOpen = $event.target.open">
+                                    <details class="goal-details" :open="uiState.goalStates[goal.id] ?? false" @toggle="uiState.goalStates[goal.id] = $event.target.open">
                                         <summary class="summary-flex">
                                             <span class="goal-text">
                                                 <strong><span x-text="goal.goal_number"></span>:</strong>
@@ -425,8 +429,7 @@
                                         </h4>
                                         <div x-show="topic.isCompletedGoalsOpen" x-cloak>
                                             <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
-                                                <div class="goal-details completed-goal"
-                                                    style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem;">
+                                                <div class="goal-details completed-goal" :open="uiState.goalStates[goal.id] ?? false" @toggle="uiState.goalStates[goal.id] = $event.target.open" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem;">
                                                     <span class="goal-text">
                                                         <strong><span x-text="goal.goal_number"></span>:</strong>
                                                         <span x-text="goal.description"></span>
