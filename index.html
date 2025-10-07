@@ -98,8 +98,7 @@
                 this.isLoading = false;
                     this.$nextTick(() => {
                     feather.replace();
-                    
-                    // Add this restore logic
+                  
                     const savedPosition = localStorage.getItem('scrollPosition');
                     if (savedPosition) {
                         window.scrollTo(0, parseInt(savedPosition));

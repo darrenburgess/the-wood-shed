@@ -119,7 +119,7 @@ window.dataLayer = {
                 topic_number: nextTopicNumber, 
                 user_id: user.id 
             })
-            .select('*') // Select all columns to get the full new topic object
+            .select('*')
             .single();
 
         if (insertError) {
@@ -441,7 +441,6 @@ authForm.addEventListener('submit', async (event) => {
         authError.classList.remove('hidden');
     } else {
         authError.classList.add('hidden');
-        // The onAuthStateChange listener will automatically show the app
     }
 });
 
@@ -456,7 +455,6 @@ signUpBtn.addEventListener('click', async () => {
         authError.textContent = error.message;
         authError.classList.remove('hidden');
     } else {
-        // Clear any previous errors and show a success message
         authError.textContent = 'Check your email for a confirmation link!';
         authError.classList.remove('hidden');
     }
