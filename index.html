@@ -96,7 +96,15 @@
                 
                 this.topics = fetchedTopics;
                 this.isLoading = false;
-                this.$nextTick(() => feather.replace());
+                    this.$nextTick(() => {
+                    feather.replace();
+                    
+                    // Add this restore logic
+                    const savedPosition = localStorage.getItem('scrollPosition');
+                    if (savedPosition) {
+                        window.scrollTo(0, parseInt(savedPosition));
+                    }
+                });
             },
             expandAll() {
                 this.topics.forEach(topic => {
@@ -165,6 +173,7 @@
             }
         }" 
         @user-signed-in.window="loadData()"
+        @scroll.window.debounce.250ms="localStorage.setItem('scrollPosition', window.scrollY)"
         @keydown.window="
             if ($event.key === ' ' && isYouTubeModalOpen) {
                 $event.preventDefault();
