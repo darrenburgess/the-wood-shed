@@ -31,6 +31,8 @@ const supabaseClient = initializeSupabaseClient();
 // DEFINE THE DATA LAYER (This section USES the supabaseClient)
 window.dataLayer = {
     async fetchPlanData() {
+        const today = new Date().toISOString().split('T')[0];
+
         const { data: topics, error } = await supabaseClient
             .from('topics')
             .select('id, topic_number, title, goals(*, content(*), logs(*, content(*)))')
@@ -42,19 +44,26 @@ window.dataLayer = {
             return [];
         }
 
-        // Handle numerical sorting of goals
         for (const topic of topics) {
             if (topic.goals) {
+                // 1. Simplified descending sort for goals
                 topic.goals.sort((a, b) => {
-                    const aParts = a.goal_number.split('.').map(Number);
-                    const bParts = b.goal_number.split('.').map(Number);
-                    if (aParts[0] !== bParts[0]) {
-                        return aParts[0] - bParts[0];
-                    }
-                    return bParts[1] - aParts[1];
+                    const aNum = Number(a.goal_number.split('.')[1] || 0);
+                    const bNum = Number(b.goal_number.split('.')[1] || 0);
+                    return bNum - aNum;
                 });
+
+                // 2. Add 'isToday' flag to logs
+                for (const goal of topic.goals) {
+                    if (goal.logs) {
+                        for (const log of goal.logs) {
+                            log.isToday = log.date === today;
+                        }
+                    }
+                }
             }
         }
+
         return topics;
     },
     

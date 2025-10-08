@@ -269,10 +269,12 @@ li {
 }
 
 li.todays-log {
+    font-weight: bold;
+    color: var(--text-primary);
     background-color: #ebf8ff;
     border-radius: 4px;
-    color: var(--text-primary);
-    font-weight: bolder;
+    /* You may need to add a little padding if the background feels tight */
+    /* padding: 2px 4px; */
 }
 
 li span {

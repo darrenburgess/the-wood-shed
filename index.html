@@ -329,7 +329,7 @@
 
                                     <ul class="log-list">
                                         <template x-for="log in goal.logs.slice(0, goal.logsToShow)" :key="log.id">
-                                            <li>
+                                            <li :class="{ 'todays-log': log.isToday }">
                                                 <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
                                                 <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
                                             
@@ -715,7 +715,9 @@
                                     const newLog = await dataLayer.addLog(loggingForGoal.id, newLogEntry);
                                     if (newLog) {
                                         newLog.content = []; // Initialize empty content array
+                                        newLog.isToday = true;
                                         loggingForGoal.logs.unshift(newLog);
+                                        $nextTick(() => feather.replace());
                                     }
                                 }
                                 isAddLogModalOpen = false;
