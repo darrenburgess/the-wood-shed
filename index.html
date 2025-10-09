@@ -187,7 +187,18 @@
                 getLogsForDate(logViewDate);
                 logsLoaded = true; // Mark as loaded so this only runs once per session
             }
-        " 
+        "
+        @click="
+            const link = $event.target.closest('.youtube-link');
+            if (link) {
+                $event.preventDefault();
+                const videoId = link.dataset.videoId;
+                if (videoId) {
+                    youTubeVideoId = videoId;
+                isYouTubeModalOpen = true;
+                }
+            }
+        "
     >
         <div class="app-header">
             <h1 id="app-title">
