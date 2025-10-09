@@ -778,6 +778,45 @@ td a:hover {
     text-decoration: underline;
 }
 
+.has-tooltip {
+    position: relative;
+    /* This is the anchor for the tooltip */
+}
+
+/* This is the tooltip element itself */
+.has-tooltip::after {
+    content: attr(data-tooltip);
+    /* Pulls text from our data-tooltip attribute */
+    position: absolute;
+    bottom: 125%;
+    /* Position it above the button */
+    left: 50%;
+    transform: translateX(-50%);
+
+    /* Styling */
+    background-color: #2d3748;
+    /* Dark background */
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+
+    /* Hide it by default */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    /* So the tooltip doesn't interfere with the mouse */
+    transition: opacity 0.2s;
+    /* Add a subtle fade effect */
+}
+
+/* This makes the tooltip appear instantly on hover */
+.has-tooltip:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;
