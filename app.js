@@ -275,13 +275,16 @@ window.dataLayer = {
 
     async deleteLog(log, goal) {
         const { error } = await supabaseClient.from('logs').delete().eq('id', log.id);
-        if (error) { console.error('Error deleting log:', error); return; }
+        if (error) {
+            console.error('Error deleting log:', error);
+            return false;
+        }
 
-        // After deleting a log, update repertoire stats if linked
         if (goal.repertoire_id) {
             await supabaseClient.rpc('update_repertoire_stats', { rep_id: goal.repertoire_id });
             return true;
         }
+        return false;
     },
 
     async searchContent(searchTerm) {

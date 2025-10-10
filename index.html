@@ -78,6 +78,7 @@
             // State for Repertoire View
             repertoire: [],
             isRepertoireLoading: false,
+            isRepertoireStale: false,
             isRepertoireModalOpen: false,
             editingRepertoire: null,
             repertoireSortKey: 'last_practiced',
@@ -226,6 +227,11 @@
             if (activeView === 'logs' && !logsLoaded) {
                 getLogsForDate(logViewDate);
                 logsLoaded = true; // Mark as loaded so this only runs once per session
+            }
+        
+            if (activeView === 'repertoire' && (repertoire.length === 0 || isRepertoireStale)) {
+                loadRepertoire();
+                isRepertoireStale = false;
             }
         "
         @click="
@@ -847,20 +853,22 @@
                     <div></div>
                     <div class="right-actions">
                         <button @click="isAddLogModalOpen = false">Cancel</button>
-                        <button class="btn-save" @click="
-                            if (newLogEntry.trim()) {
-                                const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry);
-
-                                if (statsUpdated) isRepertoireStale = true;
-                                if (newLog) {
-                                    newLog.content = [];
-                                    newLog.isToday = true;
-                                    loggingForGoal.logs.unshift(newLog);
-                                    $nextTick(() => feather.replace());
+                        <button
+                            class="btn-save" 
+                            @click="
+                                if (newLogEntry.trim()) {
+                                    const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry);
+                                    if (statsUpdated) isRepertoireStale = true;
+                                    if (newLog) {
+                                        newLog.content = [];
+                                        newLog.isToday = true;
+                                        loggingForGoal.logs.unshift(newLog);
+                                        $nextTick(() => feather.replace());
+                                    }
                                 }
-                            }
-                            isAddLogModalOpen = false;
-                        ">Save Log</button>
+                                isAddLogModalOpen = false;
+                            "
+                        >Save Log</button>
                     </div>
                 </div>
             </div>
@@ -883,8 +891,8 @@
                             class="btn-delete"
                             @click="
                                 if (confirm('Are you sure you want to delete this log entry?')) {
-                                    dataLayer.deleteLog(editingLog, editingLogGoal); // Pass the full objects
-                                    // Remove log from local state for instant UI update
+                                    const statsUpdated = await dataLayer.deleteLog(editingLog, editingLogGoal);
+                                    if (statsUpdated) isRepertoireStale = true;
                                     if (editingLogGoal) {
                                         editingLogGoal.logs = editingLogGoal.logs.filter(l => l.id !== editingLog.id);
                                     }
