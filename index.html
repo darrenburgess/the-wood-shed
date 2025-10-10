@@ -692,8 +692,7 @@
                                 <td x-text="tune.title"></td>
                                 <td x-text="tune.artist"></td>
                                 <td x-text="tune.practice_count"></td>
-                                <td x-text="tune.last_practiced ? new Date(tune.last_practiced).toLocaleDateString() : 'Never'">
-                                </td>
+                                <td x-text="tune.last_practiced ? new Date(tune.last_practiced + 'T00:00:00').toLocaleDateString('en-US') : 'Never'"></td>
                                 <td>
                                     <button class="edit-btn"
                                         @click="editingRepertoire = { ...tune }; isRepertoireModalOpen = true;">
@@ -798,7 +797,9 @@
                             class="btn-delete"
                             @click="
                                 if (confirm('Are you sure you want to delete this goal and all its logs?')) {
-                                    dataLayer.deleteGoal(editingGoal.id);
+                                    const statsUpdated = await dataLayer.deleteGoal(editingGoal);
+                                    if (statsUpdated) isRepertoireStale = true;
+                                    
                                     // Remove goal from local state for instant UI update
                                     const topic = topics.find(t => t.id === editingGoal.topic_id);
                                     if (topic) {

@@ -171,12 +171,26 @@ window.dataLayer = {
         if (error) console.error('Error updating goal:', error);
     },
 
-    async deleteGoal(goalId) {
+    async deleteGoal(goal) {
+        const repertoireId = goal.repertoire_id; // Get the ID before deleting
+
         const { error } = await supabaseClient
             .from('goals')
             .delete()
-            .eq('id', goalId);
-        if (error) console.error('Error deleting goal:', error);
+            .eq('id', goal.id);
+
+        if (error) {
+            console.error('Error deleting goal:', error);
+            return false;
+        }
+
+        // After deleting, update stats if it was linked
+        if (repertoireId) {
+            await supabaseClient.rpc('update_repertoire_stats', { rep_id: repertoireId });
+            return true; // Signal that stats were updated
+        }
+
+        return false; // Signal that stats were not updated
     },
 
     async addGoal(topic, description) {
