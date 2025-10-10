@@ -366,6 +366,48 @@
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            <template x-if="topic.title === 'Repertoire'">
+                                                <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
+                                            
+                                                    <template x-if="goal.repertoire">
+                                                        <div class="pill">
+                                                            <span x-text="goal.repertoire.title"></span>
+                                                            <button @click.prevent="
+                                                                    dataLayer.unlinkRepertoireFromGoal(goal.id);
+                                                                    goal.repertoire = null;
+                                                                ">×</button>
+                                                        </div>
+                                                    </template>
+                                            
+                                                    <template x-if="!goal.repertoire">
+                                                        <button class="content-link-btn" @click.prevent="isOpen = !isOpen">
+                                                            Add Tune
+                                                        </button>
+                                                    </template>
+                                            
+                                                    <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                                        <div class="popover-search">
+                                                            <input type="text" class="search-input" placeholder="Search repertoire..." x-model="searchTerm"
+                                                                @input.debounce.300ms="dataLayer.searchRepertoire(searchTerm).then(data => searchResults = data)">
+                                                            <ul class="results-list" x-show="searchTerm.length > 1">
+                                                                <template x-for="result in searchResults" :key="result.id">
+                                                                    <li @click="
+                                                                            dataLayer.linkRepertoireToGoal(goal.id, result.id);
+                                                                            goal.repertoire = result;
+                                                                            isOpen = false;
+                                                                            searchTerm = '';
+                                                                            searchResults = [];
+                                                                        ">
+                                                                        <span x-text="result.title"></span>
+                                                                    </li>
+                                                                </template>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            
                                             <button class="edit-btn" @click.prevent="isEditGoalModalOpen = true; editingGoal = goal">
                                                 <i data-feather="edit-2"></i>
                                             </button>
@@ -806,17 +848,19 @@
                     <div class="right-actions">
                         <button @click="isAddLogModalOpen = false">Cancel</button>
                         <button class="btn-save" @click="
-                                if (newLogEntry.trim()) {
-                                    const newLog = await dataLayer.addLog(loggingForGoal.id, newLogEntry);
-                                    if (newLog) {
-                                        newLog.content = []; // Initialize empty content array
-                                        newLog.isToday = true;
-                                        loggingForGoal.logs.unshift(newLog);
-                                        $nextTick(() => feather.replace());
-                                    }
+                            if (newLogEntry.trim()) {
+                                const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry);
+
+                                if (statsUpdated) isRepertoireStale = true;
+                                if (newLog) {
+                                    newLog.content = [];
+                                    newLog.isToday = true;
+                                    loggingForGoal.logs.unshift(newLog);
+                                    $nextTick(() => feather.replace());
                                 }
-                                isAddLogModalOpen = false;
-                            ">Save Log</button>
+                            }
+                            isAddLogModalOpen = false;
+                        ">Save Log</button>
                     </div>
                 </div>
             </div>
@@ -839,7 +883,7 @@
                             class="btn-delete"
                             @click="
                                 if (confirm('Are you sure you want to delete this log entry?')) {
-                                    dataLayer.deleteLog(editingLog.id);
+                                    dataLayer.deleteLog(editingLog, editingLogGoal); // Pass the full objects
                                     // Remove log from local state for instant UI update
                                     if (editingLogGoal) {
                                         editingLogGoal.logs = editingLogGoal.logs.filter(l => l.id !== editingLog.id);

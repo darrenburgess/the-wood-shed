@@ -227,46 +227,44 @@ window.dataLayer = {
         return updatedGoal;
     },
 
-    async addLog(goalId, entryText, contentIds = []) {
+    async addLog(goal, entryText, contentIds = []) {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return null;
 
-        // 1. Insert the main log entry
         const { data: newLog, error: logError } = await supabaseClient
             .from('logs')
-            .insert({ 
-                goal_id: goalId, 
-                entry: entryText, 
-                date: new Date().toISOString().split('T')[0], 
-                user_id: user.id 
+            .insert({
+                goal_id: goal.id,
+                entry: entryText,
+                date: new Date().toISOString().split('T')[0],
+                user_id: user.id
             })
-            .select()
+            .select('*')
             .single();
 
         if (logError) {
             console.error('Error creating log:', logError);
-            return null;
+            return { newLog: null, statsUpdated: false };
         }
 
-        // 2. If content was selected, link it to the new log
         if (contentIds && contentIds.length > 0) {
             const linksToCreate = contentIds.map(contentId => ({
                 log_id: newLog.id,
                 content_id: contentId
             }));
-            
-            const { error: linkError } = await supabaseClient
-                .from('log_content')
-                .insert(linksToCreate);
-            
-            if (linkError) {
-                console.error('Error linking content:', linkError);
-            }
+            const { error: linkError } = await supabaseClient.from('log_content').insert(linksToCreate);
+            if (linkError) console.error('Error linking content:', linkError);
         }
-        
-        return newLog;
-    },
 
+        if (goal.repertoire_id) {
+            await supabaseClient.rpc('update_repertoire_stats', { rep_id: goal.repertoire_id });
+            return { newLog, statsUpdated: true };
+        }
+
+        // This is the key change: always return the same object shape
+        return { newLog, statsUpdated: false };
+    },
+    
     async updateLog(logId, newEntry) {
         const { error } = await supabaseClient
             .from('logs')
@@ -282,6 +280,7 @@ window.dataLayer = {
         // After deleting a log, update repertoire stats if linked
         if (goal.repertoire_id) {
             await supabaseClient.rpc('update_repertoire_stats', { rep_id: goal.repertoire_id });
+            return true;
         }
     },
 
@@ -415,6 +414,7 @@ window.dataLayer = {
         if (error) { console.error('Error fetching repertoire:', error); return []; }
         return data;
     },
+
     async createRepertoire(title, artist) {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return null;
@@ -422,22 +422,37 @@ window.dataLayer = {
         if (error) { console.error('Error creating repertoire tune:', error); return null; }
         return data;
     },
+
     async updateRepertoire(id, title, artist) {
         const { data, error } = await supabaseClient.from('repertoire').update({ title, artist }).eq('id', id).select().single();
         if (error) { console.error('Error updating repertoire tune:', error); return null; }
         return data;
     },
+
     async deleteRepertoire(id) {
         const { error } = await supabaseClient.from('repertoire').delete().eq('id', id);
         if (error) console.error('Error deleting repertoire tune:', error);
     },
+
     async linkRepertoireToGoal(goalId, repertoireId) {
         const { error } = await supabaseClient.from('goals').update({ repertoire_id: repertoireId }).eq('id', goalId);
         if (error) console.error('Error linking repertoire to goal:', error);
     },
+
     async unlinkRepertoireFromGoal(goalId) {
         const { error } = await supabaseClient.from('goals').update({ repertoire_id: null }).eq('id', goalId);
         if (error) console.error('Error unlinking repertoire from goal:', error);
+    },
+
+    async searchRepertoire(searchTerm) {
+        if (!searchTerm || searchTerm.length < 2) return [];
+        const { data, error } = await supabaseClient
+            .from('repertoire')
+            .select('id, title, artist')
+            .ilike('title', `%${searchTerm}%`)
+            .limit(10);
+        if (error) { console.error('Error searching repertoire:', error); return []; }
+        return data;
     }
 };
 
