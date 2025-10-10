@@ -75,6 +75,12 @@
             content: [],
             isContentLoading: false,
 
+            // State for Repertoire View
+            repertoire: [],
+            isRepertoireLoading false,
+            repertoireSortKey: 'last_practiced',
+            repertoireSortDirection: 'desc',
+
             // --- METHODS ---
             uiState: $persist({ 
                 topicStates: {}, 
@@ -148,14 +154,31 @@
                 this.isLogsLoading = false;
             },
             
-            // Content View Method
+            // Content View Methods
             async loadContent() {
                 this.isContentLoading = true;
                 this.content = await dataLayer.fetchContentLibrary();
                 this.isContentLoading = false;
                 this.$nextTick(() => feather.replace());
             },
-            
+           
+            // Repertoire View Methods
+            async loadRepertoire() {
+                this.isRepertoireLoading = true;
+                this.repertoire = await dataLayer.fetchRepertoire();
+                this.isRepertoireLoading = false;
+                this.$nextTick(() => feather.replace());
+            },
+      
+            sortRepertoireBy(key) {
+                if (this.repertoireSortKey === key) {
+                    this.repertoireSortDirection = this.repertoireSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.repertoireSortKey = key;
+                    this.repertoireSortDirection = 'desc';
+                }
+            },
+
             // --- COMPUTED PROPERTIES ---
             get groupedLogs() {
                 return this.logs.reduce((acc, log) => {
@@ -169,8 +192,23 @@
                     acc[topicTitle][goalDesc].push(log);
                     return acc;
                 }, {});
-            }
-        }" 
+            },
+
+            get sortedRepertoire() {
+                if (!this.repertoire) return [];
+                return [...this.repertoire].sort((a, b) => {
+                    const direction = this.repertoireSortDirection === 'asc' ? 1 : -1;
+                    // Handle nulls so they always appear at the bottom
+                    if (a[this.repertoireSortKey] === null) return 1;
+                    if (b[this.repertoireSortKey] === null) return -1;
+            
+                if (a[this.repertoireSortKey] < b[this.repertoireSortKey]) return -1 * direction; if (a[this.repertoireSortKey]>
+                    b[this.repertoireSortKey]) return 1 * direction;
+                        return 0;
+                    });
+                }
+            }" 
+
         @user-signed-in.window="loadData()"
         @scroll.window.debounce.250ms="localStorage.setItem('scrollPosition', window.scrollY)"
         @keydown.window="
@@ -181,8 +219,8 @@
         x-effect="
             if (isDevEnvironment) document.title = '(Dev) The Wood Shed';
             if (activeView === 'content' && content.length === 0) loadContent();
+            if (activeView === 'repertoire' && repertoire.length === 0) loadRepertoire();
             
-            // New logic for the logs tab
             if (activeView === 'logs' && !logsLoaded) {
                 getLogsForDate(logViewDate);
                 logsLoaded = true; // Mark as loaded so this only runs once per session
