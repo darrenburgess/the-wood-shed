@@ -35,7 +35,7 @@ window.dataLayer = {
 
         const { data: topics, error } = await supabaseClient
             .from('topics')
-            .select('id, topic_number, title, goals(*, content(*), logs(*, content(*)))')
+            .select('id, topic_number, title, goals(*, content(*), repertoire(*), logs(*, content(*)))')
             .order('topic_number', { ascending: true })
             .order('created_at', { foreignTable: 'goals.logs', ascending: false });
 
@@ -263,6 +263,7 @@ window.dataLayer = {
                 console.error('Error linking content:', linkError);
             }
         }
+        
         return newLog;
     },
 
@@ -274,12 +275,14 @@ window.dataLayer = {
         if (error) console.error('Error updating log:', error);
     },
 
-    async deleteLog(logId) {
-        const { error } = await supabaseClient
-            .from('logs')
-            .delete()
-            .eq('id', logId);
-        if (error) console.error('Error deleting log:', error);
+    async deleteLog(log, goal) {
+        const { error } = await supabaseClient.from('logs').delete().eq('id', log.id);
+        if (error) { console.error('Error deleting log:', error); return; }
+
+        // After deleting a log, update repertoire stats if linked
+        if (goal.repertoire_id) {
+            await supabaseClient.rpc('update_repertoire_stats', { rep_id: goal.repertoire_id });
+        }
     },
 
     async searchContent(searchTerm) {
@@ -404,6 +407,37 @@ window.dataLayer = {
         if (error) {
             console.error('Error unlinking content from log:', error);
         }
+    },
+
+    // Repertoire Functions
+    async fetchRepertoire() {
+        const { data, error } = await supabaseClient.from('repertoire').select('*');
+        if (error) { console.error('Error fetching repertoire:', error); return []; }
+        return data;
+    },
+    async createRepertoire(title, artist) {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return null;
+        const { data, error } = await supabaseClient.from('repertoire').insert({ title, artist, user_id: user.id }).select().single();
+        if (error) { console.error('Error creating repertoire tune:', error); return null; }
+        return data;
+    },
+    async updateRepertoire(id, title, artist) {
+        const { data, error } = await supabaseClient.from('repertoire').update({ title, artist }).eq('id', id).select().single();
+        if (error) { console.error('Error updating repertoire tune:', error); return null; }
+        return data;
+    },
+    async deleteRepertoire(id) {
+        const { error } = await supabaseClient.from('repertoire').delete().eq('id', id);
+        if (error) console.error('Error deleting repertoire tune:', error);
+    },
+    async linkRepertoireToGoal(goalId, repertoireId) {
+        const { error } = await supabaseClient.from('goals').update({ repertoire_id: repertoireId }).eq('id', goalId);
+        if (error) console.error('Error linking repertoire to goal:', error);
+    },
+    async unlinkRepertoireFromGoal(goalId) {
+        const { error } = await supabaseClient.from('goals').update({ repertoire_id: null }).eq('id', goalId);
+        if (error) console.error('Error unlinking repertoire from goal:', error);
     }
 };
 
