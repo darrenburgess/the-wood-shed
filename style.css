@@ -817,6 +817,15 @@ td a:hover {
     visibility: visible;
 }
 
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable:hover {
+    background-color: #dde8f1;
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;
