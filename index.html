@@ -504,7 +504,12 @@
                                     </ul>
                                             <div class="log-controls">
                                                 <template x-if="goal.logs.length > 5 && goal.logsToShow < goal.logs.length">
-                                                    <button class="toggle-logs-btn" @click="goal.logsToShow = goal.logs.length">
+                                                    <button 
+                                                        class="toggle-logs-btn" 
+                                                        @click="
+                                                            goal.logsToShow = goal.logs.length;
+                                                            $nextTick(() => feather.replace());
+                                                        ">
                                                         Show All (<span x-text="goal.logs.length"></span>)
                                                     </button>
                                                 </template>
