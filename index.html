@@ -398,13 +398,17 @@
                                                                 @input.debounce.300ms="dataLayer.searchRepertoire(searchTerm).then(data => searchResults = data)">
                                                             <ul class="results-list" x-show="searchTerm.length > 1">
                                                                 <template x-for="result in searchResults" :key="result.id">
-                                                                    <li @click="
+                                                                    <li 
+                                                                        @click="
                                                                             dataLayer.linkRepertoireToGoal(goal.id, result.id);
+                                                                            // Update both the object and the ID on the client
                                                                             goal.repertoire = result;
+                                                                            goal.repertoire_id = result.id;
                                                                             isOpen = false;
                                                                             searchTerm = '';
                                                                             searchResults = [];
-                                                                        ">
+                                                                        "
+                                                                    >
                                                                         <span x-text="result.title"></span>
                                                                     </li>
                                                                 </template>
