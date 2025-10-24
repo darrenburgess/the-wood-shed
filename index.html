@@ -701,9 +701,10 @@
                     <thead>
                         <tr>
                             <th @click="sortRepertoireBy('title')" class="sortable">Title</th>
-                            <th @click="sortRepertoireBy('artist')" class="sortable">Artist</th>
+                            <th>Artist</th>
                             <th @click="sortRepertoireBy('practice_count')" class="sortable">Practice Count</th>
                             <th @click="sortRepertoireBy('last_practiced')" class="sortable">Last Practiced</th>
+                            <th @click="sortRepertoireBy('progress')" class="sortable">Progress</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -713,10 +714,22 @@
                                 <td x-text="tune.title"></td>
                                 <td x-text="tune.artist"></td>
                                 <td x-text="tune.practice_count"></td>
-                                <td x-text="tune.last_practiced ? new Date(tune.last_practiced + 'T00:00:00').toLocaleDateString('en-US') : 'Never'"></td>
+                                <td
+                                    x-text="tune.last_practiced ? new Date(tune.last_practiced + 'T00:00:00').toLocaleDateString('en-US') : 'Never'">
+                                </td>
                                 <td>
-                                    <button class="edit-btn"
-                                        @click="editingRepertoire = { ...tune }; isRepertoireModalOpen = true;">
+                                    <select class="progress-select" x-model="tune.progress"
+                                        @change="dataLayer.updateRepertoireProgress(tune.id, $event.target.value)">
+                                        <option>Backlog</option>
+                                        <option>Listening</option>
+                                        <option>Started</option>
+                                        <option>Memorized</option>
+                                        <option>Gig Ready</option>
+                                        <option>Off Book</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <button class="edit-btn" @click="editingRepertoire = { ...tune }; isRepertoireModalOpen = true;">
                                         <i data-feather="edit-2"></i>
                                     </button>
                                 </td>

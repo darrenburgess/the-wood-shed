@@ -441,7 +441,14 @@ window.dataLayer = {
     async createRepertoire(title, artist) {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return null;
-        const { data, error } = await supabaseClient.from('repertoire').insert({ title, artist, user_id: user.id }).select().single();
+        const { data, error } = await supabaseClient.from('repertoire')
+            .insert({
+                title,
+                artist,
+                user_id: user.id,
+            })
+            .select()
+            .single();
         if (error) { console.error('Error creating repertoire tune:', error); return null; }
         return data;
     },
@@ -450,6 +457,11 @@ window.dataLayer = {
         const { data, error } = await supabaseClient.from('repertoire').update({ title, artist }).eq('id', id).select().single();
         if (error) { console.error('Error updating repertoire tune:', error); return null; }
         return data;
+    },
+
+    async updateRepertoireProgress(id, progress) {
+        const { error } = await supabaseClient.from('repertoire').update({ progress }).eq('id', id);
+        if (error) console.error('Error updating repertoire progress:', error);
     },
 
     async deleteRepertoire(id) {

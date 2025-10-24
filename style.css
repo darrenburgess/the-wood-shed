@@ -826,6 +826,33 @@ th.sortable:hover {
     background-color: #dde8f1;
 }
 
+.progress-select {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background-color: transparent;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    font-size: inherit;
+    /* Inherit font size from table cell */
+    font-family: inherit;
+    color: inherit;
+}
+
+.progress-select:hover {
+    border-color: var(--border-color);
+    background-color: var(--container-bg);
+}
+
+.progress-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px #cbe5f8;
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;
