@@ -178,7 +178,8 @@
                     this.repertoireSortDirection = this.repertoireSortDirection === 'asc' ? 'desc' : 'asc';
                 } else {
                     this.repertoireSortKey = key;
-                    this.repertoireSortDirection = 'desc';
+                    // Default to asc for text, desc for dates/numbers
+                    this.repertoireSortDirection = (key === 'title' || key === 'artist') ? 'asc' : 'desc';
                 }
             },
 
@@ -201,16 +202,27 @@
                 if (!this.repertoire) return [];
                 return [...this.repertoire].sort((a, b) => {
                     const direction = this.repertoireSortDirection === 'asc' ? 1 : -1;
+                    const key = this.repertoireSortKey;
+                
                     // Handle nulls so they always appear at the bottom
-                    if (a[this.repertoireSortKey] === null) return 1;
-                    if (b[this.repertoireSortKey] === null) return -1;
-            
-                if (a[this.repertoireSortKey] < b[this.repertoireSortKey]) return -1 * direction; if (a[this.repertoireSortKey]>
-                    b[this.repertoireSortKey]) return 1 * direction;
+                    if (a[key] === null || a[key] === undefined) return 1;
+                    if (b[key] === null || b[key] === undefined) return -1;
+                
+                    const valA = a[key];
+                    const valB = b[key];
+                
+                    // Case-insensitive sort for strings
+                    if (typeof valA === 'string' && typeof valB === 'string') {
+                        return valA.localeCompare(valB, undefined, { sensitivity: 'base' }) * direction;
+                    }
+                
+                    // Standard comparison for numbers/dates
+                    if (valA < valB) return -1 * direction; 
+                    if (valA> valB) return 1 * direction;
                         return 0;
                     });
                 }
-            }" 
+            }"
 
         @user-signed-in.window="loadData()"
         @scroll.window.debounce.250ms="localStorage.setItem('scrollPosition', window.scrollY)"
@@ -688,8 +700,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Artist</th>
+                            <th @click="sortRepertoireBy('title')" class="sortable">Title</th>
+                            <th @click="sortRepertoireBy('artist')" class="sortable">Artist</th>
                             <th @click="sortRepertoireBy('practice_count')" class="sortable">Practice Count</th>
                             <th @click="sortRepertoireBy('last_practiced')" class="sortable">Last Practiced</th>
                             <th>Actions</th>
