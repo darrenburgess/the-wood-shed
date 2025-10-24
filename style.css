@@ -853,6 +853,11 @@ th.sortable:hover {
     box-shadow: 0 0 0 2px #cbe5f8;
 }
 
+#repertoire-view th:nth-child(5),
+#repertoire-view td:nth-child(5) {
+    width: 160px;
+}
+
 /* --- Utility Classes --- */
 .hidden {
     display: none;
