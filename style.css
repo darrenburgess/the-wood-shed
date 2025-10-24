@@ -23,7 +23,7 @@ body {
 
 /* --- Layout & Container --- */
 .container {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
     background-color: var(--container-bg);
     border-radius: 12px;
@@ -851,6 +851,11 @@ th.sortable:hover {
     outline: none;
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px #cbe5f8;
+}
+
+#repertoire-view th:nth-child(1),
+#repertoire-view td:nth-child(1) {
+    width: 250px;
 }
 
 #repertoire-view th:nth-child(5),
