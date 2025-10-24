@@ -27,6 +27,12 @@ function initializeSupabaseClient() {
 // CREATE THE CLIENT (MUST BE BEFORE ANYTHING THAT USES IT)
 const supabaseClient = initializeSupabaseClient();
 
+function getLocalDateString(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() is 0-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 // DEFINE THE DATA LAYER (This section USES the supabaseClient)
 window.dataLayer = {
@@ -250,7 +256,7 @@ window.dataLayer = {
             .insert({
                 goal_id: goal.id,
                 entry: entryText,
-                date: new Date().toISOString().split('T')[0],
+                date: getLocalDateString(),
                 user_id: user.id
             })
             .select('*')
