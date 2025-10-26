@@ -1,5 +1,6 @@
 import { dataLayer } from '/data/index.js';
 import { getSupabaseClient } from '/supabase.js';
+import { loadAndInjectHtml } from './viewLoader.js';
 
 export default function app() {
     return {
@@ -56,8 +57,11 @@ export default function app() {
         }),
 
         // --- INITIALIZATION ---
-        init() {
+        async init() {
             // This function is called by Alpine when the component is initialized.
+
+            // Load modal partials into the DOM
+            await this.loadModals();
             
             // Set up window event listeners that were previously in the HTML
             window.addEventListener('user-signed-in', () => this.loadData());
@@ -105,6 +109,12 @@ export default function app() {
         },
 
         // --- METHODS ---
+        async loadModals() {
+            // Load the new-topic-modal when the application starts.
+            await loadAndInjectHtml('new-topic-modal', 'new-topic-modal');
+            await loadAndInjectHtml('edit-topic-modal', 'edit-topic-modal');
+        },
+
         async loadData() {
             this.isLoading = true;
             const fetchedTopics = await dataLayer.fetchPlanData();
