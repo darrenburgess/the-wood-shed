@@ -12,8 +12,10 @@
 
     <link rel="stylesheet" href="style.css">
     
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="app.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script type="module" src="app.js" defer></script>
+
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" defer></script>
@@ -40,230 +42,15 @@
     <div 
         class="container hidden" 
         id="app-container"
-        x-data="{ 
-            currentUser: null,
-            topics: [],
-            isLoading: true,
-            activeView: 'plan',
-            isDevEnvironment: (window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:'),
-            isNewTopicModalOpen: false,
-            newTopicTitle: '',
-            isEditTopicModalOpen: false,
-            editingTopic: null,
-            isEditGoalModalOpen: false,
-            editingGoal: null,
-            isEditLogModalOpen: false,
-            editingLog: null,
-            editingLogGoal: null,
-            isAddLogModalOpen: false,
-            loggingForGoal: null,
-            isContentModalOpen: false,
-            editingContent: null,
-            isYouTubeModalOpen: false,
-            youTubeVideoId: '',
-
-            // State for the Logs View
-            logs: [],
-            isLogsLoading: false,
-            logsLoaded: false,
-            logViewDate: new Date(),
-            logViewTitle: 'Today\'s Logs',
-            searchStartDate: '',
-            searchEndDate: '',
-
-            // State for the Content View
-            content: [],
-            isContentLoading: false,
-
-            // State for Repertoire View
-            repertoire: [],
-            isRepertoireLoading: false,
-            isRepertoireStale: false,
-            isRepertoireModalOpen: false,
-            editingRepertoire: null,
-            repertoireSortKey: 'last_practiced',
-            repertoireSortDirection: 'desc',
-
-            // --- METHODS ---
-            uiState: $persist({ 
-                topicStates: {}, 
-                goalStates: {},
-                completedGoalStates: {} 
-            }),
-            async loadData() {
-                this.isLoading = true;
-                const fetchedTopics = await dataLayer.fetchPlanData();
-
-                // Only add properties that don't need to be persisted
-                fetchedTopics.forEach(topic => {
-                    if (topic.goals) {
-                        topic.goals.forEach(goal => {
-                            goal.logsToShow = 5;
-                        });
-                    }
-                });
-                
-                this.topics = fetchedTopics;
-                this.isLoading = false;
-                    this.$nextTick(() => {
-                    feather.replace();
-                  
-                    const savedPosition = localStorage.getItem('scrollPosition');
-                    if (savedPosition) {
-                        window.scrollTo(0, parseInt(savedPosition));
-                    }
-                });
-            },
-            expandAll() {
-                this.topics.forEach(topic => {
-                    this.uiState.topicStates[topic.id] = true;
-                    if (topic.goals) {
-                        topic.goals.filter(g => !g.is_complete).forEach(goal => this.uiState.goalStates[goal.id] = true);
-                    }
-                });
-            },
-            collapseAll() {
-                this.topics.forEach(topic => {
-                    this.uiState.topicStates[topic.id] = false;
-                    if (topic.goals) {
-                        topic.goals.forEach(goal => this.uiState.goalStates[goal.id] = false);
-                    }
-                });
-            },
-            // Logs View Methods
-            formatDate(date) {
-                return date.toISOString().split('T')[0];
-            },
-            async getLogsForDate(date) {
-                this.isLogsLoading = true;
-                this.logViewTitle = `Logs for ${date.toLocaleDateString('en-US')}`;
-                const dateString = this.formatDate(date);
-                this.logs = await dataLayer.fetchLogsByDateRange(dateString, dateString);
-                this.isLogsLoading = false;
-            },
-            async prevDay() {
-                this.logViewDate.setDate(this.logViewDate.getDate() - 1);
-                this.getLogsForDate(this.logViewDate);
-            },
-            async nextDay() {
-                this.logViewDate.setDate(this.logViewDate.getDate() + 1);
-                this.getLogsForDate(this.logViewDate);
-            },
-            async searchDateRange() {
-                if (!this.searchStartDate || !this.searchEndDate) return;
-                this.isLogsLoading = true;
-                this.logViewTitle = `Logs from ${this.searchStartDate} to ${this.searchEndDate}`;
-                this.logs = await dataLayer.fetchLogsByDateRange(this.searchStartDate, this.searchEndDate);
-                this.isLogsLoading = false;
-            },
-            
-            // Content View Methods
-            async loadContent() {
-                this.isContentLoading = true;
-                this.content = await dataLayer.fetchContentLibrary();
-                this.isContentLoading = false;
-                this.$nextTick(() => feather.replace());
-            },
-           
-            // Repertoire View Methods
-            async loadRepertoire() {
-                this.isRepertoireLoading = true;
-                this.repertoire = await dataLayer.fetchRepertoire();
-                this.isRepertoireLoading = false;
-                this.$nextTick(() => feather.replace());
-            },
-      
-            sortRepertoireBy(key) {
-                if (this.repertoireSortKey === key) {
-                    this.repertoireSortDirection = this.repertoireSortDirection === 'asc' ? 'desc' : 'asc';
-                } else {
-                    this.repertoireSortKey = key;
-                    // Default to asc for text, desc for dates/numbers
-                    this.repertoireSortDirection = (key === 'title' || key === 'artist') ? 'asc' : 'desc';
-                }
-            },
-
-            // --- COMPUTED PROPERTIES ---
-            get groupedLogs() {
-                return this.logs.reduce((acc, log) => {
-                    if (!log.goals || !log.goals.topics) return acc;
-                    const topicTitle = log.goals.topics.title;
-                    const goalDesc = `${log.goals.goal_number}: ${log.goals.description}`;
-                    
-                    if (!acc[topicTitle]) acc[topicTitle] = {};
-                    if (!acc[topicTitle][goalDesc]) acc[topicTitle][goalDesc] = [];
-                    
-                    acc[topicTitle][goalDesc].push(log);
-                    return acc;
-                }, {});
-            },
-
-            get sortedRepertoire() {
-                if (!this.repertoire) return [];
-                return [...this.repertoire].sort((a, b) => {
-                    const direction = this.repertoireSortDirection === 'asc' ? 1 : -1;
-                    const key = this.repertoireSortKey;
-                
-                    // Handle nulls so they always appear at the bottom
-                    if (a[key] === null || a[key] === undefined) return 1;
-                    if (b[key] === null || b[key] === undefined) return -1;
-                
-                    const valA = a[key];
-                    const valB = b[key];
-                
-                    // Case-insensitive sort for strings
-                    if (typeof valA === 'string' && typeof valB === 'string') {
-                        return valA.localeCompare(valB, undefined, { sensitivity: 'base' }) * direction;
-                    }
-                
-                    // Standard comparison for numbers/dates
-                    if (valA < valB) return -1 * direction; 
-                    if (valA> valB) return 1 * direction;
-                        return 0;
-                    });
-                }
-            }"
-
-        @user-signed-in.window="loadData()"
-        @scroll.window.debounce.250ms="localStorage.setItem('scrollPosition', window.scrollY)"
-        @keydown.window="
-            if ($event.key === ' ' && isYouTubeModalOpen) {
-                $event.preventDefault();
-            }
-        "
-        x-effect="
-            if (isDevEnvironment) document.title = '(Dev) The Wood Shed';
-            if (activeView === 'content' && content.length === 0) loadContent();
-            if (activeView === 'repertoire' && repertoire.length === 0) loadRepertoire();
-            
-            if (activeView === 'logs' && !logsLoaded) {
-                getLogsForDate(logViewDate);
-                logsLoaded = true; // Mark as loaded so this only runs once per session
-            }
-        
-            if (activeView === 'repertoire' && (repertoire.length === 0 || isRepertoireStale)) {
-                loadRepertoire();
-                isRepertoireStale = false;
-            }
-        "
-        @click="
-            const link = $event.target.closest('.youtube-link');
-            if (link) {
-                $event.preventDefault();
-                const videoId = link.dataset.videoId;
-                if (videoId) {
-                    youTubeVideoId = videoId;
-                isYouTubeModalOpen = true;
-                }
-            }
-        "
+        x-data="app"
+        x-cloak
     >
         <div class="app-header">
             <h1 id="app-title">
                 The Wood Shed
                 <span x-show="isDevEnvironment" style="font-weight: 500; color: #a0aec0;">(Dev)</span>
             </h1>
-            <button id="sign-out-btn" @click="supabaseClient.auth.signOut()">Sign Out</button>
+            <button id="sign-out-btn" @click="supabase.auth.signOut()">Sign Out</button>
         </div>
         
         <div class="tabs">
