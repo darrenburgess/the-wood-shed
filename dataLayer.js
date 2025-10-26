@@ -1,9 +1,9 @@
 import { getSupabaseClient } from '/supabase.js';
-import { repertoireData } from '/repertoire.js';
-import { contentData } from '/content.js';
-import { topicData } from '/topics.js';
-import { goalData } from '/goals.js';
-import { logData } from '/logs.js';
+import { repertoireData } from './data/repertoire.js';
+import { contentData } from '/data/content.js';
+import { topicData } from './data/topics.js';
+import { goalData } from './data/goals.js';
+import { logData } from './data/logs.js';
 import { linkify, getYoutubeVideoId } from '/utils.js';
 
 // DEFINE THE DATA LAYER (This section USES the supabaseClient)
