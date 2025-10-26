@@ -113,6 +113,7 @@ export default function app() {
             // Load the new-topic-modal when the application starts.
             await loadAndInjectHtml('new-topic-modal', 'new-topic-modal');
             await loadAndInjectHtml('edit-topic-modal', 'edit-topic-modal');
+            await loadAndInjectHtml('edit-goal-modal', 'edit-goal-modal');
         },
 
         async loadData() {

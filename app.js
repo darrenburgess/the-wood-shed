@@ -10,7 +10,12 @@ getSupabaseClient();
 window.dataLayer = dataLayer;
 
 document.addEventListener('alpine:init', () => {
+    // 1. Register the Alpine component. This runs its init() method, which sets up event listeners.
     Alpine.data('app', app);
+
+    // 2. Initialize authentication *after* Alpine is ready.
+    // This ensures the component's listeners are in place before any auth events can fire.
+    initializeAuth();
 });
 
 initializeAuth();
