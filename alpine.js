@@ -1,4 +1,4 @@
-import { dataLayer } from '/dataLayer.js';
+import { dataLayer } from '/data/index.js';
 import { getSupabaseClient } from '/supabase.js';
 
 export default function app() {

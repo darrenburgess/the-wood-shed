@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '/supabase.js';
-import { dataLayer } from '/dataLayer.js';
+import { dataLayer } from '/data/index.js';
 import { initializeAuth } from '/auth.js';
 import app from '/alpine.js';
 
