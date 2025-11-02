@@ -1,0 +1,46 @@
+<div class="modal-overlay" x-show="isRepertoireModalOpen" x-cloak
+    @keydown.escape.window="isRepertoireModalOpen = false">
+    <div class="modal-content" @click.outside="isRepertoireModalOpen = false">
+        <h3 x-text="editingRepertoire?.id ? 'Edit Tune' : 'New Tune'"></h3>
+
+        <template x-if="editingRepertoire">
+            <div class="create-content-panel">
+                <input type="text" x-model="editingRepertoire.title" placeholder="Title">
+                <input type="text" x-model="editingRepertoire.artist" placeholder="Artist">
+            </div>
+        </template>
+
+        <div class="modal-actions">
+            <div>
+                <button class="btn-delete" x-show="editingRepertoire?.id" @click="
+                        if (confirm('Are you sure you want to delete this tune?')) {
+                            await dataLayer.deleteRepertoire(editingRepertoire.id);
+                            await loadRepertoire(); // Re-fetch the list from the database
+                        isRepertoireModalOpen = false;
+}
+                    ">Delete</button>
+            </div>
+            <div class="right-actions">
+                <button @click="isRepertoireModalOpen = false; editingRepertoire = null">Cancel</button>
+                <button class="btn-save" @click="
+                        if (editingRepertoire.id) {
+                            // Update existing tune
+                            const updated = await dataLayer.updateRepertoire(editingRepertoire.id, editingRepertoire.title, editingRepertoire.artist);
+                            if (updated) {
+                                const index = repertoire.findIndex(r => r.id === updated.id);
+                                repertoire[index] = updated;
+                            }
+                        } else {
+                            // Create new tune
+                            const newTune = await dataLayer.createRepertoire(editingRepertoire.title, editingRepertoire.artist);
+                            if (newTune) {
+                                repertoire.unshift(newTune);
+                                $nextTick(() => feather.replace());
+                            }
+                        }
+                        isRepertoireModalOpen = false;
+                    ">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
