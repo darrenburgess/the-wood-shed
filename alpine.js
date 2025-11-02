@@ -72,6 +72,12 @@ export default function app() {
             window.addEventListener('keydown', this.handleGlobalKeydown.bind(this));
             this.$el.addEventListener('click', this.handleGlobalClick.bind(this));
 
+            // Check if user is already signed in (handles page refresh with existing session)
+            const { data: { session } } = await this.supabase.auth.getSession();
+            if (session) {
+                this.loadData();
+            }
+
             // This replaces the x-effect directive
             this.$watch('activeView', (newView) => {
                 if (newView === 'content' && this.content.length === 0) this.loadContent();
