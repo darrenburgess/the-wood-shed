@@ -110,10 +110,13 @@ export default function app() {
 
         // --- METHODS ---
         async loadModals() {
-            // Load the new-topic-modal when the application starts.
-            await loadAndInjectHtml('new-topic-modal', 'new-topic-modal');
-            await loadAndInjectHtml('edit-topic-modal', 'edit-topic-modal');
-            await loadAndInjectHtml('edit-goal-modal', 'edit-goal-modal');
+            // Load all modals in parallel for better performance
+            await Promise.all([
+                loadAndInjectHtml('new-topic-modal', 'new-topic-modal'),
+                loadAndInjectHtml('edit-topic-modal', 'edit-topic-modal'),
+                loadAndInjectHtml('edit-goal-modal', 'edit-goal-modal'),
+                loadAndInjectHtml('add-log-modal', 'add-log-modal')
+            ]);
         },
 
         async loadData() {

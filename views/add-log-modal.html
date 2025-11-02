@@ -1,0 +1,31 @@
+<div class="modal-overlay" x-show="isAddLogModalOpen" x-cloak @keydown.escape.window="isAddLogModalOpen = false">
+    <div class="modal-content" @click.outside="isAddLogModalOpen = false" x-data="{ newLogEntry: '' }"
+        x-init="$watch('isAddLogModalOpen', open => { if (!open) { newLogEntry = ''; } })">
+        <h3 x-show="loggingForGoal">Add Log for Goal: <span x-text="loggingForGoal?.goal_number"></span></h3>
+
+        <textarea x-model="newLogEntry" placeholder="New log entry..."></textarea>
+
+        <div class="modal-actions">
+            <div></div>
+            <div class="right-actions">
+                <button @click="isAddLogModalOpen = false">Cancel</button>
+                <button
+                    class="btn-save"
+                    @click="
+                        if (newLogEntry.trim()) {
+                            const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry);
+                            if (statsUpdated) isRepertoireStale = true;
+                            if (newLog) {
+                                newLog.content = [];
+                                newLog.isToday = true;
+                                loggingForGoal.logs.unshift(newLog);
+                                $nextTick(() => feather.replace());
+                            }
+                        }
+                        isAddLogModalOpen = false;
+                    "
+                >Save Log</button>
+            </div>
+        </div>
+    </div>
+</div>
