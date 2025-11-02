@@ -116,7 +116,8 @@ export default function app() {
                 loadAndInjectHtml('edit-topic-modal', 'edit-topic-modal'),
                 loadAndInjectHtml('edit-goal-modal', 'edit-goal-modal'),
                 loadAndInjectHtml('add-log-modal', 'add-log-modal'),
-                loadAndInjectHtml('edit-log-modal', 'edit-log-modal')
+                loadAndInjectHtml('edit-log-modal', 'edit-log-modal'),
+                loadAndInjectHtml('content-modal', 'content-modal')
             ]);
         },
 

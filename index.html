@@ -536,74 +536,8 @@
         <div id="add-log-modal"></div>
 
         <div id="edit-log-modal"></div>
-    
-        <div 
-            class="modal-overlay" 
-            x-show="isContentModalOpen" 
-            x-cloak 
-            @keydown.escape.window="isContentModalOpen = false"
-        >
-            <div class="modal-content" @click.outside="isContentModalOpen = false">
-                <h3 x-text="editingContent?.id ? 'Edit Content' : 'Add New Content'"></h3>
-                
-                <template x-if="editingContent">
-                    <div class="create-content-panel">
-                        <input type="text" x-model="editingContent.title" placeholder="Title">
-                        <input type="url" x-model="editingContent.url" placeholder="https://...">
-                        <select x-model="editingContent.type">
-                            <option>YouTube</option>
-                            <option>Article</option>
-                            <option>Image</option>
-                            <option>PDF</option>
-                        </select>
-                    </div>
-                </template>
 
-                <div class="modal-actions">
-                    <div>
-                        <button 
-                            class="btn-delete"
-                            x-show="editingContent?.id"
-                            @click="
-                                if (confirm('Are you sure? This will also remove links from any logs.')) {
-                                    dataLayer.deleteContent(editingContent.id);
-                                    content = content.filter(c => c.id !== editingContent.id);
-                                    isContentModalOpen = false;
-                                }
-                            "
-                        >Delete</button>
-                    </div>
-                    <div class="right-actions">
-                        <button @click="isContentModalOpen = false; editingContent = null">Cancel</button>
-                        <button 
-                            class="btn-save"
-                            @click="
-                                if (editingContent.id) {
-                                    // Update existing content
-                                    const updated = await dataLayer.updateContent(editingContent.id, editingContent.title, editingContent.url, editingContent.type);
-                                    if (updated) {
-                                        const index = content.findIndex(c => c.id === updated.id);
-                                        content[index] = updated;
-                                        isContentModalOpen = false; // Close modal on success
-                                    }
-                                } else {
-                                    // Create new content
-                                    const newContent = await dataLayer.createContent(editingContent.title, editingContent.url, editingContent.type);
-                                    if (newContent) {
-                                        content.unshift(newContent);
-                                        $nextTick(() => feather.replace());
-                                        isContentModalOpen = false; // Close modal on success
-                                    } else {
-                                        // Handle the error if newContent is null
-                                        alert('Error: A content item with this URL already exists.');
-                                    }
-                                }
-                            "
-                        >Save</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="content-modal"></div>
    
         <div class="modal-overlay" x-show="isRepertoireModalOpen" x-cloak
             @keydown.escape.window="isRepertoireModalOpen = false">
