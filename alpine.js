@@ -60,9 +60,12 @@ export default function app() {
         async init() {
             // This function is called by Alpine when the component is initialized.
 
-            // Load modal partials into the DOM
-            await this.loadModals();
-            
+            // Load views and modals into the DOM
+            await Promise.all([
+                this.loadViews(),
+                this.loadModals()
+            ]);
+
             // Set up window event listeners that were previously in the HTML
             window.addEventListener('user-signed-in', () => this.loadData());
             window.addEventListener('scroll', this.handleScroll.bind(this));
@@ -109,6 +112,16 @@ export default function app() {
         },
 
         // --- METHODS ---
+        async loadViews() {
+            // Load all views in parallel for better performance
+            await Promise.all([
+                loadAndInjectHtml('plan-view', 'plan-view'),
+                loadAndInjectHtml('logs-view', 'logs-view'),
+                loadAndInjectHtml('content-view', 'content-view'),
+                loadAndInjectHtml('repertoire-view', 'repertoire-view')
+            ]);
+        },
+
         async loadModals() {
             // Load all modals in parallel for better performance
             await Promise.all([
@@ -118,7 +131,8 @@ export default function app() {
                 loadAndInjectHtml('add-log-modal', 'add-log-modal'),
                 loadAndInjectHtml('edit-log-modal', 'edit-log-modal'),
                 loadAndInjectHtml('content-modal', 'content-modal'),
-                loadAndInjectHtml('repertoire-modal', 'repertoire-modal')
+                loadAndInjectHtml('repertoire-modal', 'repertoire-modal'),
+                loadAndInjectHtml('youtube-modal', 'youtube-modal')
             ]);
         },
 

@@ -1,0 +1,319 @@
+           <div class="main-controls">
+                <button id="add-topic-btn" @click="isNewTopicModalOpen = true" class="btn-new">New Topic</button>
+                <button @click="expandAll()">Expand All</button>
+                <button @click="collapseAll()">Collapse All</button>
+            </div>
+
+            <div x-show="isLoading" style="text-align: center; padding: 2rem;">Loading your plan...</div>
+            
+            <div x-show="!isLoading">
+                <template x-for="topic in topics" :key="topic.id">
+                    <details class="topic-details" :open="uiState.topicStates[topic.id] ?? true" @toggle="uiState.topicStates[topic.id] = $event.target.open">
+                        <summary class="summary-flex">
+                            <h2>
+                                Topic <span x-text="topic.topic_number"></span>: 
+                                <span x-text="topic.title"></span>
+                            </h2>
+                            <button 
+                                class="edit-btn" 
+                                @click.prevent="isEditTopicModalOpen = true; editingTopic = topic"
+                            >
+                                <i data-feather="edit-2"></i>
+                            </button> 
+                        </summary>
+                        
+                        <div>
+                            <div class="topic-content">
+                                <template x-for="goal in topic.goals.filter(g => !g.is_complete)" :key="goal.id">
+                                    <details class="goal-details" :open="uiState.goalStates[goal.id] ?? false" @toggle="uiState.goalStates[goal.id] = $event.target.open">
+                                        <summary class="summary-flex">
+                                            <span class="goal-text">
+                                                <strong><span x-text="goal.goal_number"></span>:</strong>
+                                                <span x-text="goal.description"></span>
+                                            </span>
+                                            <div 
+                                                class="popover-container" 
+                                                x-data="{ isOpen: false, searchTerm: '', searchResults: [] }"
+                                            >
+                                                <button 
+                                                    class="content-link-btn has-tooltip" 
+                                                    @click.prevent="isOpen = !isOpen"
+                                                    :data-tooltip="goal.content?.map(c => c.title).join(', ')"
+                                                    x-init="$nextTick(() => feather.replace())"
+                                                >
+                                                    <span x-text="goal.content?.length || 0"></span>
+                                                </button>
+
+                                                <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                                    <h5>Linked Content</h5>
+                                                    <ul>
+                                                        <template x-for="item in goal.content" :key="item.id">
+                                                            <li class="linked-item">
+                                                                <span class="clickable-title" x-text="item.title" @click="
+                                                                    if (item.type === 'YouTube') {
+                                                                        const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                        if (videoId) {
+                                                                            youTubeVideoId = videoId;
+                                                                            isYouTubeModalOpen = true;
+                                                                        }
+                                                                    } else {
+                                                                        window.open(item.url, '_blank');
+                                                                    }
+                                                                    isOpen = false; // This line closes the popover
+"
+                                                                ></span>
+                                                                <button @click="
+                                                                    dataLayer.unlinkContentFromGoal(goal.id, item.id);
+                                                                    goal.content = goal.content.filter(c => c.id !== item.id);
+                                                                ">×</button>
+                                                            </li>
+                                                        </template>
+                                                        <template x-if="!goal.content || goal.content.length === 0">
+                                                            <li class="no-results" style="padding: 0.5rem;">No content linked yet.</li>
+                                                        </template>
+                                                    </ul>
+                                                    
+                                                    <div class="popover-search">
+                                                        <h5>Add Content</h5>
+                                                        <input 
+                                                            type="text" 
+                                                            class="search-input" 
+                                                            placeholder="Search library..."
+                                                            x-model="searchTerm"
+                                                            @input.debounce.300ms="dataLayer.searchContent(searchTerm).then(data => searchResults = data)"
+                                                        >
+                                                        <ul class="results-list" x-show="searchTerm.length > 1">
+                                                            <template
+                                                                x-for="result in searchResults.filter(r => (!goal.content || !goal.content.some(linked => linked.id === r.id)))">
+                                                                <li @click="
+                                                                    dataLayer.linkContentToGoal(goal.id, result.id);
+                                                                    if (!goal.content) {
+                                                                        goal.content = [];
+                                                                    }
+                                                                    goal.content.push(result);
+
+                                                                    // Force Alpine to re-evaluate the 'open' state
+                                                                    goal.isOpen = false;
+                                                                    $nextTick(() => {
+                                                                        goal.isOpen = true;
+                                                                    });
+
+                                                                    searchTerm = '';
+                                                                    searchResults = [];
+                                                                ">
+                                                                    <span x-text="result.title"></span>
+                                                                </li>
+                                                            </template>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <template x-if="topic.title === 'Repertoire'">
+                                                <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
+                                            
+                                                    <template x-if="goal.repertoire">
+                                                        <div class="pill">
+                                                            <span x-text="goal.repertoire.title"></span>
+                                                            <button @click.prevent="
+                                                                    dataLayer.unlinkRepertoireFromGoal(goal.id);
+                                                                    goal.repertoire = null;
+                                                                ">×</button>
+                                                        </div>
+                                                    </template>
+                                            
+                                                    <template x-if="!goal.repertoire">
+                                                        <button class="content-link-btn" @click.prevent="isOpen = !isOpen">
+                                                            Add Tune
+                                                        </button>
+                                                    </template>
+                                            
+                                                    <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                                        <div class="popover-search">
+                                                            <input type="text" class="search-input" placeholder="Search repertoire..." x-model="searchTerm"
+                                                                @input.debounce.300ms="dataLayer.searchRepertoire(searchTerm).then(data => searchResults = data)">
+                                                            <ul class="results-list" x-show="searchTerm.length > 1">
+                                                                <template x-for="result in searchResults" :key="result.id">
+                                                                    <li 
+                                                                        @click="
+                                                                            dataLayer.linkRepertoireToGoal(goal.id, result.id);
+                                                                            // Update both the object and the ID on the client
+                                                                            goal.repertoire = result;
+                                                                            goal.repertoire_id = result.id;
+                                                                            isOpen = false;
+                                                                            searchTerm = '';
+                                                                            searchResults = [];
+                                                                        "
+                                                                    >
+                                                                        <span x-text="result.title"></span>
+                                                                    </li>
+                                                                </template>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            
+                                            <button class="edit-btn" @click.prevent="isEditGoalModalOpen = true; editingGoal = goal">
+                                                <i data-feather="edit-2"></i>
+                                            </button>
+                                        </summary>
+
+                                        <div class="add-log-container">
+                                            <button 
+                                                class=".btn-new" 
+                                                @click="isAddLogModalOpen = true; loggingForGoal = goal"
+                                            >
+                                                Add Log
+                                            </button>
+                                        </div>
+
+                                    <ul class="log-list">
+                                        <template x-for="log in goal.logs.slice(0, goal.logsToShow)" :key="log.id">
+                                            <li :class="{ 'todays-log': log.isToday }">
+                                                <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
+                                                <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+                                            
+                                                <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
+                                                    <button class="content-link-btn has-tooltip" 
+                                                        @click.prevent="isOpen = !isOpen"
+                                                        :data-tooltip="goal.content?.map(c => c.title).join(', ')"
+                                                    >
+                                                        <span x-text="log.content?.length || 0"></span>
+                                                    </button>
+                                                
+                                                    <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                                        <h5>Linked Content</h5>
+                                                        <ul>
+                                                            <template x-for="item in log.content" :key="item.id">
+                                                                <li class="linked-item">
+                                                                    <span class="clickable-title" x-text="item.title" @click="
+                                                                            if (item.type === 'YouTube') {
+                                                                                const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                                if (videoId) {
+                                                                                    youTubeVideoId = videoId;
+                                                                                    isYouTubeModalOpen = true;
+                                                                                }
+                                                                            } else {
+                                                                                window.open(item.url, '_blank');
+                                                                            }
+                                                                            isOpen = false;
+                                                                        "></span>
+                                                                    <button @click="
+                                                                        dataLayer.unlinkContentFromLog(log.id, item.id);
+                                                                        log.content = log.content.filter(c => c.id !== item.id);
+                                                                    ">×</button>
+                                                                </li>
+                                                            </template>
+                                                            <template x-if="!log.content || log.content.length === 0">
+                                                                <li class="no-results" style="padding: 0.5rem;">No content linked yet.</li>
+                                                            </template>
+                                                        </ul>
+                                                
+                                                        <div class="popover-search">
+                                                            <h5>Add Content</h5>
+                                                            <input type="text" class="search-input" placeholder="Search library..." x-model="searchTerm"
+                                                                @input.debounce.300ms="dataLayer.searchContent(searchTerm).then(data => searchResults = data)">
+                                                            <ul class="results-list" x-show="searchTerm.length > 1">
+                                                                <template
+                                                                    x-for="result in searchResults.filter(r => !log.content || !log.content.some(linked => linked.id === r.id))">
+                                                                    <li @click="
+                                                                        dataLayer.linkContentToLog(log.id, result.id);
+                                                                        if (!log.content) log.content = [];
+                                                                        log.content.push(result);
+                                                                        searchTerm = '';
+                                                                        searchResults = [];
+                                                                    ">
+                                                                        <span x-text="result.title"></span>
+                                                                    </li>
+                                                                </template>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            
+                                                <button class="edit-btn" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
+                                                    <i data-feather="edit-2"></i>
+                                                </button>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                            <div class="log-controls">
+                                                <template x-if="goal.logs.length > 5 && goal.logsToShow < goal.logs.length">
+                                                    <button 
+                                                        class="toggle-logs-btn" 
+                                                        @click="
+                                                            goal.logsToShow = goal.logs.length;
+                                                            $nextTick(() => feather.replace());
+                                                        ">
+                                                        Show All (<span x-text="goal.logs.length"></span>)
+                                                    </button>
+                                                </template>
+                                                <template x-if="goal.logsToShow > 5">
+                                                    <button class="toggle-logs-btn" @click="goal.logsToShow = 5">
+                                                        Show Less
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </details>
+                                </template>                                
+
+                                <template x-if="topic.goals.some(g => g.is_complete)">
+                                    <div>
+                                        <h4 @click="topic.isCompletedGoalsOpen = !topic.isCompletedGoalsOpen"
+                                            style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+                                            <span>Completed Goals</span>
+                                            <span x-show="!topic.isCompletedGoalsOpen">▼</span>
+                                            <span x-show="topic.isCompletedGoalsOpen" x-cloak>▲</span>
+                                        </h4>
+                                        <div x-show="topic.isCompletedGoalsOpen" x-cloak>
+                                            <template x-for="goal in topic.goals.filter(g => g.is_complete)" :key="goal.id">
+                                                <div class="goal-details completed-goal" :open="uiState.goalStates[goal.id] ?? false" @toggle="uiState.goalStates[goal.id] = $event.target.open" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem;">
+                                                    <span class="goal-text">
+                                                        <strong><span x-text="goal.goal_number"></span>:</strong>
+                                                        <span x-text="goal.description"></span>
+                                                        <em>(Completed: <span
+                                                                x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
+                                                    </span>
+                                                    <button class="edit-btn" @click.prevent="isEditGoalModalOpen = true; editingGoal = goal">
+                                                        <i data-feather="edit-2"></i>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>                       
+                        </div>
+
+                        <form 
+                            class="add-goal-form" 
+                            x-data="{ newGoalDescription: '' }"
+                            @submit.prevent="
+                                const newGoal = await dataLayer.addGoal(topic, newGoalDescription);
+                                if (newGoal) {
+                                    newGoal.content = [];
+                                    newGoal.logs = [];
+                                    newGoal.isOpen = true;
+                                    topic.goals.push(newGoal);
+
+                                    // Re-sort the array to place the new goal at the top
+                                    topic.goals.sort((a, b) => {
+                                        const aParts = a.goal_number.split('.').map(Number);
+                                        const bParts = b.goal_number.split('.').map(Number);
+                                        return bParts[1] - aParts[1];
+                                    });
+
+                                    $nextTick(() => feather.replace());
+                                    newGoalDescription = '';
+                                }
+                            "
+                        >
+                            <input type="text" x-model="newGoalDescription" class="goal-input" placeholder="New goal description..." required>
+                            <button type="submit">Add Goal</button>
+                        </form>
+
+                    </details>
+                </template>
+            </div>

@@ -1,0 +1,19 @@
+<div
+    class="modal-overlay"
+    x-show="isYouTubeModalOpen"
+    x-cloak
+    @keydown.escape.window="isYouTubeModalOpen = false"
+>
+    <div class="modal-content youtube-modal-content" @click.outside="isYouTubeModalOpen = false">
+        <button @click="isYouTubeModalOpen = false" class="modal-close-btn">&times;</button>
+        <div id="youtube-player-container">
+            <iframe
+                x-show="isYouTubeModalOpen"
+                :src="isYouTubeModalOpen ? `https://www.youtube.com/embed/${youTubeVideoId}` : ''"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+            </iframe>
+        </div>
+    </div>
+</div>
