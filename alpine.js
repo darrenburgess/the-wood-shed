@@ -7,7 +7,7 @@ export default function app() {
         // --- STATE PROPERTIES ---
         topics: [],
         isLoading: true,
-        activeView: 'plan',
+        activeView: 'topics',
         isDevEnvironment: (window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:'),
         
         // Modal states
@@ -48,6 +48,9 @@ export default function app() {
         editingRepertoire: null,
         repertoireSortKey: 'last_practiced',
         repertoireSortDirection: 'desc',
+
+        // Practice Today / Session state
+        todaySessionGoalIds: [],
 
         // Persisted UI state
         uiState: this.$persist({
@@ -121,7 +124,7 @@ export default function app() {
         async loadViews() {
             // Load all views in parallel for better performance
             await Promise.all([
-                loadAndInjectHtml('plan-view', 'plan-view'),
+                loadAndInjectHtml('topics-view', 'topics-view'),
                 loadAndInjectHtml('logs-view', 'logs-view'),
                 loadAndInjectHtml('content-view', 'content-view'),
                 loadAndInjectHtml('repertoire-view', 'repertoire-view')
@@ -144,7 +147,7 @@ export default function app() {
 
         async loadData() {
             this.isLoading = true;
-            const fetchedTopics = await dataLayer.fetchPlanData();
+            const fetchedTopics = await dataLayer.fetchTopicsData();
 
             fetchedTopics.forEach(topic => {
                 if (topic.goals) {
@@ -155,6 +158,10 @@ export default function app() {
             });
 
             this.topics = fetchedTopics;
+
+            // Load today's session goal IDs
+            this.todaySessionGoalIds = await dataLayer.getTodaySessionGoalIds();
+
             this.isLoading = false;
             this.$nextTick(() => {
                 feather.replace();
@@ -234,6 +241,29 @@ export default function app() {
                 this.repertoireSortKey = key;
                 this.repertoireSortDirection = (key === 'title' || key === 'artist') ? 'asc' : 'desc';
             }
+        },
+
+        // Practice Today / Session Methods
+        async toggleGoalInTodaySession(goalId) {
+            const isInSession = this.todaySessionGoalIds.includes(goalId);
+
+            if (isInSession) {
+                // Remove from session
+                const success = await dataLayer.removeGoalFromTodaySession(goalId);
+                if (success) {
+                    this.todaySessionGoalIds = this.todaySessionGoalIds.filter(id => id !== goalId);
+                }
+            } else {
+                // Add to session
+                const success = await dataLayer.addGoalToTodaySession(goalId);
+                if (success) {
+                    this.todaySessionGoalIds.push(goalId);
+                }
+            }
+        },
+
+        isGoalInTodaySession(goalId) {
+            return this.todaySessionGoalIds.includes(goalId);
         },
 
         // --- COMPUTED PROPERTIES (Getters) ---

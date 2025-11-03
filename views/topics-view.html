@@ -4,7 +4,7 @@
                 <button @click="collapseAll()">Collapse All</button>
             </div>
 
-            <div x-show="isLoading" style="text-align: center; padding: 2rem;">Loading your plan...</div>
+            <div x-show="isLoading" style="text-align: center; padding: 2rem;">Loading your topics...</div>
             
             <div x-show="!isLoading">
                 <template x-for="topic in topics" :key="topic.id">
@@ -154,6 +154,15 @@
                                                 </div>
                                             </template>
                                             
+                                            <button
+                                                class="content-link-btn"
+                                                :class="{ 'in-session': isGoalInTodaySession(goal.id) }"
+                                                @click.prevent="toggleGoalInTodaySession(goal.id)"
+                                                :title="isGoalInTodaySession(goal.id) ? 'Remove from today\'s session' : 'Add to today\'s session'"
+                                                x-text="isGoalInTodaySession(goal.id) ? '✓' : '+'"
+                                            >
+                                            </button>
+
                                             <button class="edit-btn" @click.prevent="isEditGoalModalOpen = true; editingGoal = goal">
                                                 <i data-feather="edit-2"></i>
                                             </button>

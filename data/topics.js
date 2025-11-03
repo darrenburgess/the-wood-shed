@@ -1,9 +1,10 @@
 import { getSupabaseClient } from '/supabase.js';
+import { getLocalDateString } from '/utils.js';
 
 export const topicData = {
-    async fetchPlanData() {
+    async fetchTopicsData() {
         const supabaseClient = getSupabaseClient();
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
 
         const { data: topics, error } = await supabaseClient
             .from('topics')
@@ -12,7 +13,7 @@ export const topicData = {
             .order('created_at', { foreignTable: 'goals.logs', ascending: false });
 
         if (error) {
-            console.error('Error fetching plan data:', error);
+            console.error('Error fetching topics data:', error);
             return [];
         }
 

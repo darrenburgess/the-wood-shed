@@ -4,6 +4,7 @@ import { contentData } from './content.js';
 import { topicData } from './topics.js';
 import { goalData } from './goals.js';
 import { logData } from './logs.js';
+import { sessionData } from './sessions.js';
 import { linkify, getYoutubeVideoId } from '../utils.js';
 
 // DEFINE THE DATA LAYER (This section USES the supabaseClient)
@@ -16,7 +17,8 @@ const dataLayer = {
     ...contentData,
     ...topicData,
     ...goalData,
-    ...logData
+    ...logData,
+    ...sessionData
 };
 
 export { dataLayer };

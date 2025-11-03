@@ -323,6 +323,18 @@ li span {
     color: var(--accent-color);
 }
 
+.content-link-btn.in-session {
+    background: #10b981; /* green background for active state */
+    color: white;
+    border-color: #10b981;
+    font-weight: bold;
+}
+
+.content-link-btn.in-session:hover {
+    background: #059669; /* darker green on hover */
+    border-color: #059669;
+}
+
 .edit-btn svg,
 .reopen-goal-btn svg {
     width: 18px;
