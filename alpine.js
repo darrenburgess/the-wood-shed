@@ -40,6 +40,8 @@ export default function app() {
         // Content View state
         content: [],
         isContentLoading: false,
+        contentSortKey: 'title',
+        contentSortDirection: 'asc',
 
         // Repertoire View state
         repertoire: [],
@@ -260,6 +262,15 @@ export default function app() {
             this.$nextTick(() => feather.replace());
         },
 
+        sortContentBy(key) {
+            if (this.contentSortKey === key) {
+                this.contentSortDirection = this.contentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.contentSortKey = key;
+                this.contentSortDirection = 'asc';
+            }
+        },
+
         // Repertoire View Methods
         async loadRepertoire() {
             this.isRepertoireLoading = true;
@@ -374,6 +385,28 @@ export default function app() {
                 acc[topicTitle][goalDesc].push(log);
                 return acc;
             }, {});
+        },
+
+        get sortedContent() {
+            if (!this.content) return [];
+            return [...this.content].sort((a, b) => {
+                const direction = this.contentSortDirection === 'asc' ? 1 : -1;
+                const key = this.contentSortKey;
+
+                if (a[key] === null || a[key] === undefined) return 1;
+                if (b[key] === null || b[key] === undefined) return -1;
+
+                const valA = a[key];
+                const valB = b[key];
+
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    return valA.localeCompare(valB, undefined, { sensitivity: 'base' }) * direction;
+                }
+
+                if (valA < valB) return -1 * direction;
+                if (valA > valB) return 1 * direction;
+                return 0;
+            });
         },
 
         get sortedRepertoire() {

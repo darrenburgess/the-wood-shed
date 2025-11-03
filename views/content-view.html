@@ -10,14 +10,14 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Title</th>
+                            <th @click="sortContentBy('title')" class="sortable">Title</th>
                             <th>URL</th>
-                            <th>Type</th>
+                            <th @click="sortContentBy('type')" class="sortable">Type</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-for="item in content" :key="item.id">
+                        <template x-for="item in sortedContent" :key="item.id">
                             <tr>
                                 <td x-text="item.title"></td>
                                 <td>
