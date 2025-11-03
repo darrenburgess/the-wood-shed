@@ -1,13 +1,14 @@
 import { dataLayer } from '/data/index.js';
 import { getSupabaseClient } from '/supabase.js';
 import { loadAndInjectHtml } from './viewLoader.js';
+import { getLocalDateString } from '/utils.js';
 
 export default function app() {
     return {
         // --- STATE PROPERTIES ---
         topics: [],
         isLoading: true,
-        activeView: 'topics',
+        activeView: 'practice',
         isDevEnvironment: (window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:'),
         
         // Modal states
@@ -51,6 +52,10 @@ export default function app() {
 
         // Practice Today / Session state
         todaySessionGoalIds: [],
+        practiceDate: getLocalDateString(),
+        practiceSession: null,
+        practiceGoals: [],
+        isPracticeLoading: false,
 
         // Persisted UI state
         uiState: this.$persist({
@@ -79,10 +84,17 @@ export default function app() {
             const { data: { session } } = await this.supabase.auth.getSession();
             if (session) {
                 this.loadData();
+                // Load practice session if that's the active view on page load
+                if (this.activeView === 'practice') {
+                    this.loadPracticeSession(this.practiceDate);
+                }
             }
 
             // This replaces the x-effect directive
             this.$watch('activeView', (newView) => {
+                if (newView === 'practice') {
+                    this.loadPracticeSession(this.practiceDate);
+                }
                 if (newView === 'content' && this.content.length === 0) this.loadContent();
                 if (newView === 'logs' && !this.logsLoaded) {
                     this.getLogsForDate(this.logViewDate);
@@ -91,6 +103,13 @@ export default function app() {
                 if (newView === 'repertoire' && (this.repertoire.length === 0 || this.isRepertoireStale)) {
                     this.loadRepertoire();
                     this.isRepertoireStale = false;
+                }
+            });
+
+            // Watch practiceDate changes to reload session
+            this.$watch('practiceDate', (newDate) => {
+                if (this.activeView === 'practice') {
+                    this.loadPracticeSession(newDate);
                 }
             });
 
@@ -124,6 +143,7 @@ export default function app() {
         async loadViews() {
             // Load all views in parallel for better performance
             await Promise.all([
+                loadAndInjectHtml('practice-today-view', 'practice-today-view'),
                 loadAndInjectHtml('topics-view', 'topics-view'),
                 loadAndInjectHtml('logs-view', 'logs-view'),
                 loadAndInjectHtml('content-view', 'content-view'),
@@ -264,6 +284,64 @@ export default function app() {
 
         isGoalInTodaySession(goalId) {
             return this.todaySessionGoalIds.includes(goalId);
+        },
+
+        // Practice Today View Methods
+        async loadPracticeSession(dateString) {
+            this.isPracticeLoading = true;
+            this.practiceSession = await dataLayer.getSessionForDate(dateString);
+            this.practiceGoals = await dataLayer.fetchSessionWithGoals(dateString);
+
+            // Initialize showAllLogs for each goal (default to showing only session date logs)
+            this.practiceGoals.forEach(goal => {
+                goal.showAllLogs = false;
+            });
+
+            this.isPracticeLoading = false;
+            this.$nextTick(() => feather.replace());
+        },
+
+        prevPracticeDay() {
+            const currentDate = new Date(this.practiceDate);
+            currentDate.setDate(currentDate.getDate() - 1);
+            this.practiceDate = getLocalDateString(currentDate);
+        },
+
+        nextPracticeDay() {
+            const currentDate = new Date(this.practiceDate);
+            currentDate.setDate(currentDate.getDate() + 1);
+            this.practiceDate = getLocalDateString(currentDate);
+        },
+
+        async removeGoalFromPracticeSession(goalId) {
+            if (!this.practiceSession) return;
+
+            const success = await dataLayer.removeGoalFromSession(this.practiceSession.id, goalId);
+            if (success) {
+                this.practiceGoals = this.practiceGoals.filter(g => g.id !== goalId);
+                // Also update todaySessionGoalIds if this is today
+                if (this.isToday(this.practiceDate)) {
+                    this.todaySessionGoalIds = this.todaySessionGoalIds.filter(id => id !== goalId);
+                }
+            }
+        },
+
+        async clearPracticeSession() {
+            if (!this.practiceSession) return;
+
+            const success = await dataLayer.clearSession(this.practiceSession.id);
+            if (success) {
+                this.practiceGoals = [];
+                this.practiceSession = null;
+                // Also clear todaySessionGoalIds if this is today
+                if (this.isToday(this.practiceDate)) {
+                    this.todaySessionGoalIds = [];
+                }
+            }
+        },
+
+        isToday(dateString) {
+            return dateString === getLocalDateString();
         },
 
         // --- COMPUTED PROPERTIES (Getters) ---

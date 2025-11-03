@@ -54,12 +54,14 @@
         </div>
         
         <div class="tabs">
+            <button class="tab-btn" :class="{ 'active': activeView === 'practice' }" @click="activeView = 'practice'">Practice Today</button>
             <button class="tab-btn" :class="{ 'active': activeView === 'topics' }" @click="activeView = 'topics'">Topics</button>
             <button class="tab-btn" :class="{ 'active': activeView === 'logs' }" @click="activeView = 'logs'">Logs</button>
             <button class="tab-btn" :class="{ 'active': activeView === 'content' }" @click="activeView = 'content'">Content</button>
             <button class="tab-btn" :class="{ 'active': activeView === 'repertoire' }" @click="activeView = 'repertoire'">Repertoire</button>
         </div>
 
+        <div id="practice-today-view" x-show="activeView === 'practice'"></div>
         <div id="topics-view" x-show="activeView === 'topics'"></div>
         <div id="logs-view" x-show="activeView === 'logs'"></div>
         <div id="content-view" x-show="activeView === 'content'"></div>

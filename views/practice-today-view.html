@@ -1,0 +1,140 @@
+<div class="practice-header">
+    <h2>Practice Today</h2>
+    <div class="date-nav">
+        <button @click="prevPracticeDay()">&lt;</button>
+        <input type="date" x-model="practiceDate" @change="loadPracticeSession(practiceDate)">
+        <button @click="nextPracticeDay()">&gt;</button>
+    </div>
+</div>
+
+<div x-show="isPracticeLoading" style="text-align: center; padding: 2rem;">Loading session...</div>
+
+<div x-show="!isPracticeLoading">
+    <!-- Empty State -->
+    <template x-if="!practiceGoals || practiceGoals.length === 0">
+        <div class="empty-state" style="text-align: center; padding: 3rem;">
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">No goals in this practice session yet.</p>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                <template x-if="isToday(practiceDate)">
+                    <span>Go to the Topics tab to add goals to today's session.</span>
+                </template>
+                <template x-if="!isToday(practiceDate)">
+                    <span>This date has no practice session.</span>
+                </template>
+            </p>
+        </div>
+    </template>
+
+    <!-- Session Goals -->
+    <template x-if="practiceGoals && practiceGoals.length > 0">
+        <div class="practice-goals">
+            <template x-for="goal in practiceGoals" :key="goal.id">
+                <div class="practice-goal-card">
+                    <div class="goal-header">
+                        <h3>
+                            <span x-text="goal.topic_title"></span> -
+                            <span x-text="goal.goal_number"></span>:
+                            <span x-text="goal.description"></span>
+                        </h3>
+                        <button
+                            class="btn-delete"
+                            @click="if (confirm('Remove this goal from the session?')) removeGoalFromPracticeSession(goal.id)"
+                            title="Remove from session"
+                        >×</button>
+                    </div>
+
+                    <!-- Content Links -->
+                    <template x-if="goal.content && goal.content.length > 0">
+                        <div class="goal-content-list">
+                            <strong>Content:</strong>
+                            <template x-for="item in goal.content" :key="item.id">
+                                <span
+                                    class="content-pill clickable"
+                                    @click="
+                                        if (item.type === 'YouTube') {
+                                            const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                            if (videoId) {
+                                                youTubeVideoId = videoId;
+                                                isYouTubeModalOpen = true;
+                                            }
+                                        } else {
+                                            window.open(item.url, '_blank');
+                                        }
+                                    "
+                                    x-text="item.title"
+                                ></span>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Repertoire (if applicable) -->
+                    <template x-if="goal.repertoire">
+                        <div class="goal-repertoire">
+                            <strong>Tune:</strong>
+                            <span class="content-pill" x-text="goal.repertoire.title"></span>
+                        </div>
+                    </template>
+
+                    <!-- Goal Actions -->
+                    <div class="goal-actions">
+                        <button
+                            class="btn-new"
+                            @click="isAddLogModalOpen = true; loggingForGoal = goal"
+                        >Add Log</button>
+                    </div>
+
+                    <!-- Logs -->
+                    <template x-if="goal.logs && goal.logs.length > 0">
+                        <div class="practice-logs" x-data="{
+                            get filteredLogs() {
+                                if (goal.showAllLogs) {
+                                    return goal.logs;
+                                }
+                                return goal.logs.filter(log => log.date === practiceDate);
+                            }
+                        }">
+                            <h4>Logs</h4>
+                            <ul class="log-list">
+                                <template x-for="log in filteredLogs" :key="log.id">
+                                    <li>
+                                        <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
+                                        <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+
+                                        <button class="edit-btn" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
+                                            <i data-feather="edit-2"></i>
+                                        </button>
+                                    </li>
+                                </template>
+                            </ul>
+                            <div class="log-controls">
+                                <template x-if="!goal.showAllLogs && goal.logs.filter(log => log.date !== practiceDate).length > 0">
+                                    <button
+                                        class="toggle-logs-btn"
+                                        @click="
+                                            goal.showAllLogs = true;
+                                            $nextTick(() => feather.replace());
+                                        ">
+                                        Show All (<span x-text="goal.logs.length"></span>)
+                                    </button>
+                                </template>
+                                <template x-if="goal.showAllLogs">
+                                    <button class="toggle-logs-btn" @click="goal.showAllLogs = false">
+                                        Show Session Logs Only
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Clear Session Button -->
+            <div class="session-actions" style="margin-top: 2rem; text-align: center;">
+                <button
+                    class="btn-delete"
+                    @click="if (confirm('Clear this entire practice session? This will remove all goals from the session but will not delete any logs.')) clearPracticeSession()"
+                >Clear Session</button>
+            </div>
+        </div>
+    </template>
+</div>

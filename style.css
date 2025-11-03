@@ -883,3 +883,116 @@ th.sortable:hover {
 .log-hidden {
     display: none;
 }
+
+/* --- Practice Today View --- */
+.practice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.practice-header h2 {
+    margin: 0;
+}
+
+.date-nav {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.date-nav button {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    background: white;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.date-nav button:hover {
+    background: var(--hover-bg);
+}
+
+.date-nav input[type="date"] {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: var(--font-family);
+}
+
+.practice-goals {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.practice-goal-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: white;
+}
+
+.goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.goal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.goal-content-list,
+.goal-repertoire {
+    margin: 0.75rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.content-pill {
+    display: inline-block;
+    background: var(--hover-bg);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    margin: 0.25rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--border-color);
+}
+
+.content-pill.clickable {
+    cursor: pointer;
+}
+
+.content-pill.clickable:hover {
+    background: #e6f2ff;
+    border-color: var(--accent-color);
+}
+
+.goal-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.practice-logs {
+    margin-top: 1rem;
+}
+
+.practice-logs h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.session-actions {
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
