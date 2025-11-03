@@ -61,7 +61,8 @@ export default function app() {
         uiState: this.$persist({
             topicStates: {},
             goalStates: {},
-            completedGoalStates: {}
+            completedGoalStates: {},
+            practiceGoalStates: {}
         }),
 
         // --- INITIALIZATION ---
@@ -210,6 +211,20 @@ export default function app() {
             });
         },
 
+        expandAllPracticeGoals() {
+            if (!this.uiState.practiceGoalStates) this.uiState.practiceGoalStates = {};
+            this.practiceGoals.forEach(goal => {
+                this.uiState.practiceGoalStates[goal.id] = true;
+            });
+        },
+
+        collapseAllPracticeGoals() {
+            if (!this.uiState.practiceGoalStates) this.uiState.practiceGoalStates = {};
+            this.practiceGoals.forEach(goal => {
+                this.uiState.practiceGoalStates[goal.id] = false;
+            });
+        },
+
         // Logs View Methods
         formatDate(date) {
             return date.toISOString().split('T')[0];
@@ -302,13 +317,15 @@ export default function app() {
         },
 
         prevPracticeDay() {
-            const currentDate = new Date(this.practiceDate);
+            const parts = this.practiceDate.split('-');
+            const currentDate = new Date(parts[0], parts[1] - 1, parts[2]);
             currentDate.setDate(currentDate.getDate() - 1);
             this.practiceDate = getLocalDateString(currentDate);
         },
 
         nextPracticeDay() {
-            const currentDate = new Date(this.practiceDate);
+            const parts = this.practiceDate.split('-');
+            const currentDate = new Date(parts[0], parts[1] - 1, parts[2]);
             currentDate.setDate(currentDate.getDate() + 1);
             this.practiceDate = getLocalDateString(currentDate);
         },

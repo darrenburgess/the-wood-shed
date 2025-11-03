@@ -6,9 +6,25 @@
 >
     <div class="modal-content" @click.outside="isNewTopicModalOpen = false">
         <h3>Add New Topic</h3>
-        <textarea 
-            x-model="newTopicTitle" 
+        <textarea
+            x-model="newTopicTitle"
             placeholder="Enter title for the new topic..."
+            @keydown.enter="
+                if (!$event.shiftKey) {
+                    $event.preventDefault();
+                    (async () => {
+                        const newTopic = await dataLayer.addTopic(newTopicTitle);
+                        if (newTopic) {
+                            newTopic.goals = [];
+                            newTopic.isOpen = true;
+                            topics.push(newTopic);
+                            $nextTick(() => feather.replace());
+                        }
+                        isNewTopicModalOpen = false;
+                        newTopicTitle = '';
+                    })();
+                }
+            "
         ></textarea>
         <div class="modal-actions">
             <div></div> <div class="right-actions">

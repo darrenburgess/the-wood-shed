@@ -23,9 +23,9 @@ export const sessionData = {
             .select('*, session_goals(goal_id)')
             .eq('user_id', user.id)
             .eq('session_date', today)
-            .single();
+            .maybeSingle();
 
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        if (fetchError) {
             console.error('Error fetching session:', fetchError);
             return null;
         }
@@ -153,9 +153,9 @@ export const sessionData = {
             .select('*, session_goals(goal_id)')
             .eq('user_id', user.id)
             .eq('session_date', dateString)
-            .single();
+            .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        if (error) {
             console.error('Error fetching session:', error);
             return null;
         }

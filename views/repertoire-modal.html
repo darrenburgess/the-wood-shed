@@ -4,7 +4,27 @@
         <h3 x-text="editingRepertoire?.id ? 'Edit Tune' : 'New Tune'"></h3>
 
         <template x-if="editingRepertoire">
-            <div class="create-content-panel">
+            <div class="create-content-panel" @keydown.enter="
+                $event.preventDefault();
+                (async () => {
+                    if (editingRepertoire.id) {
+                        // Update existing tune
+                        const updated = await dataLayer.updateRepertoire(editingRepertoire.id, editingRepertoire.title, editingRepertoire.artist);
+                        if (updated) {
+                            const index = repertoire.findIndex(r => r.id === updated.id);
+                            repertoire[index] = updated;
+                        }
+                    } else {
+                        // Create new tune
+                        const newTune = await dataLayer.createRepertoire(editingRepertoire.title, editingRepertoire.artist);
+                        if (newTune) {
+                            repertoire.unshift(newTune);
+                            $nextTick(() => feather.replace());
+                        }
+                    }
+                    isRepertoireModalOpen = false;
+                })();
+            ">
                 <input type="text" x-model="editingRepertoire.title" placeholder="Title">
                 <input type="text" x-model="editingRepertoire.artist" placeholder="Artist">
             </div>

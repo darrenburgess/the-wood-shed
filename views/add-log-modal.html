@@ -3,7 +3,28 @@
         x-init="$watch('isAddLogModalOpen', open => { if (!open) { newLogEntry = ''; } })">
         <h3 x-show="loggingForGoal">Add Log for Goal: <span x-text="loggingForGoal?.goal_number"></span></h3>
 
-        <textarea x-model="newLogEntry" placeholder="New log entry..."></textarea>
+        <textarea
+            x-model="newLogEntry"
+            placeholder="New log entry..."
+            @keydown.enter="
+                if (!$event.shiftKey) {
+                    $event.preventDefault();
+                    if (newLogEntry.trim()) {
+                        (async () => {
+                            const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry);
+                            if (statsUpdated) isRepertoireStale = true;
+                            if (newLog) {
+                                newLog.content = [];
+                                newLog.isToday = true;
+                                loggingForGoal.logs.unshift(newLog);
+                                $nextTick(() => feather.replace());
+                            }
+                            isAddLogModalOpen = false;
+                        })();
+                    }
+                }
+            "
+        ></textarea>
 
         <div class="modal-actions">
             <div></div>

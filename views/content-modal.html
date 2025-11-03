@@ -8,7 +8,30 @@
         <h3 x-text="editingContent?.id ? 'Edit Content' : 'Add New Content'"></h3>
 
         <template x-if="editingContent">
-            <div class="create-content-panel">
+            <div class="create-content-panel" @keydown.enter="
+                $event.preventDefault();
+                (async () => {
+                    if (editingContent.id) {
+                        // Update existing content
+                        const updated = await dataLayer.updateContent(editingContent.id, editingContent.title, editingContent.url, editingContent.type);
+                        if (updated) {
+                            const index = content.findIndex(c => c.id === updated.id);
+                            content[index] = updated;
+                            isContentModalOpen = false;
+                        }
+                    } else {
+                        // Create new content
+                        const newContent = await dataLayer.createContent(editingContent.title, editingContent.url, editingContent.type);
+                        if (newContent) {
+                            content.unshift(newContent);
+                            $nextTick(() => feather.replace());
+                            isContentModalOpen = false;
+                        } else {
+                            alert('Error: A content item with this URL already exists.');
+                        }
+                    }
+                })();
+            ">
                 <input type="text" x-model="editingContent.title" placeholder="Title">
                 <input type="url" x-model="editingContent.url" placeholder="https://...">
                 <select x-model="editingContent.type">

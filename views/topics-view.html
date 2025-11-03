@@ -109,51 +109,49 @@
                                                 </div>
                                             </div>
 
-                                            <template x-if="topic.title === 'Repertoire'">
-                                                <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
-                                            
-                                                    <template x-if="goal.repertoire">
-                                                        <div class="pill">
-                                                            <span x-text="goal.repertoire.title"></span>
-                                                            <button @click.prevent="
-                                                                    dataLayer.unlinkRepertoireFromGoal(goal.id);
-                                                                    goal.repertoire = null;
-                                                                ">×</button>
-                                                        </div>
-                                                    </template>
-                                            
-                                                    <template x-if="!goal.repertoire">
-                                                        <button class="content-link-btn" @click.prevent="isOpen = !isOpen">
-                                                            Add Tune
-                                                        </button>
-                                                    </template>
-                                            
-                                                    <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
-                                                        <div class="popover-search">
-                                                            <input type="text" class="search-input" placeholder="Search repertoire..." x-model="searchTerm"
-                                                                @input.debounce.300ms="dataLayer.searchRepertoire(searchTerm).then(data => searchResults = data)">
-                                                            <ul class="results-list" x-show="searchTerm.length > 1">
-                                                                <template x-for="result in searchResults" :key="result.id">
-                                                                    <li 
-                                                                        @click="
-                                                                            dataLayer.linkRepertoireToGoal(goal.id, result.id);
-                                                                            // Update both the object and the ID on the client
-                                                                            goal.repertoire = result;
-                                                                            goal.repertoire_id = result.id;
-                                                                            isOpen = false;
-                                                                            searchTerm = '';
-                                                                            searchResults = [];
-                                                                        "
-                                                                    >
-                                                                        <span x-text="result.title"></span>
-                                                                    </li>
-                                                                </template>
-                                                            </ul>
-                                                        </div>
+                                            <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
+
+                                                <template x-if="goal.repertoire">
+                                                    <div class="pill">
+                                                        <span x-text="goal.repertoire.title"></span>
+                                                        <button @click.prevent="
+                                                                dataLayer.unlinkRepertoireFromGoal(goal.id);
+                                                                goal.repertoire = null;
+                                                            ">×</button>
+                                                    </div>
+                                                </template>
+
+                                                <template x-if="!goal.repertoire">
+                                                    <button class="content-link-btn" @click.prevent="isOpen = !isOpen">
+                                                        Add Tune
+                                                    </button>
+                                                </template>
+
+                                                <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                                    <div class="popover-search">
+                                                        <input type="text" class="search-input" placeholder="Search repertoire..." x-model="searchTerm"
+                                                            @input.debounce.300ms="dataLayer.searchRepertoire(searchTerm).then(data => searchResults = data)">
+                                                        <ul class="results-list" x-show="searchTerm.length > 1">
+                                                            <template x-for="result in searchResults" :key="result.id">
+                                                                <li
+                                                                    @click="
+                                                                        dataLayer.linkRepertoireToGoal(goal.id, result.id);
+                                                                        // Update both the object and the ID on the client
+                                                                        goal.repertoire = result;
+                                                                        goal.repertoire_id = result.id;
+                                                                        isOpen = false;
+                                                                        searchTerm = '';
+                                                                        searchResults = [];
+                                                                    "
+                                                                >
+                                                                    <span x-text="result.title"></span>
+                                                                </li>
+                                                            </template>
+                                                        </ul>
                                                     </div>
                                                 </div>
-                                            </template>
-                                            
+                                            </div>
+
                                             <button
                                                 class="content-link-btn"
                                                 :class="{ 'in-session': isGoalInTodaySession(goal.id) }"

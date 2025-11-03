@@ -7,7 +7,16 @@
     <div class="modal-content" @click.outside="isEditLogModalOpen = false">
         <h3>Edit Log</h3>
         <template x-if="editingLog">
-            <textarea x-model="editingLog.entry"></textarea>
+            <textarea
+                x-model="editingLog.entry"
+                @keydown.enter="
+                    if (!$event.shiftKey) {
+                        $event.preventDefault();
+                        dataLayer.updateLog(editingLog.id, editingLog.entry);
+                        isEditLogModalOpen = false;
+                    }
+                "
+            ></textarea>
         </template>
         <div class="modal-actions">
             <div>

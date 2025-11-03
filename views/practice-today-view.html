@@ -7,6 +7,11 @@
     </div>
 </div>
 
+<div class="main-controls" style="text-align: right; margin-bottom: 1rem;">
+    <button @click="expandAllPracticeGoals()">Expand All</button>
+    <button @click="collapseAllPracticeGoals()">Collapse All</button>
+</div>
+
 <div x-show="isPracticeLoading" style="text-align: center; padding: 2rem;">Loading session...</div>
 
 <div x-show="!isPracticeLoading">
@@ -29,56 +34,142 @@
     <template x-if="practiceGoals && practiceGoals.length > 0">
         <div class="practice-goals">
             <template x-for="goal in practiceGoals" :key="goal.id">
-                <div class="practice-goal-card">
-                    <div class="goal-header">
-                        <h3>
+                <details class="goal-details" :open="(uiState.practiceGoalStates && uiState.practiceGoalStates[goal.id]) ?? false" @toggle="if (!uiState.practiceGoalStates) uiState.practiceGoalStates = {}; uiState.practiceGoalStates[goal.id] = $event.target.open">
+                    <summary class="summary-flex">
+                        <span class="goal-text">
                             <span x-text="goal.topic_title"></span> -
-                            <span x-text="goal.goal_number"></span>:
+                            <strong><span x-text="goal.goal_number"></span>:</strong>
                             <span x-text="goal.description"></span>
-                        </h3>
+                        </span>
                         <button
                             class="btn-delete"
-                            @click="if (confirm('Remove this goal from the session?')) removeGoalFromPracticeSession(goal.id)"
+                            @click.prevent="if (confirm('Remove this goal from the session?')) removeGoalFromPracticeSession(goal.id)"
                             title="Remove from session"
                         >×</button>
+                    </summary>
+
+                    <!-- Content and Repertoire Inline -->
+                    <div class="goal-content-list">
+                        <span>
+                            <strong>Content:</strong>
+
+                            <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }" style="display: inline-block;">
+                                <button class="content-link-btn" @click.prevent="isOpen = !isOpen">+</button>
+
+                                <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                    <h5>Add Content</h5>
+                                    <input
+                                        type="text"
+                                        class="search-input"
+                                        placeholder="Search library..."
+                                        x-model="searchTerm"
+                                        @input.debounce.300ms="dataLayer.searchContent(searchTerm).then(data => searchResults = data)"
+                                    >
+                                    <ul class="results-list" x-show="searchTerm.length > 1">
+                                        <template
+                                            x-for="result in searchResults.filter(r => (!goal.content || !goal.content.some(linked => linked.id === r.id)))">
+                                            <li @click="
+                                                dataLayer.linkContentToGoal(goal.id, result.id);
+                                                if (!goal.content) {
+                                                    goal.content = [];
+                                                }
+                                                goal.content.push(result);
+                                                searchTerm = '';
+                                                searchResults = [];
+                                                isOpen = false;
+                                            ">
+                                                <span x-text="result.title"></span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <template x-if="goal.content && goal.content.length > 0">
+                                <template x-for="item in goal.content" :key="item.id">
+                                    <span class="content-pill-wrapper">
+                                        <span
+                                            class="content-pill clickable"
+                                            @click="
+                                                if (item.type === 'YouTube') {
+                                                    const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                    if (videoId) {
+                                                        youTubeVideoId = videoId;
+                                                        isYouTubeModalOpen = true;
+                                                    }
+                                                } else {
+                                                    window.open(item.url, '_blank');
+                                                }
+                                            "
+                                            x-text="item.title"
+                                        ></span>
+                                        <button
+                                            class="pill-remove-btn"
+                                            @click="
+                                                dataLayer.unlinkContentFromGoal(goal.id, item.id);
+                                                goal.content = goal.content.filter(c => c.id !== item.id);
+                                            "
+                                        >×</button>
+                                    </span>
+                                </template>
+                            </template>
+                        </span>
+
+                        <span>
+                            <strong>Tune:</strong>
+
+                            <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }" style="display: inline-block;">
+                                <template x-if="goal.repertoire">
+                                    <span class="content-pill-wrapper">
+                                        <span class="content-pill" x-text="goal.repertoire.title"></span>
+                                        <button
+                                            class="pill-remove-btn"
+                                            @click.prevent="
+                                                dataLayer.unlinkRepertoireFromGoal(goal.id);
+                                                goal.repertoire = null;
+                                            "
+                                        >×</button>
+                                    </span>
+                                </template>
+
+                                <template x-if="!goal.repertoire">
+                                    <button class="content-link-btn" @click.prevent="isOpen = !isOpen">+</button>
+                                </template>
+
+                                <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                    <h5>Add Tune</h5>
+                                    <input
+                                        type="text"
+                                        class="search-input"
+                                        placeholder="Search repertoire..."
+                                        x-model="searchTerm"
+                                        @input.debounce.300ms="dataLayer.searchRepertoire(searchTerm).then(data => searchResults = data)"
+                                    >
+                                    <ul class="results-list" x-show="searchTerm.length > 1">
+                                        <template x-for="result in searchResults" :key="result.id">
+                                            <li
+                                                @click="
+                                                    dataLayer.linkRepertoireToGoal(goal.id, result.id);
+                                                    goal.repertoire = result;
+                                                    goal.repertoire_id = result.id;
+                                                    isOpen = false;
+                                                    searchTerm = '';
+                                                    searchResults = [];
+                                                "
+                                            >
+                                                <span x-text="result.title"></span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
+                        </span>
                     </div>
 
-                    <!-- Content Links -->
-                    <template x-if="goal.content && goal.content.length > 0">
-                        <div class="goal-content-list">
-                            <strong>Content:</strong>
-                            <template x-for="item in goal.content" :key="item.id">
-                                <span
-                                    class="content-pill clickable"
-                                    @click="
-                                        if (item.type === 'YouTube') {
-                                            const videoId = dataLayer.getYoutubeVideoId(item.url);
-                                            if (videoId) {
-                                                youTubeVideoId = videoId;
-                                                isYouTubeModalOpen = true;
-                                            }
-                                        } else {
-                                            window.open(item.url, '_blank');
-                                        }
-                                    "
-                                    x-text="item.title"
-                                ></span>
-                            </template>
-                        </div>
-                    </template>
-
-                    <!-- Repertoire (if applicable) -->
-                    <template x-if="goal.repertoire">
-                        <div class="goal-repertoire">
-                            <strong>Tune:</strong>
-                            <span class="content-pill" x-text="goal.repertoire.title"></span>
-                        </div>
-                    </template>
-
                     <!-- Goal Actions -->
-                    <div class="goal-actions">
+                    <div class="add-log-container">
                         <button
-                            class="btn-new"
+                            class=".btn-new"
                             @click="isAddLogModalOpen = true; loggingForGoal = goal"
                         >Add Log</button>
                     </div>
@@ -93,12 +184,69 @@
                                 return goal.logs.filter(log => log.date === practiceDate);
                             }
                         }">
-                            <h4>Logs</h4>
                             <ul class="log-list">
                                 <template x-for="log in filteredLogs" :key="log.id">
                                     <li>
                                         <span class="log-date" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
                                         <span class="log-entry" x-html="dataLayer.linkify(log.entry)"></span>
+
+                                        <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
+                                            <button class="content-link-btn has-tooltip"
+                                                @click.prevent="isOpen = !isOpen"
+                                                :data-tooltip="log.content?.map(c => c.title).join(', ')"
+                                            >
+                                                <span x-text="log.content?.length || 0"></span>
+                                            </button>
+
+                                            <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                                <h5>Linked Content</h5>
+                                                <ul>
+                                                    <template x-for="item in log.content" :key="item.id">
+                                                        <li class="linked-item">
+                                                            <span class="clickable-title" x-text="item.title" @click="
+                                                                if (item.type === 'YouTube') {
+                                                                    const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                    if (videoId) {
+                                                                        youTubeVideoId = videoId;
+                                                                        isYouTubeModalOpen = true;
+                                                                    }
+                                                                } else {
+                                                                    window.open(item.url, '_blank');
+                                                                }
+                                                                isOpen = false;
+                                                            "></span>
+                                                            <button @click="
+                                                                dataLayer.unlinkContentFromLog(log.id, item.id);
+                                                                log.content = log.content.filter(c => c.id !== item.id);
+                                                            ">×</button>
+                                                        </li>
+                                                    </template>
+                                                    <template x-if="!log.content || log.content.length === 0">
+                                                        <li class="no-results" style="padding: 0.5rem;">No content linked yet.</li>
+                                                    </template>
+                                                </ul>
+
+                                                <div class="popover-search">
+                                                    <h5>Add Content</h5>
+                                                    <input type="text" class="search-input" placeholder="Search library..." x-model="searchTerm"
+                                                        @input.debounce.300ms="dataLayer.searchContent(searchTerm).then(data => searchResults = data)">
+                                                    <ul class="results-list" x-show="searchTerm.length > 1">
+                                                        <template
+                                                            x-for="result in searchResults.filter(r => !log.content || !log.content.some(linked => linked.id === r.id))">
+                                                            <li @click="
+                                                                dataLayer.linkContentToLog(log.id, result.id);
+                                                                if (!log.content) log.content = [];
+                                                                log.content.push(result);
+                                                                searchTerm = '';
+                                                                searchResults = [];
+                                                            ">
+                                                                <span x-text="result.title"></span>
+                                                            </li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         <button class="edit-btn" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
                                             <i data-feather="edit-2"></i>
@@ -125,7 +273,7 @@
                             </div>
                         </div>
                     </template>
-                </div>
+                </details>
             </template>
 
             <!-- Clear Session Button -->
