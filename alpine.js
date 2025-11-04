@@ -42,6 +42,8 @@ export default function app() {
         isContentLoading: false,
         contentSortKey: 'title',
         contentSortDirection: 'asc',
+        contentSearchTerm: '',
+        contentTagFilters: [],
 
         // Repertoire View state
         repertoire: [],
@@ -114,6 +116,14 @@ export default function app() {
                 if (this.activeView === 'practice') {
                     this.loadPracticeSession(newDate);
                 }
+            });
+
+            // Watch content filters to refresh feather icons
+            this.$watch('contentSearchTerm', () => {
+                this.$nextTick(() => feather.replace());
+            });
+            this.$watch('contentTagFilters', () => {
+                this.$nextTick(() => feather.replace());
             });
 
             if (this.isDevEnvironment) document.title = '(Dev) The Wood Shed';
@@ -387,9 +397,54 @@ export default function app() {
             }, {});
         },
 
+        get allContentTags() {
+            if (!this.content) return [];
+            const tagMap = new Map();
+            this.content.forEach(item => {
+                if (item.tags && item.tags.length > 0) {
+                    item.tags.forEach(tag => {
+                        if (!tagMap.has(tag.id)) {
+                            tagMap.set(tag.id, { ...tag, count: 0 });
+                        }
+                        tagMap.get(tag.id).count++;
+                    });
+                }
+            });
+            return Array.from(tagMap.values()).sort((a, b) =>
+                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            );
+        },
+
         get sortedContent() {
             if (!this.content) return [];
-            return [...this.content].sort((a, b) => {
+
+            let filtered = this.content;
+
+            // Filter by selected tags (OR logic - must have ANY selected tag)
+            if (this.contentTagFilters.length > 0) {
+                filtered = filtered.filter(item => {
+                    if (!item.tags || item.tags.length === 0) return false;
+                    const itemTagIds = item.tags.map(t => t.id);
+                    return this.contentTagFilters.some(filterTag => itemTagIds.includes(filterTag.id));
+                });
+            }
+
+            // Filter content based on search term
+            if (this.contentSearchTerm.trim()) {
+                const searchLower = this.contentSearchTerm.toLowerCase();
+                filtered = filtered.filter(item => {
+                    // Search in title
+                    if (item.title?.toLowerCase().includes(searchLower)) return true;
+                    // Search in URL
+                    if (item.url?.toLowerCase().includes(searchLower)) return true;
+                    // Search in tags
+                    if (item.tags?.some(tag => tag.name.toLowerCase().includes(searchLower))) return true;
+                    return false;
+                });
+            }
+
+            // Sort filtered results
+            return [...filtered].sort((a, b) => {
                 const direction = this.contentSortDirection === 'asc' ? 1 : -1;
                 const key = this.contentSortKey;
 

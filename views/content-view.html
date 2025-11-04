@@ -7,6 +7,62 @@
             <div x-show="isContentLoading" style="text-align: center; padding: 2rem;">Loading Content Library...</div>
 
             <div x-show="!isContentLoading">
+                <!-- All Available Tags -->
+                <div x-show="allContentTags.length > 0" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--hover-bg); border-radius: 6px;">
+                    <div style="font-weight: 500; margin-bottom: 0.5rem; color: var(--text-primary);">Filter by tag:</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <template x-for="tag in allContentTags" :key="tag.id">
+                            <span
+                                class="tag-pill"
+                                @click="
+                                    if (!contentTagFilters.some(t => t.id === tag.id)) {
+                                        contentTagFilters.push(tag);
+                                    }
+                                "
+                                :style="contentTagFilters.some(t => t.id === tag.id) ? 'opacity: 0.5; cursor: default;' : 'cursor: pointer;'"
+                                :title="contentTagFilters.some(t => t.id === tag.id) ? 'Already filtering by this tag' : 'Click to filter by this tag'"
+                            >
+                                <span x-text="tag.name + ' (' + tag.count + ')'"></span>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Active Tag Filters -->
+                <div x-show="contentTagFilters.length > 0" style="margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <span style="font-weight: 500; color: var(--text-primary);">Filtering by:</span>
+                        <template x-for="filterTag in contentTagFilters" :key="filterTag.id">
+                            <span class="tag-pill" style="cursor: pointer;">
+                                <span x-text="filterTag.name"></span>
+                                <button type="button" @click="contentTagFilters = contentTagFilters.filter(t => t.id !== filterTag.id)">×</button>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input
+                            type="text"
+                            x-model="contentSearchTerm"
+                            placeholder="Search content by title, URL, or tag..."
+                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; font-family: var(--font-family);"
+                        >
+                        <button
+                            x-show="contentSearchTerm.trim() || contentTagFilters.length > 0"
+                            @click="contentSearchTerm = ''; contentTagFilters = []"
+                            style="padding: 0.5rem 1rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; white-space: nowrap;"
+                        >Clear All Filters</button>
+                    </div>
+                    <div x-show="contentSearchTerm.trim() || contentTagFilters.length > 0" style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                        Showing <strong x-text="sortedContent.length"></strong> of <strong x-text="content.length"></strong> items
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="!isContentLoading">
                 <table>
                     <thead>
                         <tr>
@@ -41,7 +97,17 @@
                                     <template x-if="item.tags && item.tags.length > 0">
                                         <div class="tags-display">
                                             <template x-for="tag in item.tags" :key="tag.id">
-                                                <span class="tag-pill" x-text="tag.name"></span>
+                                                <span
+                                                    class="tag-pill"
+                                                    x-text="tag.name"
+                                                    @click="
+                                                        if (!contentTagFilters.some(t => t.id === tag.id)) {
+                                                            contentTagFilters.push(tag);
+                                                        }
+                                                    "
+                                                    style="cursor: pointer;"
+                                                    title="Click to filter by this tag"
+                                                ></span>
                                             </template>
                                         </div>
                                     </template>
