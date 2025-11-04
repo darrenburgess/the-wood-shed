@@ -123,4 +123,107 @@ export const contentData = {
             console.error('Error unlinking content from log:', error);
         }
     },
+
+    // Tag management functions
+    async searchTags(searchTerm) {
+        const supabaseClient = getSupabaseClient();
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !searchTerm) return [];
+
+        const { data, error } = await supabaseClient
+            .from('tags')
+            .select('id, name')
+            .eq('user_id', user.id)
+            .ilike('name', `%${searchTerm}%`)
+            .order('name')
+            .limit(10);
+
+        if (error) {
+            console.error('Error searching tags:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    async createTag(tagName) {
+        const supabaseClient = getSupabaseClient();
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return null;
+
+        const { data, error } = await supabaseClient
+            .from('tags')
+            .insert({ name: tagName.toLowerCase().trim(), user_id: user.id })
+            .select()
+            .single();
+
+        if (error) {
+            // If tag already exists, fetch it
+            if (error.code === '23505') { // unique violation
+                const { data: existingTag } = await supabaseClient
+                    .from('tags')
+                    .select('id, name')
+                    .eq('user_id', user.id)
+                    .eq('name', tagName.toLowerCase().trim())
+                    .single();
+                return existingTag;
+            }
+            console.error('Error creating tag:', error);
+            return null;
+        }
+        return data;
+    },
+
+    async linkTagToContent(contentId, tagId) {
+        const supabaseClient = getSupabaseClient();
+        const { error } = await supabaseClient
+            .from('content_tags')
+            .insert({ content_id: contentId, tag_id: tagId });
+
+        if (error && error.code !== '23505') { // Ignore if already exists
+            console.error('Error linking tag to content:', error);
+        }
+    },
+
+    async unlinkTagFromContent(contentId, tagId) {
+        const supabaseClient = getSupabaseClient();
+        const { error } = await supabaseClient
+            .from('content_tags')
+            .delete()
+            .match({ content_id: contentId, tag_id: tagId });
+
+        if (error) {
+            console.error('Error unlinking tag from content:', error);
+        }
+    },
+
+    async syncContentTags(contentId, newTags) {
+        // newTags is an array of tag objects: [{ id, name }, ...]
+        const supabaseClient = getSupabaseClient();
+
+        // Get current tags for this content
+        const { data: currentTagLinks, error: fetchError } = await supabaseClient
+            .from('content_tags')
+            .select('tag_id')
+            .eq('content_id', contentId);
+
+        if (fetchError) {
+            console.error('Error fetching current tags:', fetchError);
+            return;
+        }
+
+        const currentTagIds = currentTagLinks?.map(ct => ct.tag_id) || [];
+        const newTagIds = newTags.map(t => t.id);
+
+        // Remove tags that are no longer selected
+        const tagsToRemove = currentTagIds.filter(id => !newTagIds.includes(id));
+        for (const tagId of tagsToRemove) {
+            await this.unlinkTagFromContent(contentId, tagId);
+        }
+
+        // Add new tags
+        const tagsToAdd = newTagIds.filter(id => !currentTagIds.includes(id));
+        for (const tagId of tagsToAdd) {
+            await this.linkTagToContent(contentId, tagId);
+        }
+    },
 };

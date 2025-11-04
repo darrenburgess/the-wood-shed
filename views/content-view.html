@@ -1,5 +1,5 @@
             <div class="main-controls">
-                <button class="btn-new" @click="editingContent = { title: '', url: '', type: 'YouTube' }; isContentModalOpen = true;">
+                <button class="btn-new" @click="editingContent = { title: '', url: '', type: 'YouTube', tags: [] }; isContentModalOpen = true;">
                     New Content
                 </button>
             </div>
@@ -41,7 +41,7 @@
                                     <template x-if="item.tags && item.tags.length > 0">
                                         <div class="tags-display">
                                             <template x-for="tag in item.tags" :key="tag.id">
-                                                <span class="tag-pill" x-text="'#' + tag.name"></span>
+                                                <span class="tag-pill" x-text="tag.name"></span>
                                             </template>
                                         </div>
                                     </template>
