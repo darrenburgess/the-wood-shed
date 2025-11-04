@@ -981,6 +981,23 @@ th.sortable:hover {
     border-color: var(--accent-color);
 }
 
+.tags-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.tag-pill {
+    display: inline-block;
+    background: #e6f2ff;
+    color: var(--accent-color);
+    padding: 0.2rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid var(--accent-color);
+}
+
 .content-pill-wrapper {
     display: inline-flex;
     align-items: center;

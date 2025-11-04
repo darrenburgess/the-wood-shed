@@ -17,14 +17,19 @@ export const contentData = {
         const supabaseClient = getSupabaseClient();
         const { data, error } = await supabaseClient
             .from('content')
-            .select('*')
+            .select('*, content_tags(tags(id, name))')
             .order('created_at', { descending: true });
 
         if (error) {
             console.error('Error fetching content library:', error);
             return [];
         }
-        return data;
+
+        // Transform the data to flatten tags array
+        return data.map(item => ({
+            ...item,
+            tags: item.content_tags?.map(ct => ct.tags).filter(Boolean) || []
+        }));
     },
 
     async createContent(title, url, type) {

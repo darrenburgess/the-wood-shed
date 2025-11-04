@@ -12,6 +12,7 @@
                         <tr>
                             <th @click="sortContentBy('title')" class="sortable">Title</th>
                             <th>URL</th>
+                            <th>Tags</th>
                             <th @click="sortContentBy('type')" class="sortable">Type</th>
                             <th>Actions</th>
                         </tr>
@@ -34,6 +35,18 @@
                                     </template>
                                     <template x-if="item.type !== 'YouTube'">
                                         <a :href="item.url" target="_blank" x-text="item.url"></a>
+                                    </template>
+                                </td>
+                                <td>
+                                    <template x-if="item.tags && item.tags.length > 0">
+                                        <div class="tags-display">
+                                            <template x-for="tag in item.tags" :key="tag.id">
+                                                <span class="tag-pill" x-text="'#' + tag.name"></span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template x-if="!item.tags || item.tags.length === 0">
+                                        <span style="color: var(--text-secondary);">-</span>
                                     </template>
                                 </td>
                                 <td x-text="item.type"></td>
