@@ -2,7 +2,7 @@ import { getSupabaseClient } from '/supabase.js';
 import { getLocalDateString } from '/utils.js';
 
 export const logData = {
-    async addLog(goal, entryText, contentIds = []) {
+    async addLog(goal, entryText, contentIds = [], repertoireIds = []) {
         const supabaseClient = getSupabaseClient();
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return null;
@@ -32,8 +32,32 @@ export const logData = {
             if (linkError) console.error('Error linking content:', linkError);
         }
 
+        if (repertoireIds && repertoireIds.length > 0) {
+            const linksToCreate = repertoireIds.map(repertoireId => ({
+                log_id: newLog.id,
+                repertoire_id: repertoireId
+            }));
+            const { error: linkError } = await supabaseClient.from('log_repertoire').insert(linksToCreate);
+            if (linkError) console.error('Error linking repertoire:', linkError);
+        }
+
+        // Collect all repertoire IDs that need stats updates
+        const repertoireIdsToUpdate = new Set();
         if (goal.repertoire_id) {
-            await supabaseClient.rpc('update_repertoire_stats', { rep_id: goal.repertoire_id });
+            repertoireIdsToUpdate.add(goal.repertoire_id);
+        }
+        if (repertoireIds && repertoireIds.length > 0) {
+            repertoireIds.forEach(id => repertoireIdsToUpdate.add(id));
+        }
+
+        // Update stats for all affected repertoire items
+        if (repertoireIdsToUpdate.size > 0) {
+            for (const repId of repertoireIdsToUpdate) {
+                const { error: rpcError } = await supabaseClient.rpc('update_repertoire_stats', { rep_id: repId });
+                if (rpcError) {
+                    console.error('Error updating repertoire stats:', rpcError);
+                }
+            }
             return { newLog, statsUpdated: true };
         }
 
@@ -51,14 +75,30 @@ export const logData = {
 
     async deleteLog(log, goal) {
         const supabaseClient = getSupabaseClient();
+
+        // Collect repertoire IDs before deleting
+        const repertoireIdsToUpdate = new Set();
+        if (goal.repertoire_id) {
+            repertoireIdsToUpdate.add(goal.repertoire_id);
+        }
+        if (log.repertoire && log.repertoire.length > 0) {
+            log.repertoire.forEach(rep => repertoireIdsToUpdate.add(rep.id));
+        }
+
         const { error } = await supabaseClient.from('logs').delete().eq('id', log.id);
         if (error) {
             console.error('Error deleting log:', error);
             return false;
         }
 
-        if (goal.repertoire_id) {
-            await supabaseClient.rpc('update_repertoire_stats', { rep_id: goal.repertoire_id });
+        // Update stats for all affected repertoire items
+        if (repertoireIdsToUpdate.size > 0) {
+            for (const repId of repertoireIdsToUpdate) {
+                const { error: rpcError } = await supabaseClient.rpc('update_repertoire_stats', { rep_id: repId });
+                if (rpcError) {
+                    console.error('Error updating repertoire stats:', rpcError);
+                }
+            }
             return true;
         }
         return false;
@@ -68,7 +108,7 @@ export const logData = {
         const supabaseClient = getSupabaseClient();
         const { data, error } = await supabaseClient
             .from('logs')
-            .select('*, goals(*, topics(*))')
+            .select('*, goals(*, topics(*)), log_content(content(*)), log_repertoire(repertoire(*))')
             .gte('date', startDate)
             .lte('date', endDate)
             .order('created_at', { ascending: false });
@@ -77,6 +117,12 @@ export const logData = {
             console.error('Error fetching logs:', error);
             return [];
         }
-        return data;
+
+        // Transform data to flatten content and repertoire arrays
+        return data.map(log => ({
+            ...log,
+            content: log.log_content?.map(lc => lc.content).filter(Boolean) || [],
+            repertoire: log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || []
+        }));
     },
 };

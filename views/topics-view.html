@@ -238,7 +238,66 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                            
+
+                                                <!-- Repertoire Popover -->
+                                                <div class="popover-container" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
+                                                    <button class="content-link-btn has-tooltip"
+                                                        @click.prevent="isOpen = !isOpen"
+                                                        :data-tooltip="log.repertoire?.map(r => r.title + (r.artist ? ' - ' + r.artist : '')).join(', ')"
+                                                        style="background: var(--accent-color);"
+                                                    >
+                                                        <span x-text="log.repertoire?.length || 0"></span>
+                                                    </button>
+
+                                                    <div class="popover" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                                        <h5>Linked Tunes</h5>
+                                                        <ul>
+                                                            <template x-for="rep in log.repertoire" :key="rep.id">
+                                                                <li class="linked-item">
+                                                                    <span x-text="rep.title + (rep.artist ? ' - ' + rep.artist : '')"></span>
+                                                                    <button @click="
+                                                                        (async () => {
+                                                                            await dataLayer.unlinkRepertoireFromLog(log.id, rep.id);
+                                                                            log.repertoire = log.repertoire.filter(r => r.id !== rep.id);
+                                                                            const supabaseClient = dataLayer.getSupabaseClient();
+                                                                            await supabaseClient.rpc('update_repertoire_stats', { rep_id: rep.id });
+                                                                            isRepertoireStale = true;
+                                                                        })();
+                                                                    ">×</button>
+                                                                </li>
+                                                            </template>
+                                                            <template x-if="!log.repertoire || log.repertoire.length === 0">
+                                                                <li class="no-results" style="padding: 0.5rem;">No tunes linked yet.</li>
+                                                            </template>
+                                                        </ul>
+
+                                                        <div class="popover-search">
+                                                            <h5>Add Tune</h5>
+                                                            <input type="text" class="search-input" placeholder="Search repertoire..." x-model="searchTerm"
+                                                                @input.debounce.300ms="dataLayer.searchRepertoire(searchTerm).then(data => searchResults = data)">
+                                                            <ul class="results-list" x-show="searchTerm.length > 1">
+                                                                <template
+                                                                    x-for="result in searchResults.filter(r => !log.repertoire || !log.repertoire.some(linked => linked.id === r.id))">
+                                                                    <li @click="
+                                                                        (async () => {
+                                                                            await dataLayer.linkRepertoireToLog(log.id, result.id);
+                                                                            if (!log.repertoire) log.repertoire = [];
+                                                                            log.repertoire.push(result);
+                                                                            searchTerm = '';
+                                                                            searchResults = [];
+                                                                            const supabaseClient = dataLayer.getSupabaseClient();
+                                                                            await supabaseClient.rpc('update_repertoire_stats', { rep_id: result.id });
+                                                                            isRepertoireStale = true;
+                                                                        })();
+                                                                    ">
+                                                                        <span x-text="result.title + (result.artist ? ' - ' + result.artist : '')"></span>
+                                                                    </li>
+                                                                </template>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 <button class="edit-btn" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
                                                     <i data-feather="edit-2"></i>
                                                 </button>

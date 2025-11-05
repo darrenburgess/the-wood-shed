@@ -12,6 +12,7 @@ const dataLayer = {
     // Re-export utility functions so they are available on the dataLayer object for the UI
     linkify,
     getYoutubeVideoId,
+    getSupabaseClient,
 
     ...repertoireData,
     ...contentData,

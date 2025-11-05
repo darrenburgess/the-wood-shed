@@ -4,19 +4,100 @@
     x-cloak
     @keydown.escape.window="isEditLogModalOpen = false"
 >
-    <div class="modal-content" @click.outside="isEditLogModalOpen = false">
+    <div class="modal-content" @click.outside="isEditLogModalOpen = false"
+        x-data="{
+            repertoireSearchTerm: '',
+            repertoireSearchResults: []
+        }"
+        x-init="$watch('isEditLogModalOpen', open => {
+            if (!open) {
+                repertoireSearchTerm = '';
+                repertoireSearchResults = [];
+            }
+        })">
         <h3>Edit Log</h3>
         <template x-if="editingLog">
-            <textarea
-                x-model="editingLog.entry"
-                @keydown.enter="
-                    if (!$event.shiftKey) {
-                        $event.preventDefault();
-                        dataLayer.updateLog(editingLog.id, editingLog.entry);
-                        isEditLogModalOpen = false;
-                    }
-                "
-            ></textarea>
+            <div>
+                <textarea
+                    x-model="editingLog.entry"
+                    @keydown.enter="
+                        if (!$event.shiftKey) {
+                            $event.preventDefault();
+                            dataLayer.updateLog(editingLog.id, editingLog.entry);
+                            isEditLogModalOpen = false;
+                        }
+                    "
+                ></textarea>
+
+                <!-- Repertoire Management -->
+                <div class="tag-input-container" style="margin-top: 1rem;">
+                    <label>Tunes Practiced</label>
+
+                    <!-- Current Repertoire Display -->
+                    <div class="selected-tags">
+                        <template x-for="rep in editingLog.repertoire" :key="rep.id">
+                            <span class="tag-pill">
+                                <span x-text="rep.title + (rep.artist ? ' - ' + rep.artist : '')"></span>
+                                <button type="button" @click="
+                                    (async () => {
+                                        await dataLayer.unlinkRepertoireFromLog(editingLog.id, rep.id);
+                                        editingLog.repertoire = editingLog.repertoire.filter(r => r.id !== rep.id);
+                                        // Update stats for this repertoire item
+                                        const supabaseClient = dataLayer.getSupabaseClient();
+                                        await supabaseClient.rpc('update_repertoire_stats', { rep_id: rep.id });
+                                        isRepertoireStale = true;
+                                    })();
+                                ">×</button>
+                            </span>
+                        </template>
+                        <template x-if="!editingLog.repertoire || editingLog.repertoire.length === 0">
+                            <span style="color: var(--text-secondary); font-size: 0.9rem;">No tunes linked yet</span>
+                        </template>
+                    </div>
+
+                    <!-- Repertoire Search Input -->
+                    <div class="tag-search" style="position: relative;">
+                        <input
+                            type="text"
+                            class="tag-search-input"
+                            x-model="repertoireSearchTerm"
+                            placeholder="Add more tunes..."
+                            @input.debounce.300ms="
+                                if (repertoireSearchTerm.length > 0) {
+                                    dataLayer.searchRepertoire(repertoireSearchTerm).then(results => {
+                                        repertoireSearchResults = results.filter(r => !editingLog.repertoire || !editingLog.repertoire.some(er => er.id === r.id));
+                                    });
+                                } else {
+                                    repertoireSearchResults = [];
+                                }
+                            "
+                        >
+
+                        <!-- Autocomplete Results -->
+                        <div x-show="repertoireSearchTerm.length > 0" style="position: absolute; z-index: 1000; width: 100%; top: 100%;" @click.outside="repertoireSearchTerm = ''; repertoireSearchResults = []">
+                            <ul class="results-list" x-show="repertoireSearchResults.length > 0">
+                                <template x-for="result in repertoireSearchResults" :key="result.id">
+                                    <li @click="
+                                        (async () => {
+                                            await dataLayer.linkRepertoireToLog(editingLog.id, result.id);
+                                            if (!editingLog.repertoire) editingLog.repertoire = [];
+                                            editingLog.repertoire.push(result);
+                                            repertoireSearchTerm = '';
+                                            repertoireSearchResults = [];
+                                            // Update stats for this repertoire item
+                                            const supabaseClient = dataLayer.getSupabaseClient();
+                                            await supabaseClient.rpc('update_repertoire_stats', { rep_id: result.id });
+                                            isRepertoireStale = true;
+                                        })();
+                                    ">
+                                        <span x-text="result.title + (result.artist ? ' - ' + result.artist : '')"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </template>
         <div class="modal-actions">
             <div>

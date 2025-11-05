@@ -188,7 +188,7 @@ export const sessionData = {
                 topics (title),
                 content (*),
                 repertoire (*),
-                logs (*, content (*))
+                logs (*, log_content(content(*)), log_repertoire(repertoire(*)))
             `)
             .in('id', goalIds)
             .order('created_at', { foreignTable: 'logs', ascending: false });
@@ -198,11 +198,22 @@ export const sessionData = {
             return [];
         }
 
-        // Add topic_title to each goal for easier display
-        return goals.map(goal => ({
-            ...goal,
-            topic_title: goal.topics?.title || 'Unknown Topic'
-        }));
+        // Add topic_title and transform logs to flatten content and repertoire arrays
+        return goals.map(goal => {
+            // Transform logs if they exist
+            if (goal.logs) {
+                goal.logs = goal.logs.map(log => ({
+                    ...log,
+                    content: log.log_content?.map(lc => lc.content).filter(Boolean) || [],
+                    repertoire: log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || []
+                }));
+            }
+
+            return {
+                ...goal,
+                topic_title: goal.topics?.title || 'Unknown Topic'
+            };
+        });
     },
 
     /**

@@ -1,6 +1,19 @@
 <div class="modal-overlay" x-show="isAddLogModalOpen" x-cloak @keydown.escape.window="isAddLogModalOpen = false">
-    <div class="modal-content" @click.outside="isAddLogModalOpen = false" x-data="{ newLogEntry: '' }"
-        x-init="$watch('isAddLogModalOpen', open => { if (!open) { newLogEntry = ''; } })">
+    <div class="modal-content" @click.outside="isAddLogModalOpen = false"
+        x-data="{
+            newLogEntry: '',
+            repertoireSearchTerm: '',
+            repertoireSearchResults: [],
+            selectedRepertoire: []
+        }"
+        x-init="$watch('isAddLogModalOpen', open => {
+            if (!open) {
+                newLogEntry = '';
+                repertoireSearchTerm = '';
+                repertoireSearchResults = [];
+                selectedRepertoire = [];
+            }
+        })">
         <h3 x-show="loggingForGoal">Add Log for Goal: <span x-text="loggingForGoal?.goal_number"></span></h3>
 
         <textarea
@@ -11,10 +24,12 @@
                     $event.preventDefault();
                     if (newLogEntry.trim()) {
                         (async () => {
-                            const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry);
+                            const repertoireIds = selectedRepertoire.map(r => r.id);
+                            const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry, [], repertoireIds);
                             if (statsUpdated) isRepertoireStale = true;
                             if (newLog) {
                                 newLog.content = [];
+                                newLog.repertoire = selectedRepertoire;
                                 newLog.isToday = true;
                                 loggingForGoal.logs.unshift(newLog);
                                 $nextTick(() => feather.replace());
@@ -26,6 +41,55 @@
             "
         ></textarea>
 
+        <!-- Repertoire Selection -->
+        <div class="tag-input-container" style="margin-top: 1rem;">
+            <label>Tunes Practiced</label>
+
+            <!-- Selected Repertoire Display -->
+            <div class="selected-tags">
+                <template x-for="rep in selectedRepertoire" :key="rep.id">
+                    <span class="tag-pill">
+                        <span x-text="rep.title + (rep.artist ? ' - ' + rep.artist : '')"></span>
+                        <button type="button" @click="selectedRepertoire = selectedRepertoire.filter(r => r.id !== rep.id)">×</button>
+                    </span>
+                </template>
+            </div>
+
+            <!-- Repertoire Search Input -->
+            <div class="tag-search" style="position: relative;">
+                <input
+                    type="text"
+                    class="tag-search-input"
+                    x-model="repertoireSearchTerm"
+                    placeholder="Search tunes..."
+                    @input.debounce.300ms="
+                        if (repertoireSearchTerm.length > 0) {
+                            dataLayer.searchRepertoire(repertoireSearchTerm).then(results => {
+                                repertoireSearchResults = results.filter(r => !selectedRepertoire.some(sr => sr.id === r.id));
+                            });
+                        } else {
+                            repertoireSearchResults = [];
+                        }
+                    "
+                >
+
+                <!-- Autocomplete Results -->
+                <div x-show="repertoireSearchTerm.length > 0" style="position: absolute; z-index: 1000; width: 100%; top: 100%;" @click.outside="repertoireSearchTerm = ''; repertoireSearchResults = []">
+                    <ul class="results-list" x-show="repertoireSearchResults.length > 0">
+                        <template x-for="result in repertoireSearchResults" :key="result.id">
+                            <li @click="
+                                selectedRepertoire.push(result);
+                                repertoireSearchTerm = '';
+                                repertoireSearchResults = [];
+                            ">
+                                <span x-text="result.title + (result.artist ? ' - ' + result.artist : '')"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <div class="modal-actions">
             <div></div>
             <div class="right-actions">
@@ -34,16 +98,20 @@
                     class="btn-save"
                     @click="
                         if (newLogEntry.trim()) {
-                            const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry);
-                            if (statsUpdated) isRepertoireStale = true;
-                            if (newLog) {
-                                newLog.content = [];
-                                newLog.isToday = true;
-                                loggingForGoal.logs.unshift(newLog);
-                                $nextTick(() => feather.replace());
-                            }
+                            (async () => {
+                                const repertoireIds = selectedRepertoire.map(r => r.id);
+                                const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry, [], repertoireIds);
+                                if (statsUpdated) isRepertoireStale = true;
+                                if (newLog) {
+                                    newLog.content = [];
+                                    newLog.repertoire = selectedRepertoire;
+                                    newLog.isToday = true;
+                                    loggingForGoal.logs.unshift(newLog);
+                                    $nextTick(() => feather.replace());
+                                }
+                                isAddLogModalOpen = false;
+                            })();
                         }
-                        isAddLogModalOpen = false;
                     "
                 >Save Log</button>
             </div>

@@ -8,7 +8,7 @@ export const topicData = {
 
         const { data: topics, error } = await supabaseClient
             .from('topics')
-            .select('id, topic_number, title, goals(*, content(*), repertoire(*), logs(*, content(*)))')
+            .select('id, topic_number, title, goals(*, content(*), repertoire(*), logs(*, log_content(content(*)), log_repertoire(repertoire(*))))')
             .order('topic_number', { ascending: true })
             .order('created_at', { foreignTable: 'goals.logs', ascending: false });
 
@@ -26,11 +26,14 @@ export const topicData = {
                     return bNum - aNum;
                 });
 
-                // 2. Add 'isToday' flag to logs
+                // 2. Add 'isToday' flag and transform logs to flatten content and repertoire arrays
                 for (const goal of topic.goals) {
                     if (goal.logs) {
                         for (const log of goal.logs) {
                             log.isToday = log.date === today;
+                            // Flatten content and repertoire arrays
+                            log.content = log.log_content?.map(lc => lc.content).filter(Boolean) || [];
+                            log.repertoire = log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || [];
                         }
                     }
                 }

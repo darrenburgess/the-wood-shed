@@ -26,7 +26,10 @@ export const goalData = {
 
         // After deleting, update stats if it was linked
         if (repertoireId) {
-            await supabaseClient.rpc('update_repertoire_stats', { rep_id: repertoireId });
+            const { error: rpcError } = await supabaseClient.rpc('update_repertoire_stats', { rep_id: repertoireId });
+            if (rpcError) {
+                console.error('Error updating repertoire stats:', rpcError);
+            }
             return true; // Signal that stats were updated
         }
 

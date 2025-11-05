@@ -65,5 +65,26 @@ export const repertoireData = {
             .limit(10);
         if (error) { console.error('Error searching repertoire:', error); return []; }
         return data;
+    },
+
+    async linkRepertoireToLog(logId, repertoireId) {
+        const supabaseClient = getSupabaseClient();
+        const { error } = await supabaseClient
+            .from('log_repertoire')
+            .insert({ log_id: logId, repertoire_id: repertoireId });
+        if (error && error.code !== '23505') { // Ignore if already exists
+            console.error('Error linking repertoire to log:', error);
+        }
+    },
+
+    async unlinkRepertoireFromLog(logId, repertoireId) {
+        const supabaseClient = getSupabaseClient();
+        const { error } = await supabaseClient
+            .from('log_repertoire')
+            .delete()
+            .match({ log_id: logId, repertoire_id: repertoireId });
+        if (error) {
+            console.error('Error unlinking repertoire from log:', error);
+        }
     }
 };
