@@ -29,7 +29,7 @@
                                         <summary class="summary-flex">
                                             <span class="goal-text">
                                                 <strong><span x-text="goal.goal_number"></span>:</strong>
-                                                <span x-text="goal.description"></span>
+                                                <span x-text="goal.description + ' (' + (goal.logs?.length || 0) + ')'"></span>
                                             </span>
                                             <div 
                                                 class="popover-container" 
@@ -338,7 +338,7 @@
                                                 <div class="goal-details completed-goal" :open="uiState.goalStates[goal.id] ?? false" @toggle="uiState.goalStates[goal.id] = $event.target.open" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem;">
                                                     <span class="goal-text">
                                                         <strong><span x-text="goal.goal_number"></span>:</strong>
-                                                        <span x-text="goal.description"></span>
+                                                        <span x-text="goal.description + ' (' + (goal.logs?.length || 0) + ')'"></span>
                                                         <em>(Completed: <span
                                                                 x-text="new Date(goal.date_completed).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>)</em>
                                                     </span>

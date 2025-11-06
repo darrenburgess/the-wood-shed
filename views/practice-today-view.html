@@ -39,7 +39,7 @@
                         <span class="goal-text">
                             <span x-text="goal.topic_title"></span> -
                             <strong><span x-text="goal.goal_number"></span>:</strong>
-                            <span x-text="goal.description"></span>
+                            <span x-text="goal.description + ' (' + (goal.logs?.filter(log => log.date === practiceDate).length || 0) + ')'"></span>
                         </span>
                         <button
                             class="btn-delete"
