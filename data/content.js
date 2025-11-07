@@ -15,9 +15,11 @@ export const contentData = {
 
     async fetchContentLibrary() {
         const supabaseClient = getSupabaseClient();
+
+        // Fetch all content items
         const { data, error } = await supabaseClient
             .from('content')
-            .select('*, content_tags(tags(id, name))')
+            .select('*')
             .order('created_at', { descending: true });
 
         if (error) {
@@ -25,10 +27,37 @@ export const contentData = {
             return [];
         }
 
-        // Transform the data to flatten tags array
+        // Fetch tags for all content items
+        if (data.length === 0) {
+            return [];
+        }
+
+        const contentIds = data.map(item => item.id);
+        const { data: tagLinks, error: tagError } = await supabaseClient
+            .from('entity_tags')
+            .select('entity_id, tags(id, name)')
+            .eq('entity_type', 'content')
+            .in('entity_id', contentIds);
+
+        if (tagError) {
+            console.error('Error fetching content tags:', tagError);
+        }
+
+        // Map tags to content items
+        const tagsByContentId = {};
+        tagLinks?.forEach(link => {
+            if (!tagsByContentId[link.entity_id]) {
+                tagsByContentId[link.entity_id] = [];
+            }
+            if (link.tags) {
+                tagsByContentId[link.entity_id].push(link.tags);
+            }
+        });
+
+        // Combine content with tags
         return data.map(item => ({
             ...item,
-            tags: item.content_tags?.map(ct => ct.tags).filter(Boolean) || []
+            tags: tagsByContentId[item.id] || []
         }));
     },
 
@@ -176,8 +205,8 @@ export const contentData = {
     async linkTagToContent(contentId, tagId) {
         const supabaseClient = getSupabaseClient();
         const { error } = await supabaseClient
-            .from('content_tags')
-            .insert({ content_id: contentId, tag_id: tagId });
+            .from('entity_tags')
+            .insert({ entity_type: 'content', entity_id: contentId, tag_id: tagId });
 
         if (error && error.code !== '23505') { // Ignore if already exists
             console.error('Error linking tag to content:', error);
@@ -187,9 +216,9 @@ export const contentData = {
     async unlinkTagFromContent(contentId, tagId) {
         const supabaseClient = getSupabaseClient();
         const { error } = await supabaseClient
-            .from('content_tags')
+            .from('entity_tags')
             .delete()
-            .match({ content_id: contentId, tag_id: tagId });
+            .match({ entity_type: 'content', entity_id: contentId, tag_id: tagId });
 
         if (error) {
             console.error('Error unlinking tag from content:', error);
@@ -202,9 +231,10 @@ export const contentData = {
 
         // Get current tags for this content
         const { data: currentTagLinks, error: fetchError } = await supabaseClient
-            .from('content_tags')
+            .from('entity_tags')
             .select('tag_id')
-            .eq('content_id', contentId);
+            .eq('entity_type', 'content')
+            .eq('entity_id', contentId);
 
         if (fetchError) {
             console.error('Error fetching current tags:', fetchError);
