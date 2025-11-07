@@ -9,18 +9,20 @@
                     <thead>
                         <tr>
                             <th @click="sortRepertoireBy('title')" class="sortable">Title</th>
-                            <th>Artist</th>
-                            <th @click="sortRepertoireBy('practice_count')" class="sortable">Practice Count</th>
-                            <th @click="sortRepertoireBy('last_practiced')" class="sortable">Last Practiced</th>
+                            <th>Tags</th>
+                            <th @click="sortRepertoireBy('practice_count')" class="sortable">Count</th>
+                            <th @click="sortRepertoireBy('last_practiced')" class="sortable">Last Date</th>
                             <th @click="sortRepertoireBy('progress')" class="sortable">Progress</th>
-                            <th>Actions</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="tune in sortedRepertoire" :key="tune.id">
                             <tr>
-                                <td x-text="tune.title"></td>
-                                <td x-text="tune.artist"></td>
+                                <td :title="tune.artist || ''" x-text="tune.title"></td>
+                                <td>
+                                    <!-- Tags will be populated here -->
+                                </td>
                                 <td x-text="tune.practice_count"></td>
                                 <td
                                     x-text="tune.last_practiced ? new Date(tune.last_practiced + 'T00:00:00').toLocaleDateString('en-US') : 'Never'">
