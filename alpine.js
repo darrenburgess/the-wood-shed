@@ -53,6 +53,8 @@ export default function app() {
         editingRepertoire: null,
         repertoireSortKey: 'last_practiced',
         repertoireSortDirection: 'desc',
+        repertoireSearchTerm: '',
+        repertoireTagFilters: [],
 
         // Practice Today / Session state
         todaySessionGoalIds: [],
@@ -123,6 +125,14 @@ export default function app() {
                 this.$nextTick(() => feather.replace());
             });
             this.$watch('contentTagFilters', () => {
+                this.$nextTick(() => feather.replace());
+            });
+
+            // Watch repertoire filters to refresh feather icons
+            this.$watch('repertoireSearchTerm', () => {
+                this.$nextTick(() => feather.replace());
+            });
+            this.$watch('repertoireTagFilters', () => {
                 this.$nextTick(() => feather.replace());
             });
 
@@ -464,9 +474,106 @@ export default function app() {
             });
         },
 
+        get allRepertoireTags() {
+            if (!this.repertoire) return [];
+            const tagMap = new Map();
+            this.repertoire.forEach(item => {
+                if (item.tags && item.tags.length > 0) {
+                    item.tags.forEach(tag => {
+                        if (!tagMap.has(tag.id)) {
+                            tagMap.set(tag.id, { ...tag, count: 0 });
+                        }
+                        tagMap.get(tag.id).count++;
+                    });
+                }
+            });
+            return Array.from(tagMap.values()).sort((a, b) =>
+                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            );
+        },
+
         get sortedRepertoire() {
             if (!this.repertoire) return [];
-            return [...this.repertoire].sort((a, b) => {
+
+            let filtered = this.repertoire;
+
+            // Filter by selected tags (OR logic - must have ANY selected tag)
+            if (this.repertoireTagFilters.length > 0) {
+                filtered = filtered.filter(item => {
+                    if (!item.tags || item.tags.length === 0) return false;
+                    const itemTagIds = item.tags.map(t => t.id);
+                    return this.repertoireTagFilters.some(filterTag => itemTagIds.includes(filterTag.id));
+                });
+            }
+
+            // Filter repertoire based on search term
+            if (this.repertoireSearchTerm.trim()) {
+                const searchLower = this.repertoireSearchTerm.toLowerCase().trim();
+
+                // Check for special operators
+                const countMatch = searchLower.match(/^count\s*([><=]+)\s*(\d+)$/);
+                const dateMatch = searchLower.match(/^date\s*([><=]+)\s*(.+)$/);
+
+                filtered = filtered.filter(item => {
+                    // Handle count operators (e.g., "count > 5", "count = 10", "count < 3")
+                    if (countMatch) {
+                        const operator = countMatch[1];
+                        const value = parseInt(countMatch[2], 10);
+                        const itemCount = item.practice_count || 0;
+
+                        if (operator === '>' && itemCount > value) return true;
+                        if (operator === '<' && itemCount < value) return true;
+                        if (operator === '=' && itemCount === value) return true;
+                        if (operator === '>=' && itemCount >= value) return true;
+                        if (operator === '<=' && itemCount <= value) return true;
+                        return false;
+                    }
+
+                    // Handle date operators (e.g., "date > 01/02/2025", "date = 01/02/2025")
+                    if (dateMatch) {
+                        const operator = dateMatch[1];
+                        const dateStr = dateMatch[2].trim();
+
+                        // Try to parse the date
+                        let searchDate;
+                        try {
+                            // Handle MM/DD/YYYY or other formats
+                            searchDate = new Date(dateStr);
+                            if (isNaN(searchDate.getTime())) {
+                                // Try parsing as YYYY-MM-DD
+                                searchDate = new Date(dateStr + 'T00:00:00');
+                            }
+                        } catch (e) {
+                            return false;
+                        }
+
+                        if (!item.last_practiced) return false;
+
+                        const itemDate = new Date(item.last_practiced + 'T00:00:00');
+
+                        if (operator === '>' && itemDate > searchDate) return true;
+                        if (operator === '<' && itemDate < searchDate) return true;
+                        if (operator === '=' && itemDate.toDateString() === searchDate.toDateString()) return true;
+                        if (operator === '>=' && itemDate >= searchDate) return true;
+                        if (operator === '<=' && itemDate <= searchDate) return true;
+                        return false;
+                    }
+
+                    // Regular text search
+                    // Search in title
+                    if (item.title?.toLowerCase().includes(searchLower)) return true;
+                    // Search in composer/artist
+                    if (item.artist?.toLowerCase().includes(searchLower)) return true;
+                    // Search in progress
+                    if (item.progress?.toLowerCase().includes(searchLower)) return true;
+                    // Search in tags
+                    if (item.tags?.some(tag => tag.name.toLowerCase().includes(searchLower))) return true;
+                    return false;
+                });
+            }
+
+            // Sort filtered results
+            return [...filtered].sort((a, b) => {
                 const direction = this.repertoireSortDirection === 'asc' ? 1 : -1;
                 const key = this.repertoireSortKey;
 

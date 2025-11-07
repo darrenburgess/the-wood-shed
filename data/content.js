@@ -159,11 +159,13 @@ export const contentData = {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user || !searchTerm) return [];
 
+        const normalizedSearch = searchTerm.toLowerCase().trim();
+
         const { data, error } = await supabaseClient
             .from('tags')
             .select('id, name')
             .eq('user_id', user.id)
-            .ilike('name', `%${searchTerm}%`)
+            .ilike('name', `%${normalizedSearch}%`)
             .order('name')
             .limit(10);
 
@@ -179,22 +181,35 @@ export const contentData = {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return null;
 
+        const normalizedName = tagName.toLowerCase().trim();
+
+        // First, check if tag already exists (exact match since we normalize)
+        const { data: existingTags, error: fetchError } = await supabaseClient
+            .from('tags')
+            .select('id, name')
+            .eq('user_id', user.id)
+            .eq('name', normalizedName);
+
+        if (existingTags && existingTags.length > 0) {
+            return existingTags[0];
+        }
+
+        // If no existing tag, create new one
         const { data, error } = await supabaseClient
             .from('tags')
-            .insert({ name: tagName.toLowerCase().trim(), user_id: user.id })
+            .insert({ name: normalizedName, user_id: user.id })
             .select()
             .single();
 
         if (error) {
-            // If tag already exists, fetch it
+            // If tag already exists (race condition), fetch it
             if (error.code === '23505') { // unique violation
-                const { data: existingTag } = await supabaseClient
+                const { data: retryTags } = await supabaseClient
                     .from('tags')
                     .select('id, name')
                     .eq('user_id', user.id)
-                    .eq('name', tagName.toLowerCase().trim())
-                    .single();
-                return existingTag;
+                    .eq('name', normalizedName);
+                return retryTags && retryTags.length > 0 ? retryTags[0] : null;
             }
             console.error('Error creating tag:', error);
             return null;

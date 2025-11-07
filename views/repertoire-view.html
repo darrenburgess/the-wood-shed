@@ -4,27 +4,94 @@
                 </button>
             </div>
             <div x-show="isRepertoireLoading" style="text-align: center; padding: 2rem;">Loading Repertoire...</div>
+
+            <div x-show="!isRepertoireLoading">
+                <!-- All Available Tags -->
+                <div x-show="allRepertoireTags.length > 0" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--hover-bg); border-radius: 6px;">
+                    <div style="font-weight: 500; margin-bottom: 0.5rem; color: var(--text-primary);">Filter by tag:</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <template x-for="tag in allRepertoireTags" :key="tag.id">
+                            <span
+                                class="tag-pill"
+                                @click="
+                                    if (!repertoireTagFilters.some(t => t.id === tag.id)) {
+                                        repertoireTagFilters.push(tag);
+                                    }
+                                "
+                                :style="repertoireTagFilters.some(t => t.id === tag.id) ? 'opacity: 0.5; cursor: default;' : 'cursor: pointer;'"
+                                :title="repertoireTagFilters.some(t => t.id === tag.id) ? 'Already filtering by this tag' : 'Click to filter by this tag'"
+                            >
+                                <span x-text="tag.name + ' (' + tag.count + ')'"></span>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Active Tag Filters -->
+                <div x-show="repertoireTagFilters.length > 0" style="margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <span style="font-weight: 500; color: var(--text-primary);">Filtering by:</span>
+                        <template x-for="filterTag in repertoireTagFilters" :key="filterTag.id">
+                            <span class="tag-pill" style="cursor: pointer;">
+                                <span x-text="filterTag.name"></span>
+                                <button type="button" @click="repertoireTagFilters = repertoireTagFilters.filter(t => t.id !== filterTag.id)">×</button>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input
+                            type="text"
+                            x-model="repertoireSearchTerm"
+                            placeholder="Search by title, composer, tag, progress... (e.g., 'count > 5' or 'date > 01/15/2025')"
+                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; font-family: var(--font-family);"
+                        >
+                        <button
+                            x-show="repertoireSearchTerm.trim() || repertoireTagFilters.length > 0"
+                            @click="repertoireSearchTerm = ''; repertoireTagFilters = []"
+                            style="padding: 0.5rem 1rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; white-space: nowrap;"
+                        >Clear All Filters</button>
+                    </div>
+                    <div x-show="repertoireSearchTerm.trim() || repertoireTagFilters.length > 0" style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                        Showing <strong x-text="sortedRepertoire.length"></strong> of <strong x-text="repertoire.length"></strong> pieces
+                    </div>
+                </div>
+            </div>
+
             <div x-show="!isRepertoireLoading">
                 <table>
                     <thead>
                         <tr>
                             <th @click="sortRepertoireBy('title')" class="sortable">Title</th>
                             <th>Tags</th>
-                            <th @click="sortRepertoireBy('practice_count')" class="sortable">Count</th>
-                            <th @click="sortRepertoireBy('last_practiced')" class="sortable">Last Date</th>
-                            <th @click="sortRepertoireBy('progress')" class="sortable">Progress</th>
-                            <th></th>
+                            <th @click="sortRepertoireBy('practice_count')" class="sortable" style="width: 80px;">Count</th>
+                            <th @click="sortRepertoireBy('last_practiced')" class="sortable" style="width: 100px;">Last Date</th>
+                            <th @click="sortRepertoireBy('progress')" class="sortable" style="width: 140px;">Progress</th>
+                            <th style="width: 40px;"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="tune in sortedRepertoire" :key="tune.id">
                             <tr>
-                                <td :title="tune.artist ? 'Composer: ' + tune.artist : ''" x-text="tune.title"></td>
+                                <td :title="tune.artist || ''" x-text="tune.title"></td>
                                 <td>
                                     <template x-if="tune.tags && tune.tags.length > 0">
                                         <div class="tags-display">
                                             <template x-for="tag in tune.tags" :key="tag.id">
-                                                <span class="tag-pill" x-text="tag.name"></span>
+                                                <span
+                                                    class="tag-pill"
+                                                    x-text="tag.name"
+                                                    @click="
+                                                        if (!repertoireTagFilters.some(t => t.id === tag.id)) {
+                                                            repertoireTagFilters.push(tag);
+                                                        }
+                                                    "
+                                                    style="cursor: pointer;"
+                                                    title="Click to filter by this tag"
+                                                ></span>
                                             </template>
                                         </div>
                                     </template>
@@ -47,7 +114,7 @@
                                         <option>6 - Off Book</option>
                                     </select>
                                 </td>
-                                <td style="width: 40px;">
+                                <td>
                                     <button class="edit-btn" @click="editingRepertoire = { ...tune }; isRepertoireModalOpen = true;">
                                         <i data-feather="edit-2"></i>
                                     </button>

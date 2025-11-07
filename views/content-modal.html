@@ -28,13 +28,24 @@
                 }
                 $event.preventDefault();
                 (async () => {
+                    // Create any new tags first
+                    const finalTags = [];
+                    for (const tag of selectedTags) {
+                        if (tag.isNew) {
+                            const createdTag = await dataLayer.createTag(tag.name);
+                            if (createdTag) finalTags.push(createdTag);
+                        } else {
+                            finalTags.push(tag);
+                        }
+                    }
+
                     if (editingContent.id) {
                         // Update existing content
                         const updated = await dataLayer.updateContent(editingContent.id, editingContent.title, editingContent.url, editingContent.type);
                         if (updated) {
                             // Sync tags
-                            await dataLayer.syncContentTags(editingContent.id, selectedTags);
-                            updated.tags = selectedTags;
+                            await dataLayer.syncContentTags(editingContent.id, finalTags);
+                            updated.tags = finalTags;
                             const index = content.findIndex(c => c.id === updated.id);
                             content[index] = updated;
                             isContentModalOpen = false;
@@ -44,8 +55,8 @@
                         const newContent = await dataLayer.createContent(editingContent.title, editingContent.url, editingContent.type);
                         if (newContent) {
                             // Link tags to new content
-                            await dataLayer.syncContentTags(newContent.id, selectedTags);
-                            newContent.tags = selectedTags;
+                            await dataLayer.syncContentTags(newContent.id, finalTags);
+                            newContent.tags = finalTags;
                             content.unshift(newContent);
                             $nextTick(() => feather.replace());
                             isContentModalOpen = false;
@@ -96,14 +107,13 @@
                             "
                             @keydown.enter.prevent="
                                 if (tagSearchTerm.trim()) {
-                                    // Create new tag
-                                    dataLayer.createTag(tagSearchTerm).then(newTag => {
-                                        if (newTag && !selectedTags.some(t => t.id === newTag.id)) {
-                                            selectedTags.push(newTag);
-                                        }
-                                        tagSearchTerm = '';
-                                        tagSearchResults = [];
-                                    });
+                                    // Add new tag placeholder (will be created on save)
+                                    const newTagName = tagSearchTerm.toLowerCase().trim();
+                                    if (!selectedTags.some(t => t.name === newTagName)) {
+                                        selectedTags.push({ name: newTagName, isNew: true });
+                                    }
+                                    tagSearchTerm = '';
+                                    tagSearchResults = [];
                                 }
                             "
                         >
@@ -125,16 +135,14 @@
                             <!-- Create new tag hint -->
                             <ul class="results-list" x-show="tagSearchResults.length === 0 && tagSearchTerm.trim().length > 0">
                                 <li @click="
-                                    (async () => {
-                                        const newTag = await dataLayer.createTag(tagSearchTerm);
-                                        if (newTag && !selectedTags.some(t => t.id === newTag.id)) {
-                                            selectedTags.push(newTag);
-                                        }
-                                        tagSearchTerm = '';
-                                        tagSearchResults = [];
-                                    })();
+                                    const newTagName = tagSearchTerm.toLowerCase().trim();
+                                    if (!selectedTags.some(t => t.name === newTagName)) {
+                                        selectedTags.push({ name: newTagName, isNew: true });
+                                    }
+                                    tagSearchTerm = '';
+                                    tagSearchResults = [];
                                 " style="font-style: italic; color: var(--accent-color); cursor: pointer;">
-                                    <span>Create new tag: <strong x-text="tagSearchTerm"></strong></span>
+                                    <span>Create new tag: <strong x-text="tagSearchTerm.toLowerCase()"></strong></span>
                                 </li>
                             </ul>
                         </div>
@@ -163,13 +171,24 @@
                     class="btn-save"
                     @click="
                         (async () => {
+                            // Create any new tags first
+                            const finalTags = [];
+                            for (const tag of selectedTags) {
+                                if (tag.isNew) {
+                                    const createdTag = await dataLayer.createTag(tag.name);
+                                    if (createdTag) finalTags.push(createdTag);
+                                } else {
+                                    finalTags.push(tag);
+                                }
+                            }
+
                             if (editingContent.id) {
                                 // Update existing content
                                 const updated = await dataLayer.updateContent(editingContent.id, editingContent.title, editingContent.url, editingContent.type);
                                 if (updated) {
                                     // Sync tags
-                                    await dataLayer.syncContentTags(editingContent.id, selectedTags);
-                                    updated.tags = selectedTags;
+                                    await dataLayer.syncContentTags(editingContent.id, finalTags);
+                                    updated.tags = finalTags;
                                     const index = content.findIndex(c => c.id === updated.id);
                                     content[index] = updated;
                                     isContentModalOpen = false;
@@ -179,8 +198,8 @@
                                 const newContent = await dataLayer.createContent(editingContent.title, editingContent.url, editingContent.type);
                                 if (newContent) {
                                     // Link tags to new content
-                                    await dataLayer.syncContentTags(newContent.id, selectedTags);
-                                    newContent.tags = selectedTags;
+                                    await dataLayer.syncContentTags(newContent.id, finalTags);
+                                    newContent.tags = finalTags;
                                     content.unshift(newContent);
                                     $nextTick(() => feather.replace());
                                     isContentModalOpen = false;
