@@ -3,9 +3,50 @@ import { getSupabaseClient } from '/supabase.js';
 export const repertoireData = {
     async fetchRepertoire() {
         const supabaseClient = getSupabaseClient();
-        const { data, error } = await supabaseClient.from('repertoire').select('*');
-        if (error) { console.error('Error fetching repertoire:', error); return []; }
-        return data;
+
+        // Fetch all repertoire items
+        const { data, error } = await supabaseClient
+            .from('repertoire')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching repertoire:', error);
+            return [];
+        }
+
+        // Fetch tags for all repertoire items
+        if (data.length === 0) {
+            return [];
+        }
+
+        const repertoireIds = data.map(item => item.id);
+        const { data: tagLinks, error: tagError } = await supabaseClient
+            .from('entity_tags')
+            .select('entity_id, tags(id, name)')
+            .eq('entity_type', 'repertoire')
+            .in('entity_id', repertoireIds);
+
+        if (tagError) {
+            console.error('Error fetching repertoire tags:', tagError);
+        }
+
+        // Map tags to repertoire items
+        const tagsByRepertoireId = {};
+        tagLinks?.forEach(link => {
+            if (!tagsByRepertoireId[link.entity_id]) {
+                tagsByRepertoireId[link.entity_id] = [];
+            }
+            if (link.tags) {
+                tagsByRepertoireId[link.entity_id].push(link.tags);
+            }
+        });
+
+        // Combine repertoire with tags
+        return data.map(item => ({
+            ...item,
+            tags: tagsByRepertoireId[item.id] || []
+        }));
     },
 
     async createRepertoire(title, artist) {
@@ -85,6 +126,62 @@ export const repertoireData = {
             .match({ log_id: logId, repertoire_id: repertoireId });
         if (error) {
             console.error('Error unlinking repertoire from log:', error);
+        }
+    },
+
+    // Tag management functions for repertoire
+    async linkTagToRepertoire(repertoireId, tagId) {
+        const supabaseClient = getSupabaseClient();
+        const { error } = await supabaseClient
+            .from('entity_tags')
+            .insert({ entity_type: 'repertoire', entity_id: repertoireId, tag_id: tagId });
+
+        if (error && error.code !== '23505') { // Ignore if already exists
+            console.error('Error linking tag to repertoire:', error);
+        }
+    },
+
+    async unlinkTagFromRepertoire(repertoireId, tagId) {
+        const supabaseClient = getSupabaseClient();
+        const { error } = await supabaseClient
+            .from('entity_tags')
+            .delete()
+            .match({ entity_type: 'repertoire', entity_id: repertoireId, tag_id: tagId });
+
+        if (error) {
+            console.error('Error unlinking tag from repertoire:', error);
+        }
+    },
+
+    async syncRepertoireTags(repertoireId, newTags) {
+        // newTags is an array of tag objects: [{ id, name }, ...]
+        const supabaseClient = getSupabaseClient();
+
+        // Get current tags for this repertoire
+        const { data: currentTagLinks, error: fetchError } = await supabaseClient
+            .from('entity_tags')
+            .select('tag_id')
+            .eq('entity_type', 'repertoire')
+            .eq('entity_id', repertoireId);
+
+        if (fetchError) {
+            console.error('Error fetching current tags:', fetchError);
+            return;
+        }
+
+        const currentTagIds = currentTagLinks?.map(ct => ct.tag_id) || [];
+        const newTagIds = newTags.map(t => t.id);
+
+        // Remove tags that are no longer selected
+        const tagsToRemove = currentTagIds.filter(id => !newTagIds.includes(id));
+        for (const tagId of tagsToRemove) {
+            await this.unlinkTagFromRepertoire(repertoireId, tagId);
+        }
+
+        // Add new tags
+        const tagsToAdd = newTagIds.filter(id => !currentTagIds.includes(id));
+        for (const tagId of tagsToAdd) {
+            await this.linkTagToRepertoire(repertoireId, tagId);
         }
     }
 };

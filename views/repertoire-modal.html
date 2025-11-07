@@ -1,32 +1,133 @@
 <div class="modal-overlay" x-show="isRepertoireModalOpen" x-cloak
     @keydown.escape.window="isRepertoireModalOpen = false">
-    <div class="modal-content" @click.outside="isRepertoireModalOpen = false">
+    <div class="modal-content" @click.outside="isRepertoireModalOpen = false"
+        x-data="{
+            tagSearchTerm: '',
+            tagSearchResults: [],
+            selectedTags: []
+        }"
+        x-init="
+            $watch('isRepertoireModalOpen', (isOpen) => {
+                if (isOpen && editingRepertoire) {
+                    selectedTags = editingRepertoire.tags ? [...editingRepertoire.tags] : [];
+                    tagSearchTerm = '';
+                    tagSearchResults = [];
+                }
+            })
+        ">
         <h3 x-text="editingRepertoire?.id ? 'Edit Tune' : 'New Tune'"></h3>
 
         <template x-if="editingRepertoire">
             <div class="create-content-panel" @keydown.enter="
+                if ($event.target.classList.contains('tag-search-input')) {
+                    return; // Don't save when pressing Enter in tag search
+                }
                 $event.preventDefault();
                 (async () => {
                     if (editingRepertoire.id) {
                         // Update existing tune
                         const updated = await dataLayer.updateRepertoire(editingRepertoire.id, editingRepertoire.title, editingRepertoire.artist);
                         if (updated) {
+                            // Sync tags
+                            await dataLayer.syncRepertoireTags(editingRepertoire.id, selectedTags);
+                            updated.tags = selectedTags;
                             const index = repertoire.findIndex(r => r.id === updated.id);
                             repertoire[index] = updated;
+                            isRepertoireModalOpen = false;
                         }
                     } else {
                         // Create new tune
                         const newTune = await dataLayer.createRepertoire(editingRepertoire.title, editingRepertoire.artist);
                         if (newTune) {
+                            // Link tags to new tune
+                            await dataLayer.syncRepertoireTags(newTune.id, selectedTags);
+                            newTune.tags = selectedTags;
                             repertoire.unshift(newTune);
                             $nextTick(() => feather.replace());
+                            isRepertoireModalOpen = false;
                         }
                     }
-                    isRepertoireModalOpen = false;
                 })();
             ">
                 <input type="text" x-model="editingRepertoire.title" placeholder="Title">
-                <input type="text" x-model="editingRepertoire.artist" placeholder="Artist">
+                <input type="text" x-model="editingRepertoire.artist" placeholder="Composer">
+
+                <!-- Tag Input -->
+                <div class="tag-input-container">
+                    <label>Tags</label>
+
+                    <!-- Selected Tags Display -->
+                    <div class="selected-tags">
+                        <template x-for="tag in selectedTags" :key="tag.id">
+                            <span class="tag-pill">
+                                <span x-text="tag.name"></span>
+                                <button type="button" @click="selectedTags = selectedTags.filter(t => t.id !== tag.id)">×</button>
+                            </span>
+                        </template>
+                    </div>
+
+                    <!-- Tag Search Input -->
+                    <div class="tag-search" style="position: relative;">
+                        <input
+                            type="text"
+                            class="tag-search-input"
+                            x-model="tagSearchTerm"
+                            placeholder="Add tags..."
+                            @input.debounce.300ms="
+                                if (tagSearchTerm.length > 0) {
+                                    dataLayer.searchTags(tagSearchTerm).then(results => {
+                                        tagSearchResults = results.filter(r => !selectedTags.some(st => st.id === r.id));
+                                    });
+                                } else {
+                                    tagSearchResults = [];
+                                }
+                            "
+                            @keydown.enter.prevent="
+                                if (tagSearchTerm.trim()) {
+                                    // Create new tag
+                                    dataLayer.createTag(tagSearchTerm).then(newTag => {
+                                        if (newTag && !selectedTags.some(t => t.id === newTag.id)) {
+                                            selectedTags.push(newTag);
+                                        }
+                                        tagSearchTerm = '';
+                                        tagSearchResults = [];
+                                    });
+                                }
+                            "
+                        >
+
+                        <!-- Autocomplete Results -->
+                        <div x-show="tagSearchTerm.length > 0" style="position: absolute; z-index: 1000; width: 100%; top: 100%;" @click.outside="tagSearchTerm = ''; tagSearchResults = []">
+                            <ul class="results-list" x-show="tagSearchResults.length > 0">
+                                <template x-for="result in tagSearchResults" :key="result.id">
+                                    <li @click="
+                                        selectedTags.push(result);
+                                        tagSearchTerm = '';
+                                        tagSearchResults = [];
+                                    ">
+                                        <span x-text="result.name"></span>
+                                    </li>
+                                </template>
+                            </ul>
+
+                            <!-- Create new tag hint -->
+                            <ul class="results-list" x-show="tagSearchResults.length === 0 && tagSearchTerm.trim().length > 0">
+                                <li @click="
+                                    (async () => {
+                                        const newTag = await dataLayer.createTag(tagSearchTerm);
+                                        if (newTag && !selectedTags.some(t => t.id === newTag.id)) {
+                                            selectedTags.push(newTag);
+                                        }
+                                        tagSearchTerm = '';
+                                        tagSearchResults = [];
+                                    })();
+                                " style="font-style: italic; color: var(--accent-color); cursor: pointer;">
+                                    <span>Create new tag: <strong x-text="tagSearchTerm"></strong></span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </template>
 
@@ -43,22 +144,31 @@
             <div class="right-actions">
                 <button @click="isRepertoireModalOpen = false; editingRepertoire = null">Cancel</button>
                 <button class="btn-save" @click="
-                        if (editingRepertoire.id) {
-                            // Update existing tune
-                            const updated = await dataLayer.updateRepertoire(editingRepertoire.id, editingRepertoire.title, editingRepertoire.artist);
-                            if (updated) {
-                                const index = repertoire.findIndex(r => r.id === updated.id);
-                                repertoire[index] = updated;
+                        (async () => {
+                            if (editingRepertoire.id) {
+                                // Update existing tune
+                                const updated = await dataLayer.updateRepertoire(editingRepertoire.id, editingRepertoire.title, editingRepertoire.artist);
+                                if (updated) {
+                                    // Sync tags
+                                    await dataLayer.syncRepertoireTags(editingRepertoire.id, selectedTags);
+                                    updated.tags = selectedTags;
+                                    const index = repertoire.findIndex(r => r.id === updated.id);
+                                    repertoire[index] = updated;
+                                    isRepertoireModalOpen = false;
+                                }
+                            } else {
+                                // Create new tune
+                                const newTune = await dataLayer.createRepertoire(editingRepertoire.title, editingRepertoire.artist);
+                                if (newTune) {
+                                    // Link tags to new tune
+                                    await dataLayer.syncRepertoireTags(newTune.id, selectedTags);
+                                    newTune.tags = selectedTags;
+                                    repertoire.unshift(newTune);
+                                    $nextTick(() => feather.replace());
+                                    isRepertoireModalOpen = false;
+                                }
                             }
-                        } else {
-                            // Create new tune
-                            const newTune = await dataLayer.createRepertoire(editingRepertoire.title, editingRepertoire.artist);
-                            if (newTune) {
-                                repertoire.unshift(newTune);
-                                $nextTick(() => feather.replace());
-                            }
-                        }
-                        isRepertoireModalOpen = false;
+                        })();
                     ">Save</button>
             </div>
         </div>
