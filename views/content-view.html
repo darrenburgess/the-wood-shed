@@ -99,9 +99,9 @@
                                     </template>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center gap-1">
+                                    <div class="flex items-center justify-start gap-1">
                                         <template x-if="item.type === 'YouTube'">
-                                            <button class="link-button flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" @click="
+                                            <button class="link-button flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left" @click="
                                                 const videoId = dataLayer.getYoutubeVideoId(item.url);
                                                 if (videoId) {
                                                     youTubeVideoId = videoId;
@@ -112,7 +112,7 @@
                                             </button>
                                         </template>
                                         <template x-if="item.type !== 'YouTube'">
-                                            <a :href="item.url" target="_blank" class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" :title="item.url" x-text="(() => { try { return new URL(item.url).hostname.replace('www.', ''); } catch { return item.url; } })()"></a>
+                                            <a :href="item.url" target="_blank" class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left" :title="item.url" x-text="(() => { try { return new URL(item.url).hostname.replace('www.', ''); } catch { return item.url; } })()"></a>
                                         </template>
                                         <button class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-2 py-1" @click="navigator.clipboard.writeText(item.url)" title="Copy URL to clipboard">
                                             <i data-feather="copy" style="width: 14px; height: 14px;"></i>
