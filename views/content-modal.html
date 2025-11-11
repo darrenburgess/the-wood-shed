@@ -80,11 +80,11 @@
                     <label>Tags</label>
 
                     <!-- Selected Tags Display -->
-                    <div class="selected-tags">
+                    <div class="flex flex-wrap gap-2 mb-2">
                         <template x-for="tag in selectedTags" :key="tag.id">
-                            <span class="tag-pill">
+                            <span class="inline-flex items-center bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
                                 <span x-text="tag.name"></span>
-                                <button type="button" @click="selectedTags = selectedTags.filter(t => t.id !== tag.id)">×</button>
+                                <button type="button" class="ml-1 text-blue-600 hover:text-blue-800 font-bold" @click="selectedTags = selectedTags.filter(t => t.id !== tag.id)">×</button>
                             </span>
                         </template>
                     </div>
@@ -119,29 +119,29 @@
                         >
 
                         <!-- Autocomplete Results -->
-                        <div x-show="tagSearchTerm.length > 0" style="position: absolute; z-index: 1000; width: 100%; top: 100%;" @click.outside="tagSearchTerm = ''; tagSearchResults = []">
-                            <ul class="results-list" x-show="tagSearchResults.length > 0">
+                        <div x-show="tagSearchTerm.length > 0" class="absolute z-50 w-full top-full" @click.outside="tagSearchTerm = ''; tagSearchResults = []">
+                            <ul class="bg-white border border-gray-300 rounded-md shadow-lg mt-1" x-show="tagSearchResults.length > 0">
                                 <template x-for="result in tagSearchResults" :key="result.id">
-                                    <li @click="
+                                    <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer" @click="
                                         selectedTags.push(result);
                                         tagSearchTerm = '';
                                         tagSearchResults = [];
                                     ">
-                                        <span x-text="result.name"></span>
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded" x-text="result.name"></span>
                                     </li>
                                 </template>
                             </ul>
 
                             <!-- Create new tag hint -->
-                            <ul class="results-list" x-show="tagSearchResults.length === 0 && tagSearchTerm.trim().length > 0">
-                                <li @click="
+                            <ul class="bg-white border border-gray-300 rounded-md shadow-lg mt-1" x-show="tagSearchResults.length === 0 && tagSearchTerm.trim().length > 0">
+                                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer italic text-blue-600" @click="
                                     const newTagName = tagSearchTerm.toLowerCase().trim();
                                     if (!selectedTags.some(t => t.name === newTagName)) {
                                         selectedTags.push({ name: newTagName, isNew: true });
                                     }
                                     tagSearchTerm = '';
                                     tagSearchResults = [];
-                                " style="font-style: italic; color: var(--accent-color); cursor: pointer;">
+                                ">
                                     <span>Create new tag: <strong x-text="tagSearchTerm.toLowerCase()"></strong></span>
                                 </li>
                             </ul>
