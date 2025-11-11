@@ -1,5 +1,5 @@
-<div class="modal-overlay" x-show="isAddLogModalOpen" x-cloak @keydown.escape.window="isAddLogModalOpen = false">
-    <div class="modal-content" @click.outside="isAddLogModalOpen = false"
+<div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50" x-show="isAddLogModalOpen" x-cloak @keydown.escape.window="isAddLogModalOpen = false">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6" @click.outside="isAddLogModalOpen = false"
         x-data="{
             newLogEntry: '',
             repertoireSearchTerm: '',
@@ -14,11 +14,13 @@
                 selectedRepertoire = [];
             }
         })">
-        <h3 x-show="loggingForGoal">Add Log for Goal: <span x-text="loggingForGoal?.goal_number"></span></h3>
+        <h3 class="text-xl font-semibold mb-4 text-gray-900" x-show="loggingForGoal">Add Log for Goal: <span x-text="loggingForGoal?.goal_number"></span></h3>
 
         <textarea
             x-model="newLogEntry"
             placeholder="New log entry..."
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-4"
+            rows="4"
             @keydown.enter="
                 if (!$event.shiftKey) {
                     $event.preventDefault();
@@ -42,24 +44,24 @@
         ></textarea>
 
         <!-- Repertoire Selection -->
-        <div class="tag-input-container" style="margin-top: 1rem;">
-            <label>Tunes Practiced</label>
+        <div class="mb-4">
+            <label class="block mb-2 text-sm font-medium text-gray-900">Tunes Practiced</label>
 
             <!-- Selected Repertoire Display -->
-            <div class="selected-tags">
+            <div class="flex flex-wrap gap-2 mb-2">
                 <template x-for="rep in selectedRepertoire" :key="rep.id">
-                    <span class="tag-pill">
+                    <span class="inline-flex items-center bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
                         <span x-text="rep.title + (rep.artist ? ' - ' + rep.artist : '')"></span>
-                        <button type="button" @click="selectedRepertoire = selectedRepertoire.filter(r => r.id !== rep.id)">×</button>
+                        <button type="button" class="ml-1 text-green-600 hover:text-green-800 font-bold" @click="selectedRepertoire = selectedRepertoire.filter(r => r.id !== rep.id)">×</button>
                     </span>
                 </template>
             </div>
 
             <!-- Repertoire Search Input -->
-            <div class="tag-search" style="position: relative;">
+            <div class="relative">
                 <input
                     type="text"
-                    class="tag-search-input"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
                     x-model="repertoireSearchTerm"
                     placeholder="Search tunes..."
                     @input.debounce.300ms="
@@ -74,10 +76,10 @@
                 >
 
                 <!-- Autocomplete Results -->
-                <div x-show="repertoireSearchTerm.length > 0" style="position: absolute; z-index: 1000; width: 100%; top: 100%;" @click.outside="repertoireSearchTerm = ''; repertoireSearchResults = []">
-                    <ul class="results-list" x-show="repertoireSearchResults.length > 0">
+                <div x-show="repertoireSearchTerm.length > 0" class="absolute z-50 w-full top-full" @click.outside="repertoireSearchTerm = ''; repertoireSearchResults = []">
+                    <ul class="bg-white border border-gray-300 rounded-md shadow-lg mt-1" x-show="repertoireSearchResults.length > 0">
                         <template x-for="result in repertoireSearchResults" :key="result.id">
-                            <li @click="
+                            <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer" @click="
                                 selectedRepertoire.push(result);
                                 repertoireSearchTerm = '';
                                 repertoireSearchResults = [];
@@ -90,31 +92,28 @@
             </div>
         </div>
 
-        <div class="modal-actions">
-            <div></div>
-            <div class="right-actions">
-                <button @click="isAddLogModalOpen = false">Cancel</button>
-                <button
-                    class="btn-save"
-                    @click="
-                        if (newLogEntry.trim()) {
-                            (async () => {
-                                const repertoireIds = selectedRepertoire.map(r => r.id);
-                                const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry, [], repertoireIds);
-                                if (statsUpdated) isRepertoireStale = true;
-                                if (newLog) {
-                                    newLog.content = [];
-                                    newLog.repertoire = selectedRepertoire;
-                                    newLog.isToday = true;
-                                    loggingForGoal.logs.unshift(newLog);
-                                    $nextTick(() => feather.replace());
-                                }
-                                isAddLogModalOpen = false;
-                            })();
-                        }
-                    "
-                >Save Log</button>
-            </div>
+        <div class="flex justify-end gap-2">
+            <button class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5" @click="isAddLogModalOpen = false">Cancel</button>
+            <button
+                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5"
+                @click="
+                    if (newLogEntry.trim()) {
+                        (async () => {
+                            const repertoireIds = selectedRepertoire.map(r => r.id);
+                            const { newLog, statsUpdated } = await dataLayer.addLog(loggingForGoal, newLogEntry, [], repertoireIds);
+                            if (statsUpdated) isRepertoireStale = true;
+                            if (newLog) {
+                                newLog.content = [];
+                                newLog.repertoire = selectedRepertoire;
+                                newLog.isToday = true;
+                                loggingForGoal.logs.unshift(newLog);
+                                $nextTick(() => feather.replace());
+                            }
+                            isAddLogModalOpen = false;
+                        })();
+                    }
+                "
+            >Save Log</button>
         </div>
     </div>
 </div>

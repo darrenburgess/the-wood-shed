@@ -1,14 +1,16 @@
-<div 
-    class="modal-overlay" 
-    x-show="isNewTopicModalOpen" 
-    x-cloak 
+<div
+    class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50"
+    x-show="isNewTopicModalOpen"
+    x-cloak
     @keydown.escape.window="isNewTopicModalOpen = false"
 >
-    <div class="modal-content" @click.outside="isNewTopicModalOpen = false">
-        <h3>Add New Topic</h3>
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6" @click.outside="isNewTopicModalOpen = false">
+        <h3 class="text-xl font-semibold mb-4 text-gray-900">Add New Topic</h3>
         <textarea
             x-model="newTopicTitle"
             placeholder="Enter title for the new topic..."
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-4"
+            rows="3"
             @keydown.enter="
                 if (!$event.shiftKey) {
                     $event.preventDefault();
@@ -26,24 +28,22 @@
                 }
             "
         ></textarea>
-        <div class="modal-actions">
-            <div></div> <div class="right-actions">
-                <button @click="isNewTopicModalOpen = false; newTopicTitle = ''">Cancel</button>
-                <button 
-                    class="btn-save"
-                    @click="
-                        const newTopic = await dataLayer.addTopic(newTopicTitle);
-                        if (newTopic) {
-                            newTopic.goals = []; 
-                            newTopic.isOpen = true;
-                            topics.push(newTopic); 
-                            $nextTick(() => feather.replace());
-                        }
-                        isNewTopicModalOpen = false; 
-                        newTopicTitle = '';
-                    "
-                >Save</button>
-            </div>
+        <div class="flex justify-end gap-2">
+            <button class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5" @click="isNewTopicModalOpen = false; newTopicTitle = ''">Cancel</button>
+            <button
+                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5"
+                @click="
+                    const newTopic = await dataLayer.addTopic(newTopicTitle);
+                    if (newTopic) {
+                        newTopic.goals = [];
+                        newTopic.isOpen = true;
+                        topics.push(newTopic);
+                        $nextTick(() => feather.replace());
+                    }
+                    isNewTopicModalOpen = false;
+                    newTopicTitle = '';
+                "
+            >Save</button>
         </div>
     </div>
 </div>
