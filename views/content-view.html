@@ -62,22 +62,22 @@
                 </div>
             </div>
 
-            <div x-show="!isContentLoading">
-                <table>
-                    <thead>
+            <div x-show="!isContentLoading" class="relative overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
-                            <th @click="sortContentBy('title')" class="sortable">Title</th>
-                            <th>Tags</th>
-                            <th style="width: 120px;">URL</th>
-                            <th @click="sortContentBy('type')" class="sortable" style="width: 100px;">Type</th>
-                            <th style="width: 40px;"></th>
+                            <th @click="sortContentBy('title')" class="px-6 py-3 sortable">Title</th>
+                            <th class="px-6 py-3">Tags</th>
+                            <th class="px-6 py-3" style="width: 120px;">URL</th>
+                            <th @click="sortContentBy('type')" class="px-6 py-3 sortable" style="width: 100px;">Type</th>
+                            <th class="px-6 py-3" style="width: 40px;"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="item in sortedContent" :key="item.id">
-                            <tr>
-                                <td x-text="item.title"></td>
-                                <td>
+                            <tr class="bg-white border-b hover:bg-gray-50">
+                                <td class="px-6 py-4" x-text="item.title"></td>
+                                <td class="px-6 py-4">
                                     <template x-if="item.tags && item.tags.length > 0">
                                         <div class="tags-display">
                                             <template x-for="tag in item.tags" :key="tag.id">
@@ -96,32 +96,32 @@
                                         </div>
                                     </template>
                                     <template x-if="!item.tags || item.tags.length === 0">
-                                        <span style="color: var(--text-secondary);">-</span>
+                                        <span class="text-gray-400">-</span>
                                     </template>
                                 </td>
-                                <td>
-                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-1">
                                         <template x-if="item.type === 'YouTube'">
-                                            <button class="link-button" @click="
+                                            <button class="link-button flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" @click="
                                                 const videoId = dataLayer.getYoutubeVideoId(item.url);
                                                 if (videoId) {
                                                     youTubeVideoId = videoId;
                                                     isYouTubeModalOpen = true;
                                                 }
-                                            " style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" :title="item.url">
+                                            " :title="item.url">
                                                 <span x-text="(() => { try { return new URL(item.url).hostname.replace('www.', ''); } catch { return item.url; } })()"></span>
                                             </button>
                                         </template>
                                         <template x-if="item.type !== 'YouTube'">
-                                            <a :href="item.url" target="_blank" style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" :title="item.url" x-text="(() => { try { return new URL(item.url).hostname.replace('www.', ''); } catch { return item.url; } })()"></a>
+                                            <a :href="item.url" target="_blank" class="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" :title="item.url" x-text="(() => { try { return new URL(item.url).hostname.replace('www.', ''); } catch { return item.url; } })()"></a>
                                         </template>
-                                        <button class="edit-btn" @click="navigator.clipboard.writeText(item.url)" title="Copy URL to clipboard" style="padding: 0.25rem;">
+                                        <button class="edit-btn p-1" @click="navigator.clipboard.writeText(item.url)" title="Copy URL to clipboard">
                                             <i data-feather="copy" style="width: 14px; height: 14px;"></i>
                                         </button>
                                     </div>
                                 </td>
-                                <td x-text="item.type"></td>
-                                <td>
+                                <td class="px-6 py-4" x-text="item.type"></td>
+                                <td class="px-6 py-4">
                                     <button class="edit-btn" @click="editingContent = { ...item }; isContentModalOpen = true;">
                                         <i data-feather="edit-2"></i>
                                     </button>
