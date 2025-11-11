@@ -48,42 +48,73 @@
     </div>
 
     <div
-        class="max-w-7xl mx-auto px-4 py-6 hidden"
+        class="flex h-screen hidden"
         id="app-container"
         x-data="app"
         x-cloak
     >
-        <div class="flex items-center justify-between mb-6">
-            <h1 id="app-title" class="text-3xl font-bold text-gray-900">
-                The Wood Shed
-                <span x-show="isDevEnvironment" class="font-medium text-gray-400">(Dev)</span>
-            </h1>
-            <button id="sign-out-btn" @click="supabase.auth.signOut()" class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5">Sign Out</button>
-        </div>
+        <!-- Sidebar -->
+        <div class="w-64 bg-white border-r border-gray-200 flex flex-col">
+            <!-- Logo/Title Section -->
+            <div class="p-6 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-gray-900">
+                    The Woodshed
+                    <span x-show="isDevEnvironment" class="text-xs font-normal text-gray-400 ml-1">(Dev)</span>
+                </h1>
+                <p class="text-xs text-gray-500 mt-1">Practice Journal</p>
+            </div>
 
-        <div class="border-b border-gray-200 mb-6">
-            <nav class="flex gap-2" x-data="{
-                tabClass(view) {
-                    const base = 'inline-block p-4 border-b-2 rounded-t-lg font-medium';
-                    const active = 'text-blue-600 border-blue-600';
-                    const inactive = 'text-gray-500 border-transparent hover:text-gray-600 hover:border-gray-300';
-                    return base + ' ' + (activeView === view ? active : inactive);
+            <!-- Navigation Links -->
+            <nav class="flex-1 p-4 space-y-1" x-data="{
+                navClass(view) {
+                    const active = 'flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg';
+                    const inactive = 'flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors';
+                    return activeView === view ? active : inactive;
                 }
             }">
-                <button :class="tabClass('practice')" @click="activeView = 'practice'">Practice Today</button>
-                <button :class="tabClass('topics')" @click="activeView = 'topics'">Topics</button>
-                <button :class="tabClass('logs')" @click="activeView = 'logs'">Logs</button>
-                <button :class="tabClass('content')" @click="activeView = 'content'">Content</button>
-                <button :class="tabClass('repertoire')" @click="activeView = 'repertoire'">Repertoire</button>
+                <button :class="navClass('practice')" @click="activeView = 'practice'">
+                    Practice Today
+                </button>
+                <button :class="navClass('topics')" @click="activeView = 'topics'">
+                    Topics
+                </button>
+                <button :class="navClass('logs')" @click="activeView = 'logs'">
+                    Logs
+                </button>
+                <button :class="navClass('content')" @click="activeView = 'content'">
+                    Content
+                </button>
+                <button :class="navClass('repertoire')" @click="activeView = 'repertoire'">
+                    Repertoire
+                </button>
             </nav>
+
+            <!-- User Section -->
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-semibold text-sm" x-text="user?.email?.charAt(0).toUpperCase()"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate" x-text="user?.email"></p>
+                    </div>
+                </div>
+                <button id="sign-out-btn" @click="supabase.auth.signOut()" class="w-full text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-2 transition-colors">
+                    Sign Out
+                </button>
+            </div>
         </div>
 
-        <div id="practice-today-view" x-show="activeView === 'practice'"></div>
-        <div id="topics-view" x-show="activeView === 'topics'"></div>
-        <div id="logs-view" x-show="activeView === 'logs'"></div>
-        <div id="content-view" x-show="activeView === 'content'"></div>
-        <div id="repertoire-view" x-show="activeView === 'repertoire'"></div>
-       
+        <!-- Main Content Area -->
+        <div class="flex-1 overflow-auto bg-gray-50">
+            <div class="max-w-7xl mx-auto p-6">
+                <div id="practice-today-view" x-show="activeView === 'practice'"></div>
+                <div id="topics-view" x-show="activeView === 'topics'"></div>
+                <div id="logs-view" x-show="activeView === 'logs'"></div>
+                <div id="content-view" x-show="activeView === 'content'"></div>
+                <div id="repertoire-view" x-show="activeView === 'repertoire'"></div>
+            </div>
+        </div>
+
+        <!-- Modals -->
         <div id="new-topic-modal"></div>
         <div id="edit-topic-modal"></div>
         <div id="edit-goal-modal"></div>
