@@ -1,10 +1,10 @@
 <div
-    class="modal-overlay"
+    class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50"
     x-show="isContentModalOpen"
     x-cloak
     @keydown.escape.window="isContentModalOpen = false"
 >
-    <div class="modal-content" @click.outside="isContentModalOpen = false"
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6" @click.outside="isContentModalOpen = false"
         x-data="{
             tagSearchTerm: '',
             tagSearchResults: [],
@@ -19,10 +19,10 @@
                 }
             })
         ">
-        <h3 x-text="editingContent?.id ? 'Edit Content' : 'Add New Content'"></h3>
+        <h3 class="text-xl font-semibold mb-4 text-gray-900" x-text="editingContent?.id ? 'Edit Content' : 'Add New Content'"></h3>
 
         <template x-if="editingContent">
-            <div class="create-content-panel" @keydown.enter="
+            <div @keydown.enter="
                 if ($event.target.classList.contains('tag-search-input')) {
                     return; // Don't save when pressing Enter in tag search
                 }
@@ -66,18 +66,27 @@
                     }
                 })();
             ">
-                <input type="text" x-model="editingContent.title" placeholder="Title">
-                <input type="url" x-model="editingContent.url" placeholder="https://...">
-                <select x-model="editingContent.type">
-                    <option>YouTube</option>
-                    <option>Article</option>
-                    <option>Image</option>
-                    <option>PDF</option>
-                </select>
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Title</label>
+                    <input type="text" x-model="editingContent.title" placeholder="Title" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">URL</label>
+                    <input type="url" x-model="editingContent.url" placeholder="https://..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Type</label>
+                    <select x-model="editingContent.type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        <option>YouTube</option>
+                        <option>Article</option>
+                        <option>Image</option>
+                        <option>PDF</option>
+                    </select>
+                </div>
 
                 <!-- Tag Input -->
-                <div class="tag-input-container">
-                    <label>Tags</label>
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Tags</label>
 
                     <!-- Selected Tags Display -->
                     <div class="flex flex-wrap gap-2 mb-2">
@@ -90,10 +99,10 @@
                     </div>
 
                     <!-- Tag Search Input -->
-                    <div class="tag-search" style="position: relative;">
+                    <div class="relative">
                         <input
                             type="text"
-                            class="tag-search-input"
+                            class="tag-search-input bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
                             x-model="tagSearchTerm"
                             placeholder="Add tags..."
                             @input.debounce.300ms="
@@ -151,10 +160,10 @@
             </div>
         </template>
 
-        <div class="modal-actions">
+        <div class="flex justify-between mt-6">
             <div>
                 <button
-                    class="btn-delete"
+                    class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5"
                     x-show="editingContent?.id"
                     @click="
                         if (confirm('Are you sure? This will also remove links from any logs.')) {
@@ -165,10 +174,10 @@
                     "
                 >Delete</button>
             </div>
-            <div class="right-actions">
-                <button @click="isContentModalOpen = false; editingContent = null">Cancel</button>
+            <div class="flex gap-2">
+                <button class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5" @click="isContentModalOpen = false; editingContent = null">Cancel</button>
                 <button
-                    class="btn-save"
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5"
                     @click="
                         (async () => {
                             // Create any new tags first
