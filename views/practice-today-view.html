@@ -192,6 +192,9 @@
                                     return goal.logs;
                                 }
                                 return goal.logs.filter(log => log.date === practiceDate);
+                            },
+                            get hasNonSessionLogs() {
+                                return goal.logs.some(log => log.date !== practiceDate);
                             }
                         }">
                             <ul class="space-y-2">
@@ -329,7 +332,7 @@
                                 </template>
                             </ul>
                             <div class="mt-3 flex gap-2">
-                                <template x-if="!goal.showAllLogs && goal.logs.filter(log => log.date !== practiceDate).length > 0">
+                                <template x-if="!goal.showAllLogs && hasNonSessionLogs">
                                     <button
                                         class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-3 py-1.5"
                                         @click="
