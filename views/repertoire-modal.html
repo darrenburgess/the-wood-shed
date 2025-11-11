@@ -1,6 +1,6 @@
-<div class="modal-overlay" x-show="isRepertoireModalOpen" x-cloak
+<div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50" x-show="isRepertoireModalOpen" x-cloak
     @keydown.escape.window="isRepertoireModalOpen = false">
-    <div class="modal-content" @click.outside="isRepertoireModalOpen = false"
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6" @click.outside="isRepertoireModalOpen = false"
         x-data="{
             tagSearchTerm: '',
             tagSearchResults: [],
@@ -15,10 +15,10 @@
                 }
             })
         ">
-        <h3 x-text="editingRepertoire?.id ? 'Edit Repertoire' : 'New Repertoire'"></h3>
+        <h3 class="text-xl font-semibold mb-4 text-gray-900" x-text="editingRepertoire?.id ? 'Edit Tune' : 'New Tune'"></h3>
 
         <template x-if="editingRepertoire">
-            <div class="create-content-panel" @keydown.enter="
+            <div @keydown.enter="
                 if ($event.target.classList.contains('tag-search-input')) {
                     return; // Don't save when pressing Enter in tag search
                 }
@@ -60,28 +60,34 @@
                     }
                 })();
             ">
-                <input type="text" x-model="editingRepertoire.title" placeholder="Title">
-                <input type="text" x-model="editingRepertoire.artist" placeholder="Composer">
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Title</label>
+                    <input type="text" x-model="editingRepertoire.title" placeholder="Title" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Composer</label>
+                    <input type="text" x-model="editingRepertoire.artist" placeholder="Composer" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
 
                 <!-- Tag Input -->
-                <div class="tag-input-container">
-                    <label>Tags</label>
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Tags</label>
 
                     <!-- Selected Tags Display -->
-                    <div class="selected-tags">
+                    <div class="flex flex-wrap gap-2 mb-2">
                         <template x-for="tag in selectedTags" :key="tag.id">
-                            <span class="tag-pill">
+                            <span class="inline-flex items-center bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
                                 <span x-text="tag.name"></span>
-                                <button type="button" @click="selectedTags = selectedTags.filter(t => t.id !== tag.id)">×</button>
+                                <button type="button" class="ml-1 text-blue-600 hover:text-blue-800 font-bold" @click="selectedTags = selectedTags.filter(t => t.id !== tag.id)">×</button>
                             </span>
                         </template>
                     </div>
 
                     <!-- Tag Search Input -->
-                    <div class="tag-search" style="position: relative;">
+                    <div class="relative">
                         <input
                             type="text"
-                            class="tag-search-input"
+                            class="tag-search-input bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
                             x-model="tagSearchTerm"
                             placeholder="Add tags..."
                             @input.debounce.300ms="
@@ -107,29 +113,29 @@
                         >
 
                         <!-- Autocomplete Results -->
-                        <div x-show="tagSearchTerm.length > 0" style="position: absolute; z-index: 1000; width: 100%; top: 100%;" @click.outside="tagSearchTerm = ''; tagSearchResults = []">
-                            <ul class="results-list" x-show="tagSearchResults.length > 0">
+                        <div x-show="tagSearchTerm.length > 0" class="absolute z-50 w-full top-full" @click.outside="tagSearchTerm = ''; tagSearchResults = []">
+                            <ul class="bg-white border border-gray-300 rounded-md shadow-lg mt-1" x-show="tagSearchResults.length > 0">
                                 <template x-for="result in tagSearchResults" :key="result.id">
-                                    <li @click="
+                                    <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer" @click="
                                         selectedTags.push(result);
                                         tagSearchTerm = '';
                                         tagSearchResults = [];
                                     ">
-                                        <span x-text="result.name"></span>
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded" x-text="result.name"></span>
                                     </li>
                                 </template>
                             </ul>
 
                             <!-- Create new tag hint -->
-                            <ul class="results-list" x-show="tagSearchResults.length === 0 && tagSearchTerm.trim().length > 0">
-                                <li @click="
+                            <ul class="bg-white border border-gray-300 rounded-md shadow-lg mt-1" x-show="tagSearchResults.length === 0 && tagSearchTerm.trim().length > 0">
+                                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer italic text-blue-600" @click="
                                     const newTagName = tagSearchTerm.toLowerCase().trim();
                                     if (!selectedTags.some(t => t.name === newTagName)) {
                                         selectedTags.push({ name: newTagName, isNew: true });
                                     }
                                     tagSearchTerm = '';
                                     tagSearchResults = [];
-                                " style="font-style: italic; color: var(--accent-color); cursor: pointer;">
+                                ">
                                     <span>Create new tag: <strong x-text="tagSearchTerm.toLowerCase()"></strong></span>
                                 </li>
                             </ul>
@@ -139,9 +145,9 @@
             </div>
         </template>
 
-        <div class="modal-actions">
+        <div class="flex justify-between mt-6">
             <div>
-                <button class="btn-delete" x-show="editingRepertoire?.id" @click="
+                <button class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5" x-show="editingRepertoire?.id" @click="
                         if (confirm('Are you sure you want to delete this tune?')) {
                             await dataLayer.deleteRepertoire(editingRepertoire.id);
                             await loadRepertoire(); // Re-fetch the list from the database
@@ -149,9 +155,9 @@
 }
                     ">Delete</button>
             </div>
-            <div class="right-actions">
-                <button @click="isRepertoireModalOpen = false; editingRepertoire = null">Cancel</button>
-                <button class="btn-save" @click="
+            <div class="flex gap-2">
+                <button class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5" @click="isRepertoireModalOpen = false; editingRepertoire = null">Cancel</button>
+                <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5" @click="
                         (async () => {
                             // Create any new tags first
                             const finalTags = [];
