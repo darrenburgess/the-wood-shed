@@ -6,6 +6,7 @@ import { getLocalDateString } from '/utils.js';
 export default function app() {
     return {
         // --- STATE PROPERTIES ---
+        user: null,
         topics: [],
         isLoading: true,
         activeView: 'practice',
@@ -81,8 +82,23 @@ export default function app() {
                 this.loadModals()
             ]);
 
+            // Set up Supabase auth state listener
+            this.supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    this.user = session.user;
+                } else if (event === 'SIGNED_OUT') {
+                    this.user = null;
+                }
+            });
+
             // Set up window event listeners that were previously in the HTML
-            window.addEventListener('user-signed-in', () => this.loadData());
+            window.addEventListener('user-signed-in', async () => {
+                const { data: { session } } = await this.supabase.auth.getSession();
+                if (session) {
+                    this.user = session.user;
+                }
+                this.loadData();
+            });
             window.addEventListener('scroll', this.handleScroll.bind(this));
             window.addEventListener('keydown', this.handleGlobalKeydown.bind(this));
             this.$el.addEventListener('click', this.handleGlobalClick.bind(this));
@@ -90,6 +106,7 @@ export default function app() {
             // Check if user is already signed in (handles page refresh with existing session)
             const { data: { session } } = await this.supabase.auth.getSession();
             if (session) {
+                this.user = session.user;
                 this.loadData();
                 // Load practice session if that's the active view on page load
                 if (this.activeView === 'practice') {

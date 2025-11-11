@@ -30,7 +30,6 @@ export function initializeAuth() {
     const passwordInput = document.getElementById('auth-password');
     const signUpBtn = document.getElementById('sign-up-btn');
     const authError = document.getElementById('auth-error');
-    const signOutBtn = document.getElementById('sign-out-btn');
 
 
     // Handle Sign In (when the form is submitted)
@@ -65,8 +64,5 @@ export function initializeAuth() {
         }
     });
 
-    // Handle Sign Out
-    signOutBtn.addEventListener('click', async () => {
-        await supabaseClient.auth.signOut();
-    });
+    // Note: Sign out is handled by Alpine.js @click in the sidebar
 }
