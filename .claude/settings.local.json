@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss init)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm:*)",
+      "Bash(node --version:*)",
+      "Bash(command -v nvm:*)",
+      "Bash(export NVM_DIR=\"$HOME/.nvm\")",
+      "Bash([ -s \"$NVM_DIR/nvm.sh\" ])",
+      "Bash(. \"$NVM_DIR/nvm.sh\")",
+      "Bash(nvm --version:*)",
+      "Bash(nvm list:*)",
+      "Bash(nvm use:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
