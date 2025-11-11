@@ -32,81 +32,68 @@
                                                 <span x-text="goal.description + ' (' + (goal.logs?.length || 0) + ')'"></span>
                                             </span>
                                             <div class="flex items-center gap-2">
-                                            <div 
-                                                class="relative" 
-                                                x-data="{ isOpen: false, searchTerm: '', searchResults: [] }"
-                                            >
-                                                <button
-                                                    class="text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full w-6 h-6 flex items-center justify-center"
-                                                    @click.prevent="isOpen = !isOpen"
-                                                    :title="goal.content?.map(c => c.title).join(', ')"
-                                                    x-init="$nextTick(() => feather.replace())"
-                                                >
-                                                    <span x-text="goal.content?.length || 0"></span>
+                                            <div class="relative" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
+                                                <button class="text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded px-2.5 py-0.5" @click.prevent="isOpen = !isOpen">
+                                                    + Content
                                                 </button>
 
-                                                <div class="absolute z-50 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-80" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
-                                                    <h5 class="text-sm font-semibold text-gray-900 mb-2">Linked Content</h5>
-                                                    <ul class="mb-3 max-h-40 overflow-y-auto">
+                                                <template x-if="goal.content && goal.content.length > 0">
+                                                    <div class="inline-flex flex-wrap gap-1">
                                                         <template x-for="item in goal.content" :key="item.id">
-                                                            <li class="flex items-center justify-between py-2 px-2 hover:bg-gray-50 rounded">
-                                                                <span class="text-sm text-blue-600 hover:text-blue-800 cursor-pointer flex-1" x-text="item.title" @click="
-                                                                    if (item.type === 'YouTube') {
-                                                                        const videoId = dataLayer.getYoutubeVideoId(item.url);
-                                                                        if (videoId) {
-                                                                            youTubeVideoId = videoId;
-                                                                            isYouTubeModalOpen = true;
+                                                            <span class="inline-flex items-center bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                                                <span
+                                                                    class="cursor-pointer hover:underline"
+                                                                    @click="
+                                                                        if (item.type === 'YouTube') {
+                                                                            const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                            if (videoId) {
+                                                                                youTubeVideoId = videoId;
+                                                                                isYouTubeModalOpen = true;
+                                                                            }
+                                                                        } else {
+                                                                            window.open(item.url, '_blank');
                                                                         }
-                                                                    } else {
-                                                                        window.open(item.url, '_blank');
-                                                                    }
-                                                                    isOpen = false; // This line closes the popover
-"
+                                                                    "
+                                                                    x-text="item.title"
                                                                 ></span>
-                                                                <button class="ml-2 text-red-600 hover:text-red-800 font-bold" @click="
-                                                                    dataLayer.unlinkContentFromGoal(goal.id, item.id);
-                                                                    goal.content = goal.content.filter(c => c.id !== item.id);
-                                                                ">×</button>
+                                                                <button
+                                                                    class="ml-1 text-blue-600 hover:text-blue-800 font-bold"
+                                                                    @click="
+                                                                        dataLayer.unlinkContentFromGoal(goal.id, item.id);
+                                                                        goal.content = goal.content.filter(c => c.id !== item.id);
+                                                                    "
+                                                                >×</button>
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+
+                                                <div class="absolute z-50 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-80" x-show="isOpen" @click.outside="isOpen = false" x-cloak>
+                                                    <h5 class="text-sm font-semibold text-gray-900 mb-2">Add Content</h5>
+                                                    <input
+                                                        type="text"
+                                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-2"
+                                                        placeholder="Search library..."
+                                                        x-model="searchTerm"
+                                                        @input.debounce.300ms="dataLayer.searchContent(searchTerm).then(data => searchResults = data)"
+                                                    >
+                                                    <ul class="max-h-40 overflow-y-auto" x-show="searchTerm.length > 1">
+                                                        <template
+                                                            x-for="result in searchResults.filter(r => (!goal.content || !goal.content.some(linked => linked.id === r.id)))">
+                                                            <li class="text-sm text-gray-900 py-2 px-2 hover:bg-gray-100 rounded cursor-pointer" @click="
+                                                                dataLayer.linkContentToGoal(goal.id, result.id);
+                                                                if (!goal.content) {
+                                                                    goal.content = [];
+                                                                }
+                                                                goal.content.push(result);
+                                                                searchTerm = '';
+                                                                searchResults = [];
+                                                                isOpen = false;
+                                                            ">
+                                                                <span x-text="result.title"></span>
                                                             </li>
                                                         </template>
-                                                        <template x-if="!goal.content || goal.content.length === 0">
-                                                            <li class="text-sm text-gray-500 py-2 px-2">No content linked yet.</li>
-                                                        </template>
                                                     </ul>
-
-                                                    <div class="border-t border-gray-200 pt-3">
-                                                        <h5 class="text-sm font-semibold text-gray-900 mb-2">Add Content</h5>
-                                                        <input
-                                                            type="text"
-                                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-2"
-                                                            placeholder="Search library..."
-                                                            x-model="searchTerm"
-                                                            @input.debounce.300ms="dataLayer.searchContent(searchTerm).then(data => searchResults = data)"
-                                                        >
-                                                        <ul class="max-h-40 overflow-y-auto" x-show="searchTerm.length > 1">
-                                                            <template
-                                                                x-for="result in searchResults.filter(r => (!goal.content || !goal.content.some(linked => linked.id === r.id)))">
-                                                                <li class="text-sm text-gray-900 py-2 px-2 hover:bg-gray-100 rounded cursor-pointer" @click="
-                                                                    dataLayer.linkContentToGoal(goal.id, result.id);
-                                                                    if (!goal.content) {
-                                                                        goal.content = [];
-                                                                    }
-                                                                    goal.content.push(result);
-
-                                                                    // Force Alpine to re-evaluate the 'open' state
-                                                                    goal.isOpen = false;
-                                                                    $nextTick(() => {
-                                                                        goal.isOpen = true;
-                                                                    });
-
-                                                                    searchTerm = '';
-                                                                    searchResults = [];
-                                                                ">
-                                                                    <span x-text="result.title"></span>
-                                                                </li>
-                                                            </template>
-                                                        </ul>
-                                                    </div>
                                                 </div>
                                             </div>
 
@@ -181,10 +168,13 @@
                                     <ul class="ml-6 mt-2">
                                         <template x-for="log in goal.logs.slice(0, goal.logsToShow)" :key="log.id">
                                             <li :class="log.isToday ? 'bg-blue-50 border-l-4 border-blue-500 pl-3 py-2' : 'border-l-2 border-gray-200 pl-3 py-1'" class="text-xs text-gray-600">
-                                                <span class="text-gray-500 font-medium" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
-                                                <span x-html="dataLayer.linkify(log.entry)"></span>
-                                            
-                                                <div class="relative" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
+                                                <div class="mb-1">
+                                                    <span class="text-gray-500 font-medium" x-text="new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC' })"></span>:
+                                                    <span x-html="dataLayer.linkify(log.entry)"></span>
+                                                </div>
+
+                                                <div class="flex items-center gap-2">
+                                                    <div class="relative" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
                                                     <button
                                                         class="text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full w-5 h-5 flex items-center justify-center"
                                                         @click.prevent="isOpen = !isOpen"
@@ -302,9 +292,10 @@
                                                     </div>
                                                 </div>
 
-                                                <button class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-3 py-1.5 ml-2" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
-                                                    <i data-feather="edit-2"></i>
-                                                </button>
+                                                    <button class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-3 py-1.5" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
+                                                        <i data-feather="edit-2"></i>
+                                                    </button>
+                                                </div>
                                             </li>
                                         </template>
                                     </ul>
