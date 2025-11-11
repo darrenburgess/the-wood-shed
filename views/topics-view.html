@@ -173,7 +173,7 @@
                                                     <span x-html="dataLayer.linkify(log.entry)"></span>
                                                 </div>
 
-                                                <div class="flex items-center gap-2">
+                                                <div class="flex items-center gap-2 flex-wrap">
                                                     <div class="relative" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
                                                     <button
                                                         class="text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full w-5 h-5 flex items-center justify-center"
@@ -233,6 +233,28 @@
                                                     </div>
                                                 </div>
 
+                                                <template x-if="log.content && log.content.length > 0">
+                                                    <template x-for="item in log.content" :key="item.id">
+                                                        <span class="inline-flex items-center bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                                            <span
+                                                                class="cursor-pointer hover:underline"
+                                                                @click="
+                                                                    if (item.type === 'YouTube') {
+                                                                        const videoId = dataLayer.getYoutubeVideoId(item.url);
+                                                                        if (videoId) {
+                                                                            youTubeVideoId = videoId;
+                                                                            isYouTubeModalOpen = true;
+                                                                        }
+                                                                    } else {
+                                                                        window.open(item.url, '_blank');
+                                                                    }
+                                                                "
+                                                                x-text="item.title"
+                                                            ></span>
+                                                        </span>
+                                                    </template>
+                                                </template>
+
                                                 <!-- Repertoire Popover -->
                                                 <div class="relative" x-data="{ isOpen: false, searchTerm: '', searchResults: [] }">
                                                     <button
@@ -291,6 +313,14 @@
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                <template x-if="log.repertoire && log.repertoire.length > 0">
+                                                    <template x-for="rep in log.repertoire" :key="rep.id">
+                                                        <span class="inline-flex items-center bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                                            <span x-text="rep.title + (rep.artist ? ' - ' + rep.artist : '')"></span>
+                                                        </span>
+                                                    </template>
+                                                </template>
 
                                                     <button class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-3 py-1.5" @click="isEditLogModalOpen = true; editingLog = log; editingLogGoal = goal;">
                                                         <i data-feather="edit-2"></i>
