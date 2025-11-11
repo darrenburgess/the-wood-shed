@@ -10,7 +10,6 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="dist/output.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -27,39 +26,56 @@
 </head>
 
 <body>
-    <div id="auth-container" class="container">
-        <h1>The Wood Shed</h1>
-        <form id="auth-form">
-            <input type="email" id="auth-email" placeholder="Email" required>
-            <input type="password" id="auth-password" placeholder="Password" required>
-            <div class="auth-actions">
-                <button type="submit" id="sign-in-btn">Sign In</button>
-                <button type="button" id="sign-up-btn">Sign Up</button>
-            </div>
-        </form>
-        <p id="auth-error" class="error-message hidden"></p>
+    <div id="auth-container" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 p-8">
+            <h1 class="text-2xl font-semibold mb-6 text-center text-gray-900">The Wood Shed</h1>
+            <form id="auth-form">
+                <div class="mb-4">
+                    <label for="auth-email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
+                    <input type="email" id="auth-email" placeholder="Email" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
+                <div class="mb-6">
+                    <label for="auth-password" class="block mb-2 text-sm font-medium text-gray-900">Password</label>
+                    <input type="password" id="auth-password" placeholder="Password" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" id="sign-in-btn" class="flex-1 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">Sign In</button>
+                    <button type="button" id="sign-up-btn" class="flex-1 text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5">Sign Up</button>
+                </div>
+            </form>
+            <p id="auth-error" class="text-red-600 text-sm mt-4 text-center hidden"></p>
+        </div>
     </div>
 
-    <div 
-        class="container hidden" 
+    <div
+        class="max-w-7xl mx-auto px-4 py-6 hidden"
         id="app-container"
         x-data="app"
         x-cloak
     >
-        <div class="app-header">
-            <h1 id="app-title">
+        <div class="flex items-center justify-between mb-6">
+            <h1 id="app-title" class="text-3xl font-bold text-gray-900">
                 The Wood Shed
-                <span x-show="isDevEnvironment" style="font-weight: 500; color: #a0aec0;">(Dev)</span>
+                <span x-show="isDevEnvironment" class="font-medium text-gray-400">(Dev)</span>
             </h1>
-            <button id="sign-out-btn" @click="supabase.auth.signOut()">Sign Out</button>
+            <button id="sign-out-btn" @click="supabase.auth.signOut()" class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5">Sign Out</button>
         </div>
-        
-        <div class="tabs">
-            <button class="tab-btn" :class="{ 'active': activeView === 'practice' }" @click="activeView = 'practice'">Practice Today</button>
-            <button class="tab-btn" :class="{ 'active': activeView === 'topics' }" @click="activeView = 'topics'">Topics</button>
-            <button class="tab-btn" :class="{ 'active': activeView === 'logs' }" @click="activeView = 'logs'">Logs</button>
-            <button class="tab-btn" :class="{ 'active': activeView === 'content' }" @click="activeView = 'content'">Content</button>
-            <button class="tab-btn" :class="{ 'active': activeView === 'repertoire' }" @click="activeView = 'repertoire'">Repertoire</button>
+
+        <div class="border-b border-gray-200 mb-6">
+            <nav class="flex gap-2" x-data="{
+                tabClass(view) {
+                    const base = 'inline-block p-4 border-b-2 rounded-t-lg font-medium';
+                    const active = 'text-blue-600 border-blue-600';
+                    const inactive = 'text-gray-500 border-transparent hover:text-gray-600 hover:border-gray-300';
+                    return base + ' ' + (activeView === view ? active : inactive);
+                }
+            }">
+                <button :class="tabClass('practice')" @click="activeView = 'practice'">Practice Today</button>
+                <button :class="tabClass('topics')" @click="activeView = 'topics'">Topics</button>
+                <button :class="tabClass('logs')" @click="activeView = 'logs'">Logs</button>
+                <button :class="tabClass('content')" @click="activeView = 'content'">Content</button>
+                <button :class="tabClass('repertoire')" @click="activeView = 'repertoire'">Repertoire</button>
+            </nav>
         </div>
 
         <div id="practice-today-view" x-show="activeView === 'practice'"></div>

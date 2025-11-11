@@ -14,7 +14,8 @@
       "Bash(. \"$NVM_DIR/nvm.sh\")",
       "Bash(nvm --version:*)",
       "Bash(nvm list:*)",
-      "Bash(nvm use:*)"
+      "Bash(nvm use:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
