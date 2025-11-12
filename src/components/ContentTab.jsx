@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import ContentModal from './ContentModal'
+import YouTubeModal from './YouTubeModal'
 import { fetchContent, createContent, updateContent, deleteContent } from '@/lib/queries'
 
 export default function ContentTab() {
@@ -15,6 +16,8 @@ export default function ContentTab() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingContent, setEditingContent] = useState(null)
   const [error, setError] = useState(null)
+  const [youtubeModalOpen, setYoutubeModalOpen] = useState(false)
+  const [selectedYoutubeContent, setSelectedYoutubeContent] = useState(null)
 
   // Helper function to truncate URL
   const truncateUrl = (url, maxLength = 30) => {
@@ -36,6 +39,23 @@ export default function ContentTab() {
       default:
         return '🔗'
     }
+  }
+
+  // Helper function to check if URL is YouTube
+  const isYouTubeUrl = (url) => {
+    try {
+      const urlObj = new URL(url)
+      return urlObj.hostname.includes('youtube.com') || urlObj.hostname === 'youtu.be'
+    } catch {
+      return false
+    }
+  }
+
+  // Handle YouTube link click
+  const handleYouTubeLinkClick = (e, item) => {
+    e.preventDefault()
+    setSelectedYoutubeContent(item)
+    setYoutubeModalOpen(true)
   }
 
   // Extract unique tags from content
@@ -289,15 +309,25 @@ export default function ContentTab() {
                 <TableRow key={item.id} className="hover:bg-gray-50">
                   <TableCell className="font-medium">{item.title}</TableCell>
                   <TableCell>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-600 hover:text-primary-700 hover:underline"
-                      title={item.url}
-                    >
-                      {truncateUrl(item.url)}
-                    </a>
+                    {isYouTubeUrl(item.url) ? (
+                      <button
+                        onClick={(e) => handleYouTubeLinkClick(e, item)}
+                        className="text-primary-600 hover:text-primary-700 hover:underline text-left"
+                        title={item.url}
+                      >
+                        {truncateUrl(item.url)}
+                      </button>
+                    ) : (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-600 hover:text-primary-700 hover:underline"
+                        title={item.url}
+                      >
+                        {truncateUrl(item.url)}
+                      </a>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
@@ -368,6 +398,14 @@ export default function ContentTab() {
         contentData={editingContent}
         onSave={handleSaveContent}
         onDelete={handleDeleteContent}
+      />
+
+      {/* YouTube Modal */}
+      <YouTubeModal
+        open={youtubeModalOpen}
+        onClose={() => setYoutubeModalOpen(false)}
+        url={selectedYoutubeContent?.url}
+        title={selectedYoutubeContent?.title}
       />
     </div>
   )

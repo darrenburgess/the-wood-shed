@@ -35,6 +35,7 @@ import {
 import TopicModal from './TopicModal'
 import GoalModal from './GoalModal'
 import LogModal from './LogModal'
+import YouTubeModal from './YouTubeModal'
 
 export default function TopicsTab() {
   const [topics, setTopics] = useState([])
@@ -48,6 +49,8 @@ export default function TopicsTab() {
   const [editingGoal, setEditingGoal] = useState(null)
   const [logModalOpen, setLogModalOpen] = useState(false)
   const [editingLog, setEditingLog] = useState(null)
+  const [youtubeModalOpen, setYoutubeModalOpen] = useState(false)
+  const [selectedYoutubeContent, setSelectedYoutubeContent] = useState(null)
 
   // UI state with localStorage persistence
   const [openTopics, setOpenTopics] = useState(() => {
@@ -271,6 +274,22 @@ export default function TopicsTab() {
       })))
     } catch (err) {
       alert('Failed to delete log: ' + err.message)
+    }
+  }
+
+  // Handle content click
+  const handleContentClick = (content) => {
+    // Check if URL is YouTube (regardless of type field)
+    const isYouTube = content.url && (
+      content.url.includes('youtube.com') ||
+      content.url.includes('youtu.be')
+    )
+
+    if (isYouTube) {
+      setSelectedYoutubeContent(content)
+      setYoutubeModalOpen(true)
+    } else {
+      window.open(content.url, '_blank')
     }
   }
 
@@ -782,7 +801,7 @@ export default function TopicsTab() {
                             {((goal.content && goal.content.length > 0) || (goal.repertoire && goal.repertoire.length > 0)) && (
                               <div className="flex flex-wrap gap-1 items-center" onClick={(e) => e.stopPropagation()}>
                                 {goal.content?.map(content => (
-                                  <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                  <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1 cursor-pointer hover:bg-blue-200" onClick={() => handleContentClick(content)}>
                                     {content.title}
                                     <button
                                       onClick={(e) => {
@@ -896,6 +915,22 @@ export default function TopicsTab() {
                                     <div className="flex items-start gap-2 text-sm">
                                       <span className="text-gray-500 shrink-0">{formatDate(log.date)}</span>
                                       <span className="flex-1">{log.entry}</span>
+
+                                      {/* Content and Repertoire inline chips */}
+                                      {(log.content?.length > 0 || log.repertoire?.length > 0) && (
+                                        <span className="shrink-0 flex gap-1 flex-wrap">
+                                          {log.content?.map((item) => (
+                                            <Badge key={item.id} className="bg-blue-100 text-blue-800 text-xs cursor-pointer hover:bg-blue-200" onClick={() => handleContentClick(item)}>
+                                              {item.title}
+                                            </Badge>
+                                          ))}
+                                          {log.repertoire?.map((item) => (
+                                            <Badge key={item.id} className="bg-green-100 text-green-800 text-xs">
+                                              {item.title}
+                                            </Badge>
+                                          ))}
+                                        </span>
+                                      )}
 
                                       {/* Circular count buttons for content and repertoire */}
                                       <div className="shrink-0 flex gap-2 items-center">
@@ -1249,6 +1284,14 @@ export default function TopicsTab() {
         logData={editingLog}
         onSave={handleUpdateLog}
         onDelete={handleDeleteLog}
+      />
+
+      {/* YouTube Modal */}
+      <YouTubeModal
+        open={youtubeModalOpen}
+        onClose={() => setYoutubeModalOpen(false)}
+        url={selectedYoutubeContent?.url}
+        title={selectedYoutubeContent?.title}
       />
     </div>
   )

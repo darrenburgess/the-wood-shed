@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { ChevronLeft, ChevronRight, Calendar, Plus, Link as LinkIcon, X } from 'lucide-react'
 import GoalModal from './GoalModal'
+import YouTubeModal from './YouTubeModal'
 import { ConfirmDialog } from './ConfirmDialog'
 import {
   fetchSessionByDate,
@@ -15,8 +16,8 @@ import {
   createLog,
   updateLog,
   deleteLog as deleteLogQuery,
-  searchContent,
-  searchRepertoire,
+  searchContentForLinking,
+  searchRepertoireForLinking,
   linkContentToGoal,
   unlinkContentFromGoal,
   linkRepertoireToGoal,
@@ -49,7 +50,7 @@ export default function PracticeTodayTab() {
 
   // YouTube modal
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false)
-  const [youtubeVideoId, setYoutubeVideoId] = useState(null)
+  const [selectedYoutubeContent, setSelectedYoutubeContent] = useState(null)
 
   // Content/repertoire search states (per goal and log)
   const [goalContentSearches, setGoalContentSearches] = useState({})
@@ -108,14 +109,15 @@ export default function PracticeTodayTab() {
 
   // Handle content click
   function handleContentClick(content) {
-    if (content.type === 'youtube') {
-      const videoId = extractYouTubeVideoId(content.url)
-      if (videoId) {
-        setYoutubeVideoId(videoId)
-        setYoutubeModalOpen(true)
-      } else {
-        window.open(content.url, '_blank')
-      }
+    // Check if URL is YouTube (regardless of type field)
+    const isYouTube = content.url && (
+      content.url.includes('youtube.com') ||
+      content.url.includes('youtu.be')
+    )
+
+    if (isYouTube) {
+      setSelectedYoutubeContent(content)
+      setYoutubeModalOpen(true)
     } else {
       window.open(content.url, '_blank')
     }
@@ -240,7 +242,7 @@ export default function PracticeTodayTab() {
     }))
 
     try {
-      const results = await searchContent(searchTerm)
+      const results = await searchContentForLinking(searchTerm)
       setGoalContentSearches(prev => ({
         ...prev,
         [goalId]: { ...prev[goalId], results, searching: false }
@@ -287,7 +289,7 @@ export default function PracticeTodayTab() {
     }))
 
     try {
-      const results = await searchRepertoire(searchTerm)
+      const results = await searchRepertoireForLinking(searchTerm)
       setGoalRepertoireSearches(prev => ({
         ...prev,
         [goalId]: { ...prev[goalId], results, searching: false }
@@ -366,7 +368,7 @@ export default function PracticeTodayTab() {
     }))
 
     try {
-      const results = await searchContent(searchTerm)
+      const results = await searchContentForLinking(searchTerm)
       setLogContentSearches(prev => ({
         ...prev,
         [logId]: { ...prev[logId], results, searching: false }
@@ -411,7 +413,7 @@ export default function PracticeTodayTab() {
     }))
 
     try {
-      const results = await searchRepertoire(searchTerm)
+      const results = await searchRepertoireForLinking(searchTerm)
       setLogRepertoireSearches(prev => ({
         ...prev,
         [logId]: { ...prev[logId], results, searching: false }
@@ -666,22 +668,12 @@ export default function PracticeTodayTab() {
       />
 
       {/* YouTube Modal */}
-      <Dialog open={youtubeModalOpen} onOpenChange={setYoutubeModalOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>YouTube Video</DialogTitle>
-          </DialogHeader>
-          <div className="relative" style={{ paddingBottom: '56.25%', height: 0 }}>
-            <iframe
-              src={`https://www.youtube.com/embed/${youtubeVideoId}`}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="absolute top-0 left-0 w-full h-full"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <YouTubeModal
+        open={youtubeModalOpen}
+        onClose={() => setYoutubeModalOpen(false)}
+        url={selectedYoutubeContent?.url}
+        title={selectedYoutubeContent?.title}
+      />
     </div>
   )
 }
@@ -1049,6 +1041,22 @@ function LogEntry({
       <div className="flex items-baseline gap-2 text-sm">
         <span className="text-gray-500 shrink-0 text-xs">{formatLogDateTime(log.date)}</span>
         <span className="flex-1 truncate">{log.entry}</span>
+
+        {/* Content and Repertoire inline chips */}
+        {(log.content?.length > 0 || log.repertoire?.length > 0) && (
+          <span className="shrink-0 flex gap-1 flex-wrap">
+            {log.content?.map((item) => (
+              <Badge key={item.id} className="bg-blue-100 text-blue-800 text-xs cursor-pointer hover:bg-blue-200" onClick={() => onContentClick(item)}>
+                {item.title}
+              </Badge>
+            ))}
+            {log.repertoire?.map((item) => (
+              <Badge key={item.id} className="bg-green-100 text-green-800 text-xs">
+                {item.title}
+              </Badge>
+            ))}
+          </span>
+        )}
 
         {/* Circular count buttons and edit icon (right-aligned) */}
         <div className="shrink-0 flex gap-2 items-center">
