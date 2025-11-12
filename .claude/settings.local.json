@@ -15,7 +15,8 @@
       "Bash(nvm --version:*)",
       "Bash(nvm list:*)",
       "Bash(nvm use:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx tailwindcss init -p)"
     ],
     "deny": [],
     "ask": []
