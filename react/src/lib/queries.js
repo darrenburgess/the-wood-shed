@@ -369,3 +369,249 @@ export async function syncContentTags(contentId, newTagNames) {
     await linkContentTag(contentId, tagId)
   }
 }
+
+// ============================================================================
+// REPERTOIRE FUNCTIONS
+// ============================================================================
+
+/**
+ * Fetch all repertoire items for the current user with their tags
+ * @returns {Promise<Array>} Array of repertoire items with tags
+ */
+export async function fetchRepertoire() {
+  const supabase = getSupabaseClient()
+
+  // Fetch all repertoire items
+  const { data, error } = await supabase
+    .from('repertoire')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching repertoire:', error)
+    throw error
+  }
+
+  // Fetch tags for all repertoire items
+  if (data.length === 0) {
+    return []
+  }
+
+  const repertoireIds = data.map(item => item.id)
+  const { data: tagLinks, error: tagError } = await supabase
+    .from('entity_tags')
+    .select('entity_id, tags(id, name)')
+    .eq('entity_type', 'repertoire')
+    .in('entity_id', repertoireIds)
+
+  if (tagError) {
+    console.error('Error fetching repertoire tags:', tagError)
+  }
+
+  // Map tags to repertoire items
+  const tagsByRepertoireId = {}
+  tagLinks?.forEach(link => {
+    if (!tagsByRepertoireId[link.entity_id]) {
+      tagsByRepertoireId[link.entity_id] = []
+    }
+    if (link.tags) {
+      tagsByRepertoireId[link.entity_id].push(link.tags.name)
+    }
+  })
+
+  // Combine repertoire with tags
+  return data.map(item => ({
+    ...item,
+    tags: tagsByRepertoireId[item.id] || []
+  }))
+}
+
+/**
+ * Create a new repertoire item
+ * @param {Object} repertoireData - Repertoire data {title, composer, url, tags}
+ * @returns {Promise<Object|null>} Created repertoire item or null
+ */
+export async function createRepertoire(repertoireData) {
+  const supabase = getSupabaseClient()
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  // Insert into repertoire table
+  const { data: newRepertoire, error } = await supabase
+    .from('repertoire')
+    .insert({
+      title: repertoireData.title,
+      composer: repertoireData.composer,
+      url: repertoireData.url || null,
+      practice_count: 0,
+      last_practiced: null,
+      user_id: user.id
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating repertoire:', error)
+    throw error
+  }
+
+  // Handle tags if provided
+  if (repertoireData.tags && repertoireData.tags.length > 0) {
+    for (const tagName of repertoireData.tags) {
+      const tag = await createTag(tagName)
+      if (tag) {
+        await linkRepertoireTag(newRepertoire.id, tag.id)
+      }
+    }
+  }
+
+  return newRepertoire
+}
+
+/**
+ * Update an existing repertoire item
+ * @param {number} id - Repertoire ID
+ * @param {Object} repertoireData - Updated repertoire data {title, composer, url, tags}
+ * @returns {Promise<Object|null>} Updated repertoire item or null
+ */
+export async function updateRepertoire(id, repertoireData) {
+  const supabase = getSupabaseClient()
+
+  // Update repertoire
+  const { data: updatedRepertoire, error } = await supabase
+    .from('repertoire')
+    .update({
+      title: repertoireData.title,
+      composer: repertoireData.composer,
+      url: repertoireData.url || null
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating repertoire:', error)
+    throw error
+  }
+
+  // Sync tags if provided
+  if (repertoireData.tags !== undefined) {
+    await syncRepertoireTags(id, repertoireData.tags)
+  }
+
+  return updatedRepertoire
+}
+
+/**
+ * Delete a repertoire item
+ * @param {number} id - Repertoire ID
+ * @returns {Promise<void>}
+ */
+export async function deleteRepertoire(id) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('repertoire')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting repertoire:', error)
+    throw error
+  }
+}
+
+/**
+ * Link a tag to a repertoire item
+ * @param {number} repertoireId - Repertoire ID
+ * @param {number} tagId - Tag ID
+ * @returns {Promise<void>}
+ */
+export async function linkRepertoireTag(repertoireId, tagId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('entity_tags')
+    .insert({ entity_type: 'repertoire', entity_id: repertoireId, tag_id: tagId })
+
+  // Ignore if already exists
+  if (error && error.code !== '23505') {
+    console.error('Error linking tag to repertoire:', error)
+    throw error
+  }
+}
+
+/**
+ * Unlink a tag from a repertoire item
+ * @param {number} repertoireId - Repertoire ID
+ * @param {number} tagId - Tag ID
+ * @returns {Promise<void>}
+ */
+export async function unlinkRepertoireTag(repertoireId, tagId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('entity_tags')
+    .delete()
+    .match({ entity_type: 'repertoire', entity_id: repertoireId, tag_id: tagId })
+
+  if (error) {
+    console.error('Error unlinking tag from repertoire:', error)
+    throw error
+  }
+}
+
+/**
+ * Sync tags for a repertoire item (add new, remove old)
+ * @param {number} repertoireId - Repertoire ID
+ * @param {Array} newTagNames - Array of tag names
+ * @returns {Promise<void>}
+ */
+export async function syncRepertoireTags(repertoireId, newTagNames) {
+  const supabase = getSupabaseClient()
+
+  // Get current tags for this repertoire
+  const { data: currentTagLinks, error: fetchError } = await supabase
+    .from('entity_tags')
+    .select('tag_id, tags(id, name)')
+    .eq('entity_type', 'repertoire')
+    .eq('entity_id', repertoireId)
+
+  if (fetchError) {
+    console.error('Error fetching current tags:', fetchError)
+    throw fetchError
+  }
+
+  const currentTags = currentTagLinks?.map(link => ({
+    id: link.tags.id,
+    name: link.tags.name
+  })) || []
+
+  // Create tag objects for new tags
+  const newTags = []
+  for (const tagName of newTagNames) {
+    const tag = await createTag(tagName)
+    if (tag) {
+      newTags.push(tag)
+    }
+  }
+
+  const currentTagIds = currentTags.map(t => t.id)
+  const newTagIds = newTags.map(t => t.id)
+
+  // Remove tags that are no longer selected
+  const tagsToRemove = currentTagIds.filter(id => !newTagIds.includes(id))
+  for (const tagId of tagsToRemove) {
+    await unlinkRepertoireTag(repertoireId, tagId)
+  }
+
+  // Add new tags
+  const tagsToAdd = newTagIds.filter(id => !currentTagIds.includes(id))
+  for (const tagId of tagsToAdd) {
+    await linkRepertoireTag(repertoireId, tagId)
+  }
+}
