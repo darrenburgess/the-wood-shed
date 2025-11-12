@@ -10,8 +10,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // Base path for production - use relative paths for flexible deployment
-  base: './',
+  // Base path for production - absolute path from root
+  base: '/',
   // Build configuration
   build: {
     // Output directory relative to project root
