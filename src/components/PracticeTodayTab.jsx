@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { ChevronLeft, ChevronRight, Calendar, Plus, Link as LinkIcon, X } from 'lucide-react'
+import GoalModal from './GoalModal'
 import {
   fetchSessionByDate,
   createSession,
@@ -17,10 +18,14 @@ import {
   searchRepertoire,
   linkContentToGoal,
   unlinkContentFromGoal,
+  linkRepertoireToGoal,
+  unlinkRepertoireFromGoal,
   linkContentToLog,
   unlinkContentFromLog,
   linkRepertoireToLog,
-  unlinkRepertoireFromLog
+  unlinkRepertoireFromLog,
+  updateGoal,
+  deleteGoal
 } from '@/lib/queries'
 
 export default function PracticeTodayTab() {
@@ -37,12 +42,17 @@ export default function PracticeTodayTab() {
   const [logModalOpen, setLogModalOpen] = useState(false)
   const [editingLog, setEditingLog] = useState(null)
 
+  // Edit goal modal
+  const [goalModalOpen, setGoalModalOpen] = useState(false)
+  const [editingGoal, setEditingGoal] = useState(null)
+
   // YouTube modal
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false)
   const [youtubeVideoId, setYoutubeVideoId] = useState(null)
 
   // Content/repertoire search states (per goal and log)
   const [goalContentSearches, setGoalContentSearches] = useState({})
+  const [goalRepertoireSearches, setGoalRepertoireSearches] = useState({})
   const [logContentSearches, setLogContentSearches] = useState({})
   const [logRepertoireSearches, setLogRepertoireSearches] = useState({})
 
@@ -267,6 +277,85 @@ export default function PracticeTodayTab() {
       await loadSession()
     } catch (err) {
       alert('Failed to unlink content: ' + err.message)
+      console.error(err)
+    }
+  }
+
+  // Repertoire search for goals
+  async function handleGoalRepertoireSearch(goalId, searchTerm) {
+    setGoalRepertoireSearches(prev => ({
+      ...prev,
+      [goalId]: { ...prev[goalId], query: searchTerm, searching: true }
+    }))
+
+    try {
+      const results = await searchRepertoire(searchTerm)
+      setGoalRepertoireSearches(prev => ({
+        ...prev,
+        [goalId]: { ...prev[goalId], results, searching: false }
+      }))
+    } catch (err) {
+      console.error('Repertoire search error:', err)
+      setGoalRepertoireSearches(prev => ({
+        ...prev,
+        [goalId]: { ...prev[goalId], results: [], searching: false }
+      }))
+    }
+  }
+
+  // Link repertoire to goal
+  async function handleLinkRepertoireToGoal(goalId, repertoireId) {
+    try {
+      await linkRepertoireToGoal(goalId, repertoireId)
+      // Close dropdown
+      setGoalRepertoireSearches(prev => ({ ...prev, [goalId]: { open: false, query: '', results: [] } }))
+      // Reload session
+      await loadSession()
+    } catch (err) {
+      alert('Failed to link repertoire: ' + err.message)
+      console.error(err)
+    }
+  }
+
+  // Unlink repertoire from goal
+  async function handleUnlinkRepertoireFromGoal(goalId, repertoireId) {
+    try {
+      await unlinkRepertoireFromGoal(goalId, repertoireId)
+      await loadSession()
+    } catch (err) {
+      alert('Failed to unlink repertoire: ' + err.message)
+      console.error(err)
+    }
+  }
+
+  // Edit goal
+  function handleEditGoal(goal) {
+    setEditingGoal(goal)
+    setGoalModalOpen(true)
+  }
+
+  // Save edited goal
+  async function handleSaveGoal(goalId, updateData) {
+    try {
+      await updateGoal(goalId, updateData)
+      setGoalModalOpen(false)
+      setEditingGoal(null)
+      await loadSession()
+    } catch (err) {
+      alert('Failed to update goal: ' + err.message)
+      console.error(err)
+    }
+  }
+
+  // Delete goal
+  async function handleDeleteGoal(goalId) {
+    try {
+      await deleteGoal(goalId)
+      setGoalModalOpen(false)
+      setEditingGoal(null)
+      await loadSession()
+    } catch (err) {
+      alert('Failed to delete goal: ' + err.message)
       console.error(err)
     }
   }
@@ -513,6 +602,8 @@ export default function PracticeTodayTab() {
               setNewLogInputs={setNewLogInputs}
               goalContentSearches={goalContentSearches}
               setGoalContentSearches={setGoalContentSearches}
+              goalRepertoireSearches={goalRepertoireSearches}
+              setGoalRepertoireSearches={setGoalRepertoireSearches}
               logContentSearches={logContentSearches}
               setLogContentSearches={setLogContentSearches}
               logRepertoireSearches={logRepertoireSearches}
@@ -523,9 +614,13 @@ export default function PracticeTodayTab() {
               onAddLog={handleAddLog}
               onEditLog={handleEditLog}
               onDeleteLog={handleDeleteLog}
+              onEditGoal={handleEditGoal}
               onGoalContentSearch={handleGoalContentSearch}
               onLinkContentToGoal={handleLinkContentToGoal}
               onUnlinkContentFromGoal={handleUnlinkContentFromGoal}
+              onGoalRepertoireSearch={handleGoalRepertoireSearch}
+              onLinkRepertoireToGoal={handleLinkRepertoireToGoal}
+              onUnlinkRepertoireFromGoal={handleUnlinkRepertoireFromGoal}
               onLogContentSearch={handleLogContentSearch}
               onLinkContentToLog={handleLinkContentToLog}
               onUnlinkContentFromLog={handleUnlinkContentFromLog}
@@ -549,6 +644,18 @@ export default function PracticeTodayTab() {
         log={editingLog}
         onSave={handleSaveLog}
         onDelete={handleDeleteLog}
+      />
+
+      {/* Goal Edit Modal */}
+      <GoalModal
+        open={goalModalOpen}
+        onClose={() => {
+          setGoalModalOpen(false)
+          setEditingGoal(null)
+        }}
+        goalData={editingGoal}
+        onSave={handleSaveGoal}
+        onDelete={handleDeleteGoal}
       />
 
       {/* YouTube Modal */}
@@ -580,6 +687,8 @@ function GoalCard({
   setNewLogInputs,
   goalContentSearches,
   setGoalContentSearches,
+  goalRepertoireSearches,
+  setGoalRepertoireSearches,
   logContentSearches,
   setLogContentSearches,
   logRepertoireSearches,
@@ -590,9 +699,13 @@ function GoalCard({
   onAddLog,
   onEditLog,
   onDeleteLog,
+  onEditGoal,
   onGoalContentSearch,
   onLinkContentToGoal,
   onUnlinkContentFromGoal,
+  onGoalRepertoireSearch,
+  onLinkRepertoireToGoal,
+  onUnlinkRepertoireFromGoal,
   onLogContentSearch,
   onLinkContentToLog,
   onUnlinkContentFromLog,
@@ -614,108 +727,203 @@ function GoalCard({
         <summary className="p-6 cursor-pointer list-none">
           {/* Goal Header */}
           <div className="flex justify-between items-start">
-            <div>
+            <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900">
                 {goal.goal_number ? `${goal.goal_number}: ` : ''}{goal.description}
+                {goal.topic && (
+                  <span className="text-sm text-gray-500 font-normal ml-2">| {goal.topic.title}</span>
+                )}
               </h3>
-              {goal.topic && (
-                <p className="text-sm text-gray-500 mt-1">Topic: {goal.topic.title}</p>
-              )}
             </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                onRemoveFromSession(goal.id)
-              }}
-              className="text-gray-400 hover:text-red-500 transition p-1"
-              title="Remove from session"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              {/* Content count button */}
+              <button
+                onClick={() => setGoalContentSearches(prev => ({
+                  ...prev,
+                  [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
+                }))}
+                className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
+                title={`Content (${goal.content?.length || 0})`}
+              >
+                {goal.content?.length || 0}
+              </button>
+
+              {/* Repertoire count button */}
+              <button
+                onClick={() => setGoalRepertoireSearches(prev => ({
+                  ...prev,
+                  [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
+                }))}
+                className="w-6 h-6 rounded-full bg-green-600 text-white text-xs font-medium flex items-center justify-center hover:bg-green-700"
+                title={`Repertoire (${goal.repertoire?.length || 0})`}
+              >
+                {goal.repertoire?.length || 0}
+              </button>
+
+              {/* Edit button */}
+              <button
+                onClick={() => onEditGoal(goal)}
+                className="text-gray-600 hover:text-gray-800 p-1"
+                title="Edit goal"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+
+              {/* Remove from session button */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  onRemoveFromSession(goal.id)
+                }}
+                className="text-gray-400 hover:text-red-500 transition p-1"
+                title="Remove from session"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </summary>
 
-        <div className="px-6 pb-6">
-          {/* Goal Header with Content Count Button */}
-          <div className="flex justify-between items-center mb-4 relative">
-            <Button
-              onClick={() => {
-                const textarea = document.getElementById(`log-input-${goal.id}`)
-                textarea?.focus()
-              }}
-              className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-4 py-2"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Log
-            </Button>
-
-            {/* Content count button (right-aligned) */}
-            <button
-              onClick={() => setGoalContentSearches(prev => ({
-                ...prev,
-                [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
-              }))}
-              className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
-              title={`Content (${goal.content?.length || 0})`}
-            >
-              {goal.content?.length || 0}
-            </button>
-
-            {/* Goal Content Search Dropdown */}
-            {goalContentSearches[goal.id]?.open && (
-              <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
-                <h4 className="text-sm font-medium mb-2">Linked Content</h4>
-                {goal.content && goal.content.length > 0 && (
-                  <div className="mb-3 flex flex-wrap gap-1">
-                    {goal.content.map(content => (
-                      <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+        <div className="px-6 pb-6 relative">
+          {/* Goal Content Search Dropdown */}
+          {goalContentSearches[goal.id]?.open && (
+            <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+              <h4 className="text-sm font-medium mb-2">Linked Content</h4>
+              {goal.content && goal.content.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-1">
+                  {goal.content.map(content => (
+                    <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                      {content.title}
+                      <button
+                        onClick={() => onUnlinkContentFromGoal(goal.id, content.id)}
+                        className="ml-1 hover:text-blue-900"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Input
+                type="text"
+                placeholder="Search content..."
+                value={goalContentSearches[goal.id]?.query || ''}
+                onChange={(e) => onGoalContentSearch(goal.id, e.target.value)}
+                autoFocus
+                className="mb-2"
+              />
+              {goalContentSearches[goal.id]?.results?.length > 0 && (
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {goalContentSearches[goal.id].results.map(content => {
+                    const alreadyLinked = goal.content?.some(c => c.id === content.id)
+                    return (
+                      <button
+                        key={content.id}
+                        onClick={() => !alreadyLinked && onLinkContentToGoal(goal.id, content.id)}
+                        disabled={alreadyLinked}
+                        className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
                         {content.title}
-                        <button
-                          onClick={() => onUnlinkContentFromGoal(goal.id, content.id)}
-                          className="ml-1 hover:text-blue-900"
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                <Input
-                  type="text"
-                  placeholder="Search content..."
-                  value={goalContentSearches[goal.id]?.query || ''}
-                  onChange={(e) => onGoalContentSearch(goal.id, e.target.value)}
-                  autoFocus
-                  className="mb-2"
-                />
-                {goalContentSearches[goal.id]?.results?.length > 0 && (
-                  <div className="max-h-60 overflow-y-auto space-y-1">
-                    {goalContentSearches[goal.id].results.map(content => {
-                      const alreadyLinked = goal.content?.some(c => c.id === content.id)
-                      return (
-                        <button
-                          key={content.id}
-                          onClick={() => !alreadyLinked && onLinkContentToGoal(goal.id, content.id)}
-                          disabled={alreadyLinked}
-                          className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {content.title}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 w-full"
-                  onClick={() => setGoalContentSearches(prev => ({ ...prev, [goal.id]: { open: false, query: '', results: [] } }))}
-                >
-                  Close
-                </Button>
-              </div>
-            )}
-          </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={() => setGoalContentSearches(prev => ({ ...prev, [goal.id]: { open: false, query: '', results: [] } }))}
+              >
+                Close
+              </Button>
+            </div>
+          )}
+
+          {/* Goal Repertoire Search Dropdown */}
+          {goalRepertoireSearches[goal.id]?.open && (
+            <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+              <h4 className="text-sm font-medium mb-2">Linked Repertoire</h4>
+              {goal.repertoire && goal.repertoire.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-1">
+                  {goal.repertoire.map(rep => (
+                    <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
+                      {rep.title} - {rep.artist}
+                      <button
+                        onClick={() => onUnlinkRepertoireFromGoal(goal.id, rep.id)}
+                        className="ml-1 hover:text-green-900"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Input
+                type="text"
+                placeholder="Search repertoire..."
+                value={goalRepertoireSearches[goal.id]?.query || ''}
+                onChange={(e) => onGoalRepertoireSearch(goal.id, e.target.value)}
+                autoFocus
+                className="mb-2"
+              />
+              {goalRepertoireSearches[goal.id]?.results?.length > 0 && (
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {goalRepertoireSearches[goal.id].results.map(rep => {
+                    const alreadyLinked = goal.repertoire?.some(r => r.id === rep.id)
+                    return (
+                      <button
+                        key={rep.id}
+                        onClick={() => !alreadyLinked && onLinkRepertoireToGoal(goal.id, rep.id)}
+                        disabled={alreadyLinked}
+                        className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {rep.title} - {rep.artist}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={() => setGoalRepertoireSearches(prev => ({ ...prev, [goal.id]: { open: false, query: '', results: [] } }))}
+              >
+                Close
+              </Button>
+            </div>
+          )}
+
+          {/* Linked Content and Repertoire Badges */}
+          {((goal.content && goal.content.length > 0) || (goal.repertoire && goal.repertoire.length > 0)) && (
+            <div className="flex flex-wrap gap-1 mb-4">
+              {goal.content?.map(content => (
+                <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                  {content.title}
+                  <button
+                    onClick={() => onUnlinkContentFromGoal(goal.id, content.id)}
+                    className="ml-1 hover:text-blue-900"
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+              {goal.repertoire?.map(rep => (
+                <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
+                  {rep.title} - {rep.artist}
+                  <button
+                    onClick={() => onUnlinkRepertoireFromGoal(goal.id, rep.id)}
+                    className="ml-1 hover:text-green-900"
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
 
           {/* Logs Section */}
           <div className="space-y-3">

@@ -1181,30 +1181,21 @@ export default function TopicsTab() {
 
                     {/* Add Goal Inline Form */}
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder="New goal description..."
-                          value={newGoalInputs[topic.id] || ''}
-                          onChange={(e) => setNewGoalInputs(prev => ({
-                            ...prev,
-                            [topic.id]: e.target.value
-                          }))}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleCreateGoal(topic.id)
-                            }
-                          }}
-                          className="flex-1"
-                        />
-                        <Button
-                          onClick={() => handleCreateGoal(topic.id)}
-                          disabled={!newGoalInputs[topic.id]?.trim()}
-                          className="bg-primary-600 hover:bg-primary-700"
-                        >
-                          Add Goal
-                        </Button>
-                      </div>
+                      <Input
+                        type="text"
+                        placeholder="New goal description..."
+                        value={newGoalInputs[topic.id] || ''}
+                        onChange={(e) => setNewGoalInputs(prev => ({
+                          ...prev,
+                          [topic.id]: e.target.value
+                        }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCreateGoal(topic.id)
+                          }
+                        }}
+                        className="w-full"
+                      />
                     </div>
                   </div>
                 </details>
