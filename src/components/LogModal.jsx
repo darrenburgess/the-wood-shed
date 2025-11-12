@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export default function LogModal({ open, onClose, logData, onSave, onDelete }) {
   const [entry, setEntry] = useState('')
@@ -37,10 +38,8 @@ export default function LogModal({ open, onClose, logData, onSave, onDelete }) {
   }
 
   const handleDelete = () => {
-    if (confirm('Delete this log entry?')) {
-      onDelete(logData.id)
-      onClose()
-    }
+    onDelete(logData.id)
+    onClose()
   }
 
   if (!logData) return null
@@ -90,13 +89,20 @@ export default function LogModal({ open, onClose, logData, onSave, onDelete }) {
         </div>
 
         <DialogFooter className="flex justify-between items-center">
-          <Button
+          <ConfirmDialog
+            title="Delete Log?"
+            description="This will permanently delete this practice log. This action cannot be undone."
+            confirmText="Delete"
+            onConfirm={handleDelete}
             variant="destructive"
-            onClick={handleDelete}
-            className="mr-auto"
           >
-            Delete
-          </Button>
+            <Button
+              variant="destructive"
+              className="mr-auto"
+            >
+              Delete
+            </Button>
+          </ConfirmDialog>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>
               Cancel

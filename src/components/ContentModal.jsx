@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import TagInput from './TagInput'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export default function ContentModal({ open, onClose, contentData, onSave, onDelete }) {
   const [formData, setFormData] = useState({
@@ -91,10 +92,8 @@ export default function ContentModal({ open, onClose, contentData, onSave, onDel
   }
 
   const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete "${formData.title}"?`)) {
-      onDelete(contentData.id)
-      onClose()
-    }
+    onDelete(contentData.id)
+    onClose()
   }
 
   return (
@@ -194,13 +193,20 @@ export default function ContentModal({ open, onClose, contentData, onSave, onDel
 
         <DialogFooter className="flex justify-between items-center">
           {contentData && (
-            <Button
+            <ConfirmDialog
+              title="Delete Content?"
+              description={`This will permanently delete "${formData.title}". This action cannot be undone.`}
+              confirmText="Delete"
+              onConfirm={handleDelete}
               variant="destructive"
-              onClick={handleDelete}
-              className="mr-auto"
             >
-              Delete
-            </Button>
+              <Button
+                variant="destructive"
+                className="mr-auto"
+              >
+                Delete
+              </Button>
+            </ConfirmDialog>
           )}
           <div className="flex gap-2 ml-auto">
             <Button variant="outline" onClick={handleCancel}>

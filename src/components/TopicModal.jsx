@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export default function TopicModal({ open, onClose, topicData, onSave, onDelete }) {
   const [title, setTitle] = useState('')
@@ -35,10 +36,8 @@ export default function TopicModal({ open, onClose, topicData, onSave, onDelete 
   }
 
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this topic and ALL its goals and logs?')) {
-      onDelete(topicData.id)
-      onClose()
-    }
+    onDelete(topicData.id)
+    onClose()
   }
 
   const handleKeyDown = (e) => {
@@ -82,13 +81,20 @@ export default function TopicModal({ open, onClose, topicData, onSave, onDelete 
 
         <DialogFooter className="flex justify-between items-center">
           {topicData && (
-            <Button
+            <ConfirmDialog
+              title="Delete Topic?"
+              description={`This will permanently delete "${topicData.title}" and all its goals and logs. This action cannot be undone.`}
+              confirmText="Delete Topic"
+              onConfirm={handleDelete}
               variant="destructive"
-              onClick={handleDelete}
-              className="mr-auto"
             >
-              Delete
-            </Button>
+              <Button
+                variant="destructive"
+                className="mr-auto"
+              >
+                Delete
+              </Button>
+            </ConfirmDialog>
           )}
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>

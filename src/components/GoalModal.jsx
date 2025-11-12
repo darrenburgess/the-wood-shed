@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export default function GoalModal({ open, onClose, goalData, onSave, onDelete }) {
   const [description, setDescription] = useState('')
@@ -37,10 +38,8 @@ export default function GoalModal({ open, onClose, goalData, onSave, onDelete })
   }
 
   const handleDelete = () => {
-    if (confirm('Delete this goal and all its logs?')) {
-      onDelete(goalData.id)
-      onClose()
-    }
+    onDelete(goalData.id)
+    onClose()
   }
 
   if (!goalData) return null
@@ -101,13 +100,20 @@ export default function GoalModal({ open, onClose, goalData, onSave, onDelete })
         </div>
 
         <DialogFooter className="flex justify-between items-center">
-          <Button
+          <ConfirmDialog
+            title="Delete Goal?"
+            description="This will permanently delete this goal and all its logs. This action cannot be undone."
+            confirmText="Delete Goal"
+            onConfirm={handleDelete}
             variant="destructive"
-            onClick={handleDelete}
-            className="mr-auto"
           >
-            Delete
-          </Button>
+            <Button
+              variant="destructive"
+              className="mr-auto"
+            >
+              Delete
+            </Button>
+          </ConfirmDialog>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}>
               Cancel

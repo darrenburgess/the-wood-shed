@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import TagInput from './TagInput'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export default function RepertoireModal({ open, onClose, repertoireData, onSave, onDelete }) {
   const [formData, setFormData] = useState({
@@ -81,10 +82,8 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave,
   }
 
   const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete "${formData.title}"?`)) {
-      onDelete(repertoireData.id)
-      onClose()
-    }
+    onDelete(repertoireData.id)
+    onClose()
   }
 
   return (
@@ -160,13 +159,20 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave,
 
         <DialogFooter className="flex justify-between items-center">
           {repertoireData && (
-            <Button
+            <ConfirmDialog
+              title="Delete Repertoire?"
+              description={`This will permanently delete "${formData.title}" from your repertoire. This action cannot be undone.`}
+              confirmText="Delete"
+              onConfirm={handleDelete}
               variant="destructive"
-              onClick={handleDelete}
-              className="mr-auto"
             >
-              Delete
-            </Button>
+              <Button
+                variant="destructive"
+                className="mr-auto"
+              >
+                Delete
+              </Button>
+            </ConfirmDialog>
           )}
           <div className="flex gap-2 ml-auto">
             <Button variant="outline" onClick={handleCancel}>

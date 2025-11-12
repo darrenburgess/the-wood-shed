@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { ChevronLeft, ChevronRight, Calendar, Plus, Link as LinkIcon, X } from 'lucide-react'
 import GoalModal from './GoalModal'
+import { ConfirmDialog } from './ConfirmDialog'
 import {
   fetchSessionByDate,
   createSession,
@@ -158,10 +159,6 @@ export default function PracticeTodayTab() {
   async function handleClearSession() {
     if (!session) return
 
-    if (!confirm('Clear all goals from this session? This will not delete the goals or logs, just remove them from the session.')) {
-      return
-    }
-
     try {
       await deleteSession(session.id)
       setSession(null)
@@ -224,8 +221,6 @@ export default function PracticeTodayTab() {
 
   // Delete log
   async function handleDeleteLog(logId) {
-    if (!confirm('Delete this log entry?')) return
-
     try {
       await deleteLogQuery(logId)
       setLogModalOpen(false)
@@ -501,12 +496,19 @@ export default function PracticeTodayTab() {
                 >
                   Collapse All
                 </Button>
-                <Button
-                  onClick={handleClearSession}
-                  className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2"
+                <ConfirmDialog
+                  title="Clear Session?"
+                  description="This will remove all goals from this practice session. Goals and logs will not be deleted, just removed from today's session."
+                  confirmText="Clear Session"
+                  onConfirm={handleClearSession}
+                  variant="destructive"
                 >
-                  Clear Session
-                </Button>
+                  <Button
+                    className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2"
+                  >
+                    Clear Session
+                  </Button>
+                </ConfirmDialog>
               </>
             )}
           </div>
@@ -789,16 +791,21 @@ function GoalCard({
               </button>
 
               {/* Remove from session button */}
-              <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  onRemoveFromSession(goal.id)
-                }}
-                className="text-gray-400 hover:text-red-500 transition p-1"
-                title="Remove from session"
+              <ConfirmDialog
+                title="Remove from Session?"
+                description={`This will remove "${goal.description}" from today's practice session. The goal and its logs will not be deleted.`}
+                confirmText="Remove"
+                onConfirm={() => onRemoveFromSession(goal.id)}
+                variant="destructive"
               >
-                <X className="w-5 h-5" />
-              </button>
+                <button
+                  className="text-gray-400 hover:text-red-500 transition p-1"
+                  title="Remove from session"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </ConfirmDialog>
             </div>
           </div>
         </summary>
