@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import TagInput from './TagInput'
 
 export default function RepertoireModal({ open, onClose, repertoireData, onSave }) {
@@ -87,6 +87,9 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave 
           <DialogTitle>
             {repertoireData ? 'Edit Repertoire' : 'Add Repertoire'}
           </DialogTitle>
+          <DialogDescription>
+            {repertoireData ? 'Update the details for this repertoire piece.' : 'Add a new piece to your repertoire.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

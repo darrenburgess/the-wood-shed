@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import TagInput from './TagInput'
 
@@ -97,6 +97,9 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
           <DialogTitle>
             {contentData ? 'Edit Content' : 'Add Content'}
           </DialogTitle>
+          <DialogDescription>
+            {contentData ? 'Update the details for this content item.' : 'Add a new learning resource to your library.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
