@@ -269,7 +269,12 @@ export default function ContentTab() {
                     <div className="flex gap-1 flex-wrap">
                       {item.tags.length > 0 ? (
                         item.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
+                          <Badge
+                            key={tag}
+                            variant="outline"
+                            className="text-xs cursor-pointer hover:bg-primary-100 transition-colors"
+                            onClick={() => toggleTag(tag)}
+                          >
                             {tag}
                           </Badge>
                         ))

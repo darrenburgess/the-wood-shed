@@ -170,10 +170,24 @@ export async function deleteContent(id) {
 export async function fetchTags() {
   const supabase = getSupabaseClient()
 
-  // TODO: Implement fetching all user tags
-  // Fetch tags ordered by name
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
 
-  return []
+  const { data, error } = await supabase
+    .from('tags')
+    .select('id, name')
+    .eq('user_id', user.id)
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching tags:', error)
+    throw error
+  }
+
+  return data || []
 }
 
 /**
@@ -184,11 +198,33 @@ export async function fetchTags() {
 export async function searchTags(searchTerm) {
   const supabase = getSupabaseClient()
 
-  // TODO: Implement tag search
-  // Use .ilike() to search name field
-  // Normalize search term (lowercase, trim)
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
 
-  return []
+  // Normalize search term
+  const normalizedTerm = searchTerm.toLowerCase().trim()
+
+  if (!normalizedTerm) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('tags')
+    .select('id, name')
+    .eq('user_id', user.id)
+    .ilike('name', `%${normalizedTerm}%`)
+    .order('name', { ascending: true })
+    .limit(10)
+
+  if (error) {
+    console.error('Error searching tags:', error)
+    throw error
+  }
+
+  return data || []
 }
 
 /**

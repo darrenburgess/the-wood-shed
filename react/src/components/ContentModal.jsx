@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import TagInput from './TagInput'
 
 export default function ContentModal({ open, onClose, contentData, onSave }) {
   const [formData, setFormData] = useState({
     title: '',
     url: '',
     type: 'youtube',
-    tags: ''
+    tags: []
   })
 
   // Reset form when opening/closing or when contentData changes
@@ -21,7 +22,7 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
           title: contentData.title || '',
           url: contentData.url || '',
           type: contentData.type || 'youtube',
-          tags: contentData.tags?.join(', ') || ''
+          tags: contentData.tags || []
         })
       } else {
         // Create mode - reset to defaults
@@ -29,7 +30,7 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
           title: '',
           url: '',
           type: 'youtube',
-          tags: ''
+          tags: []
         })
       }
     }
@@ -40,15 +41,9 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
   }
 
   const handleSave = () => {
-    // Parse tags from comma-separated string
-    const tagsArray = formData.tags
-      .split(',')
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0)
-
     const dataToSave = {
       ...formData,
-      tags: tagsArray
+      tags: formData.tags // Already an array from TagInput
     }
 
     // If editing, include the ID
@@ -131,14 +126,12 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
             <label htmlFor="tags" className="text-sm font-medium">
               Tags
             </label>
-            <Input
-              id="tags"
-              placeholder="jazz, bebop, theory (comma-separated)"
+            <TagInput
               value={formData.tags}
-              onChange={(e) => handleInputChange('tags', e.target.value)}
+              onChange={(tags) => handleInputChange('tags', tags)}
             />
             <p className="text-xs text-gray-500">
-              Enter tags separated by commas
+              Type to search existing tags or create new ones
             </p>
           </div>
         </div>
