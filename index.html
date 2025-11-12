@@ -120,14 +120,19 @@
 
         <!-- Main Content Area -->
         <div class="flex-1 overflow-auto bg-gray-50">
-            <div class="max-w-7xl mx-auto p-6" x-show="activeView !== 'content'">
+            <div class="max-w-7xl mx-auto p-6">
                 <div id="practice-today-view" x-show="activeView === 'practice'"></div>
                 <div id="topics-view" x-show="activeView === 'topics'"></div>
                 <div id="logs-view" x-show="activeView === 'logs'"></div>
+
+                <!-- Alpine Content View (hidden, React iframe shown instead) -->
+                <div id="content-view" style="display: none;" x-show="false"></div>
+
                 <div id="repertoire-view" x-show="activeView === 'repertoire'"></div>
             </div>
-            <!-- React Content App - fullscreen iframe -->
-            <div x-show="activeView === 'content'" class="h-full w-full">
+
+            <!-- React Content App - fullscreen iframe (shown when content tab active) -->
+            <div x-show="activeView === 'content'" class="absolute inset-0" style="top: 0; left: 256px;">
                 <iframe
                     src="http://localhost:5173"
                     class="w-full h-full border-0"

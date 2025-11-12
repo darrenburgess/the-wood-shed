@@ -220,6 +220,27 @@ export default function ContentTab() {
         )}
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800">Error loading content</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+            </div>
+            <button
+              onClick={loadContent}
+              className="text-sm text-red-600 hover:text-red-800 font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Content Table */}
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
         <Table>
@@ -235,19 +256,39 @@ export default function ContentTab() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
-                    <span>Loading content...</span>
+                <TableCell colSpan={5} className="text-center text-gray-500 py-12">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    <span className="text-sm font-medium">Loading content...</span>
                   </div>
                 </TableCell>
               </TableRow>
             ) : filteredContent.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                  {hasActiveFilters
-                    ? 'No content found matching your filters. Try adjusting your search or tags.'
-                    : 'No content yet. Add your first item!'}
+                <TableCell colSpan={5} className="text-center text-gray-500 py-12">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    {hasActiveFilters ? (
+                      <>
+                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <div>
+                          <p className="font-medium text-gray-900">No content found</p>
+                          <p className="text-sm text-gray-500 mt-1">Try adjusting your search or filters</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <div>
+                          <p className="font-medium text-gray-900">No content yet</p>
+                          <p className="text-sm text-gray-500 mt-1">Click "Add Content" to create your first item</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -12,10 +12,13 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
     type: 'youtube',
     tags: []
   })
+  const [errors, setErrors] = useState({})
+  const titleInputRef = useRef(null)
 
   // Reset form when opening/closing or when contentData changes
   useEffect(() => {
     if (open) {
+      setErrors({}) // Clear errors when opening
       if (contentData) {
         // Edit mode - populate with existing data
         setFormData({
@@ -33,14 +36,42 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
           tags: []
         })
       }
+      // Focus title input when modal opens
+      setTimeout(() => titleInputRef.current?.focus(), 100)
     }
   }, [open, contentData])
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = {}
+
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required'
+    }
+
+    if (!formData.url.trim()) {
+      newErrors.url = 'URL is required'
+    } else {
+      try {
+        new URL(formData.url)
+      } catch {
+        newErrors.url = 'Please enter a valid URL'
+      }
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSave = () => {
+    if (!validateForm()) {
+      return
+    }
+
     const dataToSave = {
       ...formData,
       tags: formData.tags // Already an array from TagInput
@@ -59,8 +90,6 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
     onClose()
   }
 
-  const isFormValid = formData.title.trim() !== '' && formData.url.trim() !== ''
-
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
@@ -73,20 +102,29 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
         <div className="space-y-4 py-4">
           {/* Title Field */}
           <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium">
+            <label htmlFor="title" className="text-sm font-medium text-gray-700">
               Title <span className="text-red-500">*</span>
             </label>
             <Input
+              ref={titleInputRef}
               id="title"
               placeholder="Enter content title..."
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
+              className={errors.title ? 'border-red-500 focus:ring-red-500' : ''}
+              aria-invalid={!!errors.title}
+              aria-describedby={errors.title ? 'title-error' : undefined}
             />
+            {errors.title && (
+              <p id="title-error" className="text-sm text-red-600" role="alert">
+                {errors.title}
+              </p>
+            )}
           </div>
 
           {/* URL Field */}
           <div className="space-y-2">
-            <label htmlFor="url" className="text-sm font-medium">
+            <label htmlFor="url" className="text-sm font-medium text-gray-700">
               URL <span className="text-red-500">*</span>
             </label>
             <Input
@@ -95,7 +133,15 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
               placeholder="https://..."
               value={formData.url}
               onChange={(e) => handleInputChange('url', e.target.value)}
+              className={errors.url ? 'border-red-500 focus:ring-red-500' : ''}
+              aria-invalid={!!errors.url}
+              aria-describedby={errors.url ? 'url-error' : undefined}
             />
+            {errors.url && (
+              <p id="url-error" className="text-sm text-red-600" role="alert">
+                {errors.url}
+              </p>
+            )}
           </div>
 
           {/* Type Field */}
@@ -142,7 +188,6 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!isFormValid}
             className="bg-primary-600 hover:bg-primary-700"
           >
             {contentData ? 'Update' : 'Create'}
