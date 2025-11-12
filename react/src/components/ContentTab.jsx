@@ -10,10 +10,15 @@ export default function ContentTab() {
     { id: 1, title: 'Sample Video', url: 'https://youtube.com/watch?v=example', type: 'youtube', tags: ['jazz', 'bebop'] },
     { id: 2, title: 'Sample Article', url: 'https://example.com', type: 'article', tags: ['theory'] },
     { id: 3, title: 'Another Video', url: 'https://youtube.com/watch?v=example2', type: 'youtube', tags: ['jazz', 'improvisation'] },
+    { id: 4, title: 'Music Theory Basics', url: 'https://example.com/theory', type: 'article', tags: ['theory', 'fundamentals'] },
+    { id: 5, title: 'Bebop Scales Tutorial', url: 'https://youtube.com/watch?v=bebop', type: 'youtube', tags: ['bebop', 'scales'] },
   ])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
   const [loading, setLoading] = useState(false)
+
+  // Extract unique tags from content
+  const availableTags = [...new Set(content.flatMap(item => item.tags))].sort()
 
   // Fetch content on mount
   useEffect(() => {
@@ -23,11 +28,35 @@ export default function ContentTab() {
 
   // Filter content based on search and tags
   const filteredContent = content.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase())
+    // Search in title and URL
+    const matchesSearch = searchQuery === '' ||
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.url.toLowerCase().includes(searchQuery.toLowerCase())
+
+    // Match tags (AND logic - item must have all selected tags)
     const matchesTags = selectedTags.length === 0 ||
-      selectedTags.some(tag => item.tags.includes(tag))
+      selectedTags.every(tag => item.tags.includes(tag))
+
     return matchesSearch && matchesTags
   })
+
+  // Toggle tag filter
+  const toggleTag = (tag) => {
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    )
+  }
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('')
+    setSelectedTags([])
+  }
+
+  // Check if any filters are active
+  const hasActiveFilters = searchQuery !== '' || selectedTags.length > 0
 
   return (
     <div className="p-8">
@@ -43,19 +72,62 @@ export default function ContentTab() {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+      <div className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-4 space-y-4">
+        {/* Search Input */}
         <div className="flex gap-4">
           <Input
             type="text"
-            placeholder="Search content..."
+            placeholder="Search by title or URL..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1"
           />
-          <Button variant="outline">
-            Filter by Tags
-          </Button>
+          {hasActiveFilters && (
+            <Button variant="outline" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          )}
         </div>
+
+        {/* Tag Filters */}
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-2">Filter by Tags:</p>
+          <div className="flex gap-2 flex-wrap">
+            {availableTags.map((tag) => (
+              <Badge
+                key={tag}
+                variant={selectedTags.includes(tag) ? "default" : "outline"}
+                className="cursor-pointer hover:bg-primary-100 transition-colors"
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+                {selectedTags.includes(tag) && (
+                  <span className="ml-1 font-bold">✓</span>
+                )}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* Active Filters Display */}
+        {selectedTags.length > 0 && (
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">Active Filters:</p>
+            <div className="flex gap-2 flex-wrap">
+              {selectedTags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="default"
+                  className="cursor-pointer bg-primary-600 hover:bg-primary-700"
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                  <span className="ml-1 font-bold">×</span>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content Table */}
@@ -73,7 +145,9 @@ export default function ContentTab() {
             {filteredContent.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-gray-500 py-8">
-                  {searchQuery ? 'No content found matching your search' : 'No content yet. Add your first item!'}
+                  {hasActiveFilters
+                    ? 'No content found matching your filters. Try adjusting your search or tags.'
+                    : 'No content yet. Add your first item!'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -112,8 +186,24 @@ export default function ContentTab() {
       </div>
 
       {/* Summary */}
-      <div className="mt-4 text-sm text-gray-500">
-        Showing {filteredContent.length} of {content.length} items
+      <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
+        <div>
+          Showing {filteredContent.length} of {content.length} items
+          {hasActiveFilters && (
+            <span className="ml-2 text-primary-600 font-medium">
+              (filtered)
+            </span>
+          )}
+        </div>
+        {hasActiveFilters && (
+          <div className="text-xs">
+            {searchQuery && <span>Search: "{searchQuery}"</span>}
+            {searchQuery && selectedTags.length > 0 && <span className="mx-2">•</span>}
+            {selectedTags.length > 0 && (
+              <span>Tags: {selectedTags.join(', ')}</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
