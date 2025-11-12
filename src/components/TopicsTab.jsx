@@ -49,9 +49,15 @@ export default function TopicsTab() {
   const [logModalOpen, setLogModalOpen] = useState(false)
   const [editingLog, setEditingLog] = useState(null)
 
-  // UI state
-  const [openTopics, setOpenTopics] = useState({})
-  const [openGoals, setOpenGoals] = useState({})
+  // UI state with localStorage persistence
+  const [openTopics, setOpenTopics] = useState(() => {
+    const saved = localStorage.getItem('openTopics')
+    return saved ? JSON.parse(saved) : {}
+  })
+  const [openGoals, setOpenGoals] = useState(() => {
+    const saved = localStorage.getItem('openGoals')
+    return saved ? JSON.parse(saved) : {}
+  })
   const [openCompletedSections, setOpenCompletedSections] = useState({})
   const [logsToShow, setLogsToShow] = useState({}) // goalId -> number of logs to show
 
@@ -75,6 +81,16 @@ export default function TopicsTab() {
     loadTopics()
     loadTodaySession()
   }, [])
+
+  // Save openTopics to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('openTopics', JSON.stringify(openTopics))
+  }, [openTopics])
+
+  // Save openGoals to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('openGoals', JSON.stringify(openGoals))
+  }, [openGoals])
 
   const loadTopics = async () => {
     try {
@@ -999,25 +1015,21 @@ export default function TopicsTab() {
                             )}
 
                             {/* Add Log Inline Form */}
-                            <div className="flex gap-2">
-                              <Textarea
-                                placeholder="Log your progress..."
-                                value={newLogInputs[goal.id] || ''}
-                                onChange={(e) => setNewLogInputs(prev => ({
-                                  ...prev,
-                                  [goal.id]: e.target.value
-                                }))}
-                                rows={2}
-                                className="flex-1"
-                              />
-                              <Button
-                                onClick={() => handleCreateLog(goal.id)}
-                                disabled={!newLogInputs[goal.id]?.trim()}
-                                className="bg-primary-600 hover:bg-primary-700"
-                              >
-                                Add Log
-                              </Button>
-                            </div>
+                            <Textarea
+                              placeholder="Log your progress..."
+                              value={newLogInputs[goal.id] || ''}
+                              onChange={(e) => setNewLogInputs(prev => ({
+                                ...prev,
+                                [goal.id]: e.target.value
+                              }))}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  handleCreateLog(goal.id)
+                                }
+                              }}
+                              className="w-full h-9 min-h-9 max-h-9 resize-none overflow-hidden"
+                            />
                           </div>
                         </details>
 

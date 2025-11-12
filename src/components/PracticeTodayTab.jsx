@@ -46,6 +46,12 @@ export default function PracticeTodayTab() {
   const [logContentSearches, setLogContentSearches] = useState({})
   const [logRepertoireSearches, setLogRepertoireSearches] = useState({})
 
+  // Expand/collapse state with localStorage persistence
+  const [openGoals, setOpenGoals] = useState(() => {
+    const saved = localStorage.getItem('openGoalsPracticeToday')
+    return saved ? JSON.parse(saved) : {}
+  })
+
   // Helper function to get today's date in YYYY-MM-DD format
   function getTodayDate() {
     const today = new Date()
@@ -64,32 +70,10 @@ export default function PracticeTodayTab() {
     return date.toLocaleDateString('en-US', options)
   }
 
-  // Format date/time for logs
+  // Format date for logs
   function formatLogDateTime(dateString) {
     const logDate = new Date(dateString)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    const timeStr = logDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-
-    // Check if same date
-    if (logDate.toDateString() === today.toDateString()) {
-      return `Today at ${timeStr}`
-    } else if (logDate.toDateString() === yesterday.toDateString()) {
-      return `Yesterday at ${timeStr}`
-    } else {
-      // Check if within this week
-      const weekAgo = new Date(today)
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      if (logDate > weekAgo) {
-        const dayName = logDate.toLocaleDateString('en-US', { weekday: 'long' })
-        return `${dayName} at ${timeStr}`
-      } else {
-        const dateStr = logDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        return `${dateStr} at ${timeStr}`
-      }
-    }
+    return logDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   // Extract YouTube video ID from URL
@@ -382,6 +366,25 @@ export default function PracticeTodayTab() {
     loadSession()
   }, [currentDate])
 
+  // Save openGoals to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('openGoalsPracticeToday', JSON.stringify(openGoals))
+  }, [openGoals])
+
+  // Expand/collapse all functions
+  function handleExpandAll() {
+    if (!session || !session.goals) return
+    const allGoalsOpen = {}
+    session.goals.forEach(goal => {
+      allGoalsOpen[goal.id] = true
+    })
+    setOpenGoals(allGoalsOpen)
+  }
+
+  function handleCollapseAll() {
+    setOpenGoals({})
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Session Header */}
@@ -391,14 +394,30 @@ export default function PracticeTodayTab() {
             <h1 className="text-2xl font-bold text-gray-900">Practice Today</h1>
             <p className="text-sm text-gray-500 mt-1">Your practice session for {formatDateDisplay(currentDate)}</p>
           </div>
-          {session && session.goals?.length > 0 && (
-            <Button
-              onClick={handleClearSession}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2"
-            >
-              Clear Session
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {session && session.goals?.length > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleExpandAll}
+                >
+                  Expand All
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCollapseAll}
+                >
+                  Collapse All
+                </Button>
+                <Button
+                  onClick={handleClearSession}
+                  className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2"
+                >
+                  Clear Session
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -498,6 +517,8 @@ export default function PracticeTodayTab() {
               setLogContentSearches={setLogContentSearches}
               logRepertoireSearches={logRepertoireSearches}
               setLogRepertoireSearches={setLogRepertoireSearches}
+              openGoals={openGoals}
+              setOpenGoals={setOpenGoals}
               onRemoveFromSession={handleRemoveGoalFromSession}
               onAddLog={handleAddLog}
               onEditLog={handleEditLog}
@@ -563,6 +584,8 @@ function GoalCard({
   setLogContentSearches,
   logRepertoireSearches,
   setLogRepertoireSearches,
+  openGoals,
+  setOpenGoals,
   onRemoveFromSession,
   onAddLog,
   onEditLog,
@@ -580,160 +603,168 @@ function GoalCard({
   formatLogDateTime
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
-      {/* Goal Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            {goal.goal_number ? `${goal.goal_number}: ` : ''}{goal.description}
-          </h3>
-          {goal.topic && (
-            <p className="text-sm text-gray-500 mt-1">Topic: {goal.topic.title}</p>
-          )}
-        </div>
-        <button
-          onClick={() => onRemoveFromSession(goal.id)}
-          className="text-gray-400 hover:text-red-500 transition p-1"
-          title="Remove from session"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Goal Header with Content Count Button */}
-      <div className="flex justify-between items-center mb-4 relative">
-        <Button
-          onClick={() => {
-            const textarea = document.getElementById(`log-input-${goal.id}`)
-            textarea?.focus()
-          }}
-          className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-4 py-2"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Log
-        </Button>
-
-        {/* Content count button (right-aligned) */}
-        <button
-          onClick={() => setGoalContentSearches(prev => ({
-            ...prev,
-            [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
-          }))}
-          className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
-          title={`Content (${goal.content?.length || 0})`}
-        >
-          {goal.content?.length || 0}
-        </button>
-
-        {/* Goal Content Search Dropdown */}
-        {goalContentSearches[goal.id]?.open && (
-          <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
-            <h4 className="text-sm font-medium mb-2">Linked Content</h4>
-            {goal.content && goal.content.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-1">
-                {goal.content.map(content => (
-                  <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                    {content.title}
-                    <button
-                      onClick={() => onUnlinkContentFromGoal(goal.id, content.id)}
-                      className="ml-1 hover:text-blue-900"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <Input
-              type="text"
-              placeholder="Search content..."
-              value={goalContentSearches[goal.id]?.query || ''}
-              onChange={(e) => onGoalContentSearch(goal.id, e.target.value)}
-              autoFocus
-              className="mb-2"
-            />
-            {goalContentSearches[goal.id]?.results?.length > 0 && (
-              <div className="max-h-60 overflow-y-auto space-y-1">
-                {goalContentSearches[goal.id].results.map(content => {
-                  const alreadyLinked = goal.content?.some(c => c.id === content.id)
-                  return (
-                    <button
-                      key={content.id}
-                      onClick={() => !alreadyLinked && onLinkContentToGoal(goal.id, content.id)}
-                      disabled={alreadyLinked}
-                      className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {content.title}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 w-full"
-              onClick={() => setGoalContentSearches(prev => ({ ...prev, [goal.id]: { open: false, query: '', results: [] } }))}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+      <details
+        open={openGoals[goal.id]}
+        onToggle={(e) => setOpenGoals(prev => ({
+          ...prev,
+          [goal.id]: e.target.open
+        }))}
+      >
+        <summary className="p-6 cursor-pointer list-none">
+          {/* Goal Header */}
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {goal.goal_number ? `${goal.goal_number}: ` : ''}{goal.description}
+              </h3>
+              {goal.topic && (
+                <p className="text-sm text-gray-500 mt-1">Topic: {goal.topic.title}</p>
+              )}
+            </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                onRemoveFromSession(goal.id)
+              }}
+              className="text-gray-400 hover:text-red-500 transition p-1"
+              title="Remove from session"
             >
-              Close
-            </Button>
+              <X className="w-5 h-5" />
+            </button>
           </div>
-        )}
-      </div>
+        </summary>
 
-      {/* Logs Section */}
-      <div className="space-y-3">
-        {goal.logs && goal.logs.length > 0 ? (
-          goal.logs.map(log => (
-            <LogEntry
-              key={log.id}
-              log={log}
-              logContentSearches={logContentSearches}
-              setLogContentSearches={setLogContentSearches}
-              logRepertoireSearches={logRepertoireSearches}
-              setLogRepertoireSearches={setLogRepertoireSearches}
-              onEditLog={onEditLog}
-              onDeleteLog={onDeleteLog}
-              onLogContentSearch={onLogContentSearch}
-              onLinkContentToLog={onLinkContentToLog}
-              onUnlinkContentFromLog={onUnlinkContentFromLog}
-              onLogRepertoireSearch={onLogRepertoireSearch}
-              onLinkRepertoireToLog={onLinkRepertoireToLog}
-              onUnlinkRepertoireFromLog={onUnlinkRepertoireFromLog}
-              onContentClick={onContentClick}
-              formatLogDateTime={formatLogDateTime}
+        <div className="px-6 pb-6">
+          {/* Goal Header with Content Count Button */}
+          <div className="flex justify-between items-center mb-4 relative">
+            <Button
+              onClick={() => {
+                const textarea = document.getElementById(`log-input-${goal.id}`)
+                textarea?.focus()
+              }}
+              className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-4 py-2"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Log
+            </Button>
+
+            {/* Content count button (right-aligned) */}
+            <button
+              onClick={() => setGoalContentSearches(prev => ({
+                ...prev,
+                [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
+              }))}
+              className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
+              title={`Content (${goal.content?.length || 0})`}
+            >
+              {goal.content?.length || 0}
+            </button>
+
+            {/* Goal Content Search Dropdown */}
+            {goalContentSearches[goal.id]?.open && (
+              <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                <h4 className="text-sm font-medium mb-2">Linked Content</h4>
+                {goal.content && goal.content.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-1">
+                    {goal.content.map(content => (
+                      <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                        {content.title}
+                        <button
+                          onClick={() => onUnlinkContentFromGoal(goal.id, content.id)}
+                          className="ml-1 hover:text-blue-900"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <Input
+                  type="text"
+                  placeholder="Search content..."
+                  value={goalContentSearches[goal.id]?.query || ''}
+                  onChange={(e) => onGoalContentSearch(goal.id, e.target.value)}
+                  autoFocus
+                  className="mb-2"
+                />
+                {goalContentSearches[goal.id]?.results?.length > 0 && (
+                  <div className="max-h-60 overflow-y-auto space-y-1">
+                    {goalContentSearches[goal.id].results.map(content => {
+                      const alreadyLinked = goal.content?.some(c => c.id === content.id)
+                      return (
+                        <button
+                          key={content.id}
+                          onClick={() => !alreadyLinked && onLinkContentToGoal(goal.id, content.id)}
+                          disabled={alreadyLinked}
+                          className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {content.title}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => setGoalContentSearches(prev => ({ ...prev, [goal.id]: { open: false, query: '', results: [] } }))}
+                >
+                  Close
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Logs Section */}
+          <div className="space-y-3">
+            {goal.logs && goal.logs.length > 0 ? (
+              goal.logs.map(log => (
+                <LogEntry
+                  key={log.id}
+                  log={log}
+                  logContentSearches={logContentSearches}
+                  setLogContentSearches={setLogContentSearches}
+                  logRepertoireSearches={logRepertoireSearches}
+                  setLogRepertoireSearches={setLogRepertoireSearches}
+                  onEditLog={onEditLog}
+                  onDeleteLog={onDeleteLog}
+                  onLogContentSearch={onLogContentSearch}
+                  onLinkContentToLog={onLinkContentToLog}
+                  onUnlinkContentFromLog={onUnlinkContentFromLog}
+                  onLogRepertoireSearch={onLogRepertoireSearch}
+                  onLinkRepertoireToLog={onLinkRepertoireToLog}
+                  onUnlinkRepertoireFromLog={onUnlinkRepertoireFromLog}
+                  onContentClick={onContentClick}
+                  formatLogDateTime={formatLogDateTime}
+                />
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 italic pl-4 border-l-2 border-gray-200 py-2">
+                No logs yet for this goal
+              </p>
+            )}
+          </div>
+
+          {/* Add Log Form */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <Textarea
+              id={`log-input-${goal.id}`}
+              placeholder="What did you practice?"
+              value={newLogInputs[goal.id] || ''}
+              onChange={(e) => setNewLogInputs(prev => ({ ...prev, [goal.id]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  onAddLog(goal.id)
+                }
+              }}
+              className="bg-gray-50 border border-gray-300 rounded-lg p-2.5 w-full h-9 min-h-9 max-h-9 resize-none overflow-hidden"
             />
-          ))
-        ) : (
-          <p className="text-sm text-gray-500 italic pl-4 border-l-2 border-gray-200 py-2">
-            No logs yet for this goal
-          </p>
-        )}
-      </div>
-
-      {/* Add Log Form */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <Textarea
-          id={`log-input-${goal.id}`}
-          placeholder="What did you practice?"
-          rows={3}
-          value={newLogInputs[goal.id] || ''}
-          onChange={(e) => setNewLogInputs(prev => ({ ...prev, [goal.id]: e.target.value }))}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              onAddLog(goal.id)
-            }
-          }}
-          className="bg-gray-50 border border-gray-300 rounded-lg p-2.5 w-full mb-2"
-        />
-        <Button
-          onClick={() => onAddLog(goal.id)}
-          disabled={!newLogInputs[goal.id]?.trim()}
-          className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-4 py-2"
-        >
-          Add Log
-        </Button>
-      </div>
+          </div>
+        </div>
+      </details>
     </div>
   )
 }
@@ -759,7 +790,7 @@ function LogEntry({
   return (
     <div className="relative">
       {/* Single line with log text, count buttons, and edit icon */}
-      <div className="flex items-start gap-2 text-sm">
+      <div className="flex items-baseline gap-2 text-sm">
         <span className="text-gray-500 shrink-0 text-xs">{formatLogDateTime(log.date)}</span>
         <span className="flex-1 truncate">{log.entry}</span>
 
