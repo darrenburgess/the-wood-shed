@@ -131,30 +131,42 @@ export default function ContentTab() {
   const handleSaveContent = async (formData) => {
     try {
       if (formData.id) {
-        // Edit existing content
+        // Edit existing content - optimistically update
+        setContent(prev => prev.map(item =>
+          item.id === formData.id
+            ? { ...item, ...formData }
+            : item
+        ))
+
+        // Update database in background
         await updateContent(formData.id, formData)
       } else {
         // Create new content
-        await createContent(formData)
-      }
+        const newContent = await createContent(formData)
 
-      // Refresh content list
-      await loadContent()
+        // Optimistically add to list with tags
+        setContent(prev => [...prev, { ...newContent, tags: formData.tags || [] }])
+      }
     } catch (err) {
       alert('Failed to save content: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadContent()
     }
   }
 
   const handleDeleteContent = async (itemId) => {
     try {
-      await deleteContent(itemId)
+      // Optimistically remove from list
+      setContent(prev => prev.filter(item => item.id !== itemId))
 
-      // Refresh content list
-      await loadContent()
+      // Update database in background
+      await deleteContent(itemId)
     } catch (err) {
       alert('Failed to delete content: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadContent()
     }
   }
 

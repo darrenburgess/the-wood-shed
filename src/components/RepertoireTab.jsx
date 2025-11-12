@@ -108,30 +108,42 @@ export default function RepertoireTab() {
   const handleSaveRepertoire = async (formData) => {
     try {
       if (formData.id) {
-        // Edit existing item
+        // Edit existing item - optimistically update
+        setRepertoire(prev => prev.map(item =>
+          item.id === formData.id
+            ? { ...item, title: formData.title, artist: formData.composer, tags: formData.tags || [] }
+            : item
+        ))
+
+        // Update database in background
         await updateRepertoire(formData.id, formData)
       } else {
         // Create new item
-        await createRepertoire(formData)
-      }
+        const newRepertoire = await createRepertoire(formData)
 
-      // Refresh repertoire list
-      await loadRepertoire()
+        // Optimistically add to list with tags (DB uses 'artist', UI uses 'composer')
+        setRepertoire(prev => [...prev, { ...newRepertoire, tags: formData.tags || [] }])
+      }
     } catch (err) {
       alert('Failed to save repertoire: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadRepertoire()
     }
   }
 
   const handleDeleteRepertoire = async (itemId) => {
     try {
-      await deleteRepertoire(itemId)
+      // Optimistically remove from list
+      setRepertoire(prev => prev.filter(item => item.id !== itemId))
 
-      // Refresh repertoire list
-      await loadRepertoire()
+      // Update database in background
+      await deleteRepertoire(itemId)
     } catch (err) {
       alert('Failed to delete repertoire: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadRepertoire()
     }
   }
 

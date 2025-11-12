@@ -321,21 +321,32 @@ export default function TopicsTab() {
 
   const handleLinkContent = async (goalId, contentId) => {
     try {
-      await linkContentToGoal(goalId, contentId)
-      // Reload goal content
-      const content = await fetchGoalContent(goalId)
+      // Get the content item from search results
+      const contentItem = contentSearches[goalId]?.results?.find(c => c.id === contentId)
+      if (!contentItem) return
+
+      // Optimistically update UI
       setTopics(prev => prev.map(topic => ({
         ...topic,
         goals: topic.goals.map(g =>
-          g.id === goalId ? { ...g, content } : g
+          g.id === goalId
+            ? { ...g, content: [...(g.content || []), contentItem] }
+            : g
         )
       })))
+
+      // Close dropdown
       setContentSearches(prev => ({
         ...prev,
         [goalId]: { open: false, query: '', results: [] }
       }))
+
+      // Update database in background
+      await linkContentToGoal(goalId, contentId)
     } catch (err) {
       alert('Failed to link content: ' + err.message)
+      // Reload on error to sync state
+      loadTopics()
     }
   }
 
@@ -358,21 +369,32 @@ export default function TopicsTab() {
   // Repertoire linking to goals handlers
   const handleLinkRepertoireToGoal = async (goalId, repertoireId, repertoireData) => {
     try {
-      await linkRepertoireToGoal(goalId, repertoireId)
-      // Reload goal repertoire
-      const repertoire = await fetchGoalRepertoire(goalId)
+      // Get the repertoire item from search results
+      const repertoireItem = repertoireSearches[goalId]?.results?.find(r => r.id === repertoireId)
+      if (!repertoireItem) return
+
+      // Optimistically update UI
       setTopics(prev => prev.map(topic => ({
         ...topic,
         goals: topic.goals.map(g =>
-          g.id === goalId ? { ...g, repertoire } : g
+          g.id === goalId
+            ? { ...g, repertoire: [...(g.repertoire || []), repertoireItem] }
+            : g
         )
       })))
+
+      // Close dropdown
       setRepertoireSearches(prev => ({
         ...prev,
         [goalId]: { open: false, query: '', results: [] }
       }))
+
+      // Update database in background
+      await linkRepertoireToGoal(goalId, repertoireId)
     } catch (err) {
       alert('Failed to link repertoire: ' + err.message)
+      // Reload on error to sync state
+      loadTopics()
     }
   }
 
@@ -488,23 +510,35 @@ export default function TopicsTab() {
 
   const handleLinkContentToLog = async (logId, contentId) => {
     try {
-      await linkContentToLog(logId, contentId)
-      const content = await fetchLogContent(logId)
+      // Get the content item from search results
+      const contentItem = logContentSearches[logId]?.results?.find(c => c.id === contentId)
+      if (!contentItem) return
+
+      // Optimistically update UI
       setTopics(prev => prev.map(topic => ({
         ...topic,
         goals: topic.goals.map(g => ({
           ...g,
           logs: g.logs?.map(log =>
-            log.id === logId ? { ...log, content } : log
+            log.id === logId
+              ? { ...log, content: [...(log.content || []), contentItem] }
+              : log
           )
         }))
       })))
+
+      // Close dropdown
       setLogContentSearches(prev => ({
         ...prev,
         [logId]: { open: false, query: '', results: [] }
       }))
+
+      // Update database in background
+      await linkContentToLog(logId, contentId)
     } catch (err) {
       alert('Failed to link content: ' + err.message)
+      // Reload on error to sync state
+      loadTopics()
     }
   }
 
@@ -554,23 +588,35 @@ export default function TopicsTab() {
 
   const handleLinkRepertoireToLog = async (logId, repertoireId) => {
     try {
-      await linkRepertoireToLog(logId, repertoireId)
-      const repertoire = await fetchLogRepertoire(logId)
+      // Get the repertoire item from search results
+      const repertoireItem = logRepertoireSearches[logId]?.results?.find(r => r.id === repertoireId)
+      if (!repertoireItem) return
+
+      // Optimistically update UI
       setTopics(prev => prev.map(topic => ({
         ...topic,
         goals: topic.goals.map(g => ({
           ...g,
           logs: g.logs?.map(log =>
-            log.id === logId ? { ...log, repertoire } : log
+            log.id === logId
+              ? { ...log, repertoire: [...(log.repertoire || []), repertoireItem] }
+              : log
           )
         }))
       })))
+
+      // Close dropdown
       setLogRepertoireSearches(prev => ({
         ...prev,
         [logId]: { open: false, query: '', results: [] }
       }))
+
+      // Update database in background
+      await linkRepertoireToLog(logId, repertoireId)
     } catch (err) {
       alert('Failed to link repertoire: ' + err.message)
+      // Reload on error to sync state
+      loadTopics()
     }
   }
 

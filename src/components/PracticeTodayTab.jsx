@@ -175,11 +175,22 @@ export default function PracticeTodayTab() {
     if (!session) return
 
     try {
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.filter(goal => goal.id !== goalId)
+        }
+      })
+
+      // Update database in background
       await removeGoalFromSessionById(session.id, goalId)
-      await loadSession()
     } catch (err) {
       alert('Failed to remove goal from session: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
@@ -189,16 +200,29 @@ export default function PracticeTodayTab() {
     if (!logText) return
 
     try {
-      await createLog(goalId, logText, currentDate)
+      // Create log and get the new log data
+      const newLog = await createLog(goalId, logText, currentDate)
+
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal =>
+            goal.id === goalId
+              ? { ...goal, logs: [...(goal.logs || []), newLog] }
+              : goal
+          )
+        }
+      })
 
       // Clear input
       setNewLogInputs(prev => ({ ...prev, [goalId]: '' }))
-
-      // Reload session
-      await loadSession()
     } catch (err) {
       alert('Failed to add log: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
@@ -211,26 +235,62 @@ export default function PracticeTodayTab() {
   // Save edited log
   async function handleSaveLog(logId, updates) {
     try {
-      await updateLog(logId, updates)
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal => ({
+            ...goal,
+            logs: goal.logs?.map(log =>
+              log.id === logId
+                ? { ...log, ...updates }
+                : log
+            ) || []
+          }))
+        }
+      })
+
+      // Close modal
       setLogModalOpen(false)
       setEditingLog(null)
-      await loadSession()
+
+      // Update database in background
+      await updateLog(logId, updates)
     } catch (err) {
       alert('Failed to update log: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
   // Delete log
   async function handleDeleteLog(logId) {
     try {
-      await deleteLogQuery(logId)
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal => ({
+            ...goal,
+            logs: goal.logs?.filter(log => log.id !== logId) || []
+          }))
+        }
+      })
+
+      // Close modal
       setLogModalOpen(false)
       setEditingLog(null)
-      await loadSession()
+
+      // Update database in background
+      await deleteLogQuery(logId)
     } catch (err) {
       alert('Failed to delete log: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
@@ -405,26 +465,56 @@ export default function PracticeTodayTab() {
   // Save edited goal
   async function handleSaveGoal(goalId, updateData) {
     try {
-      await updateGoal(goalId, updateData)
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal =>
+            goal.id === goalId
+              ? { ...goal, ...updateData }
+              : goal
+          )
+        }
+      })
+
+      // Close modal
       setGoalModalOpen(false)
       setEditingGoal(null)
-      await loadSession()
+
+      // Update database in background
+      await updateGoal(goalId, updateData)
     } catch (err) {
       alert('Failed to update goal: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
   // Delete goal
   async function handleDeleteGoal(goalId) {
     try {
-      await deleteGoal(goalId)
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.filter(goal => goal.id !== goalId)
+        }
+      })
+
+      // Close modal
       setGoalModalOpen(false)
       setEditingGoal(null)
-      await loadSession()
+
+      // Update database in background
+      await deleteGoal(goalId)
     } catch (err) {
       alert('Failed to delete goal: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
