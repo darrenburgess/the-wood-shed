@@ -646,3 +646,564 @@ export async function fetchLogsByDateRange(startDate, endDate) {
     repertoire: log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || []
   }))
 }
+
+// ============================================================================
+// TOPICS FUNCTIONS
+// ============================================================================
+
+/**
+ * Fetch all topics with nested goals and logs for current user
+ * @returns {Promise<Array>} Array of topics with complete hierarchy
+ */
+export async function fetchTopicsWithGoalsAndLogs() {
+  const supabase = getSupabaseClient()
+
+  const { data: topics, error } = await supabase
+    .from('topics')
+    .select(`
+      id,
+      topic_number,
+      title,
+      created_at,
+      goals (
+        id,
+        description,
+        goal_number,
+        is_complete,
+        date_completed,
+        created_at,
+        logs (
+          id,
+          entry,
+          date,
+          created_at,
+          log_content (
+            content (*)
+          ),
+          log_repertoire (
+            repertoire (*)
+          )
+        )
+      )
+    `)
+    .order('topic_number', { ascending: true })
+    .order('created_at', { foreignTable: 'goals.logs', ascending: false })
+
+  if (error) {
+    console.error('Error fetching topics:', error)
+    throw error
+  }
+
+  // Transform and sort data
+  const today = new Date().toISOString().split('T')[0]
+
+  for (const topic of topics) {
+    if (topic.goals) {
+      // Sort goals by goal_number descending (newest first)
+      topic.goals.sort((a, b) => {
+        const aNum = Number(a.goal_number.split('.')[1] || 0)
+        const bNum = Number(b.goal_number.split('.')[1] || 0)
+        return bNum - aNum
+      })
+
+      for (const goal of topic.goals) {
+        if (goal.logs) {
+          for (const log of goal.logs) {
+            log.isToday = log.date === today
+            // Flatten content and repertoire arrays
+            log.content = log.log_content?.map(lc => lc.content).filter(Boolean) || []
+            log.repertoire = log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || []
+          }
+        } else {
+          goal.logs = []
+        }
+      }
+    } else {
+      topic.goals = []
+    }
+  }
+
+  return topics
+}
+
+/**
+ * Create a new topic
+ * @param {string} title - Topic title
+ * @returns {Promise<Object>} Created topic
+ */
+export async function createTopic(title) {
+  const supabase = getSupabaseClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  // Get highest topic_number for this user
+  const { data: topics, error: fetchError } = await supabase
+    .from('topics')
+    .select('topic_number')
+    .order('topic_number', { ascending: false })
+    .limit(1)
+
+  if (fetchError) {
+    console.error('Error fetching latest topic number:', fetchError)
+    throw fetchError
+  }
+
+  const nextTopicNumber = topics.length > 0 ? topics[0].topic_number + 1 : 1
+
+  const { data: newTopic, error } = await supabase
+    .from('topics')
+    .insert({
+      title,
+      topic_number: nextTopicNumber,
+      user_id: user.id
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating topic:', error)
+    throw error
+  }
+
+  return { ...newTopic, goals: [] }
+}
+
+/**
+ * Update a topic
+ * @param {number} topicId - Topic ID
+ * @param {string} title - New title
+ * @returns {Promise<void>}
+ */
+export async function updateTopic(topicId, title) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('topics')
+    .update({ title })
+    .eq('id', topicId)
+
+  if (error) {
+    console.error('Error updating topic:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a topic (cascades to goals and logs)
+ * @param {number} topicId - Topic ID
+ * @returns {Promise<void>}
+ */
+export async function deleteTopic(topicId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('topics')
+    .delete()
+    .eq('id', topicId)
+
+  if (error) {
+    console.error('Error deleting topic:', error)
+    throw error
+  }
+}
+
+/**
+ * Create a new goal
+ * @param {number} topicId - Parent topic ID
+ * @param {number} topicNumber - Topic number for goal_number calculation
+ * @param {string} description - Goal description
+ * @param {number} nextSubNumber - Next sub-number for this topic
+ * @returns {Promise<Object>} Created goal
+ */
+export async function createGoal(topicId, topicNumber, description, nextSubNumber) {
+  const supabase = getSupabaseClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  const goalNumber = `${topicNumber}.${nextSubNumber}`
+
+  const { data: newGoal, error } = await supabase
+    .from('goals')
+    .insert({
+      topic_id: topicId,
+      description,
+      goal_number: goalNumber,
+      is_complete: false,
+      user_id: user.id
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating goal:', error)
+    throw error
+  }
+
+  return { ...newGoal, logs: [] }
+}
+
+/**
+ * Update a goal
+ * @param {number} goalId - Goal ID
+ * @param {Object} data - Update data {description, is_complete, date_completed}
+ * @returns {Promise<Object>} Updated goal
+ */
+export async function updateGoal(goalId, data) {
+  const supabase = getSupabaseClient()
+
+  const { data: updatedGoal, error } = await supabase
+    .from('goals')
+    .update(data)
+    .eq('id', goalId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating goal:', error)
+    throw error
+  }
+
+  return updatedGoal
+}
+
+/**
+ * Delete a goal (cascades to logs)
+ * @param {number} goalId - Goal ID
+ * @returns {Promise<void>}
+ */
+export async function deleteGoal(goalId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('goals')
+    .delete()
+    .eq('id', goalId)
+
+  if (error) {
+    console.error('Error deleting goal:', error)
+    throw error
+  }
+}
+
+/**
+ * Create a new log
+ * @param {number} goalId - Parent goal ID
+ * @param {string} entry - Log entry text
+ * @param {string} date - Log date (YYYY-MM-DD)
+ * @returns {Promise<Object>} Created log
+ */
+export async function createLog(goalId, entry, date) {
+  const supabase = getSupabaseClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  const { data: newLog, error } = await supabase
+    .from('logs')
+    .insert({
+      goal_id: goalId,
+      entry,
+      date,
+      user_id: user.id
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating log:', error)
+    throw error
+  }
+
+  return { ...newLog, content: [], repertoire: [] }
+}
+
+/**
+ * Update a log
+ * @param {number} logId - Log ID
+ * @param {Object} data - Update data {entry, date}
+ * @returns {Promise<void>}
+ */
+export async function updateLog(logId, data) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('logs')
+    .update(data)
+    .eq('id', logId)
+
+  if (error) {
+    console.error('Error updating log:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a log
+ * @param {number} logId - Log ID
+ * @returns {Promise<void>}
+ */
+export async function deleteLog(logId) {
+  const supabase = getSupabaseClient()
+
+  const { error} = await supabase
+    .from('logs')
+    .delete()
+    .eq('id', logId)
+
+  if (error) {
+    console.error('Error deleting log:', error)
+    throw error
+  }
+}
+
+/**
+ * Search content by title
+ * @param {string} searchTerm - Search term
+ * @returns {Promise<Array>} Matching content items
+ */
+export async function searchContentForLinking(searchTerm) {
+  const supabase = getSupabaseClient()
+
+  if (!searchTerm || searchTerm.length < 2) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('content')
+    .select('id, title, url, type')
+    .ilike('title', `%${searchTerm}%`)
+    .order('title', { ascending: true })
+    .limit(10)
+
+  if (error) {
+    console.error('Error searching content:', error)
+    throw error
+  }
+
+  return data || []
+}
+
+/**
+ * Search repertoire by title or artist
+ * @param {string} searchTerm - Search term
+ * @returns {Promise<Array>} Matching repertoire items
+ */
+export async function searchRepertoireForLinking(searchTerm) {
+  const supabase = getSupabaseClient()
+
+  if (!searchTerm || searchTerm.length < 2) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('repertoire')
+    .select('id, title, artist')
+    .or(`title.ilike.%${searchTerm}%,artist.ilike.%${searchTerm}%`)
+    .order('title', { ascending: true })
+    .limit(10)
+
+  if (error) {
+    console.error('Error searching repertoire:', error)
+    throw error
+  }
+
+  return data || []
+}
+
+/**
+ * Link content to a goal
+ * @param {number} goalId - Goal ID
+ * @param {number} contentId - Content ID
+ * @returns {Promise<void>}
+ */
+export async function linkContentToGoal(goalId, contentId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('goal_content')
+    .insert({ goal_id: goalId, content_id: contentId })
+
+  // Ignore duplicate errors
+  if (error && error.code !== '23505') {
+    console.error('Error linking content to goal:', error)
+    throw error
+  }
+}
+
+/**
+ * Unlink content from a goal
+ * @param {number} goalId - Goal ID
+ * @param {number} contentId - Content ID
+ * @returns {Promise<void>}
+ */
+export async function unlinkContentFromGoal(goalId, contentId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('goal_content')
+    .delete()
+    .match({ goal_id: goalId, content_id: contentId })
+
+  if (error) {
+    console.error('Error unlinking content from goal:', error)
+    throw error
+  }
+}
+
+/**
+ * Link repertoire to a log
+ * @param {number} logId - Log ID
+ * @param {number} repertoireId - Repertoire ID
+ * @returns {Promise<void>}
+ */
+export async function linkRepertoireToLog(logId, repertoireId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('log_repertoire')
+    .insert({ log_id: logId, repertoire_id: repertoireId })
+
+  // Ignore duplicate errors
+  if (error && error.code !== '23505') {
+    console.error('Error linking repertoire to log:', error)
+    throw error
+  }
+}
+
+/**
+ * Unlink repertoire from a log
+ * @param {number} logId - Log ID
+ * @param {number} repertoireId - Repertoire ID
+ * @returns {Promise<void>}
+ */
+export async function unlinkRepertoireFromLog(logId, repertoireId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('log_repertoire')
+    .delete()
+    .match({ log_id: logId, repertoire_id: repertoireId })
+
+  if (error) {
+    console.error('Error unlinking repertoire from log:', error)
+    throw error
+  }
+}
+
+/**
+ * Fetch today's practice session
+ * @returns {Promise<Object|null>} Session with session_goals or null
+ */
+export async function fetchTodaySession() {
+  const supabase = getSupabaseClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('id, session_goals(goal_id)')
+    .eq('user_id', user.id)
+    .eq('session_date', today)
+    .single()
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+    console.error('Error fetching today session:', error)
+    throw error
+  }
+
+  return data
+}
+
+/**
+ * Add a goal to today's session (creates session if needed)
+ * @param {number} goalId - Goal ID to add
+ * @returns {Promise<void>}
+ */
+export async function addGoalToSession(goalId) {
+  const supabase = getSupabaseClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  // Get or create today's session
+  let { data: session, error: sessionError } = await supabase
+    .from('sessions')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('session_date', today)
+    .single()
+
+  if (sessionError && sessionError.code === 'PGRST116') {
+    // Create session if it doesn't exist
+    const { data: newSession, error: createError } = await supabase
+      .from('sessions')
+      .insert({
+        user_id: user.id,
+        session_date: today
+      })
+      .select('id')
+      .single()
+
+    if (createError) {
+      console.error('Error creating session:', createError)
+      throw createError
+    }
+
+    session = newSession
+  } else if (sessionError) {
+    console.error('Error fetching session:', sessionError)
+    throw sessionError
+  }
+
+  // Add goal to session
+  const { error: linkError } = await supabase
+    .from('session_goals')
+    .insert({
+      session_id: session.id,
+      goal_id: goalId
+    })
+
+  // Ignore duplicate errors
+  if (linkError && linkError.code !== '23505') {
+    console.error('Error adding goal to session:', linkError)
+    throw linkError
+  }
+}
+
+/**
+ * Fetch content linked to a specific goal
+ * @param {number} goalId - Goal ID
+ * @returns {Promise<Array>} Array of content items
+ */
+export async function fetchGoalContent(goalId) {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('goal_content')
+    .select('content(*)')
+    .eq('goal_id', goalId)
+
+  if (error) {
+    console.error('Error fetching goal content:', error)
+    throw error
+  }
+
+  return data?.map(item => item.content).filter(Boolean) || []
+}

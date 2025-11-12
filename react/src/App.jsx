@@ -3,12 +3,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ContentTab from './components/ContentTab'
 import RepertoireTab from './components/RepertoireTab'
 import LogsTab from './components/LogsTab'
+import TopicsTab from './components/TopicsTab'
 import Auth from './components/Auth'
 import { Button } from '@/components/ui/button'
 
 function AppContent() {
   const { user, loading, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState('content') // 'content', 'repertoire', or 'logs'
+  const [activeTab, setActiveTab] = useState('content') // 'content', 'repertoire', 'logs', or 'topics'
 
   if (loading) {
     return (
@@ -60,11 +61,19 @@ function AppContent() {
           >
             Logs
           </Button>
+          <Button
+            variant={activeTab === 'topics' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('topics')}
+            className={activeTab === 'topics' ? 'bg-primary-600' : ''}
+          >
+            Topics
+          </Button>
         </div>
       </div>
       {activeTab === 'content' && <ContentTab />}
       {activeTab === 'repertoire' && <RepertoireTab />}
       {activeTab === 'logs' && <LogsTab />}
+      {activeTab === 'topics' && <TopicsTab />}
     </div>
   )
 }

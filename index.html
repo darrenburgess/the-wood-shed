@@ -134,8 +134,8 @@
                 <div id="repertoire-view" style="display: none;" x-show="false"></div>
             </div>
 
-            <!-- React App - fullscreen iframe (shown when content, repertoire, or logs tab active) -->
-            <div x-show="activeView === 'content' || activeView === 'repertoire' || activeView === 'logs'" class="absolute inset-0" style="top: 0; left: 256px;">
+            <!-- React App - fullscreen iframe (shown when content, repertoire, logs, or topics tab active) -->
+            <div x-show="activeView === 'content' || activeView === 'repertoire' || activeView === 'logs' || activeView === 'topics'" class="absolute inset-0" style="top: 0; left: 256px;">
                 <iframe
                     src="http://localhost:5173"
                     class="w-full h-full border-0"
