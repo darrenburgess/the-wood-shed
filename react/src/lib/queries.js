@@ -613,3 +613,36 @@ export async function syncRepertoireTags(repertoireId, newTagNames) {
     await linkRepertoireTag(repertoireId, tagId)
   }
 }
+
+// ============================================================================
+// LOGS FUNCTIONS
+// ============================================================================
+
+/**
+ * Fetch logs by date range
+ * @param {string} startDate - Start date in YYYY-MM-DD format
+ * @param {string} endDate - End date in YYYY-MM-DD format
+ * @returns {Promise<Array>} Array of log items with goals, content, and repertoire
+ */
+export async function fetchLogsByDateRange(startDate, endDate) {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('logs')
+    .select('*, goals(*, topics(*)), log_content(content(*)), log_repertoire(repertoire(*))')
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching logs:', error)
+    throw error
+  }
+
+  // Transform data to flatten content and repertoire arrays
+  return data.map(log => ({
+    ...log,
+    content: log.log_content?.map(lc => lc.content).filter(Boolean) || [],
+    repertoire: log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || []
+  }))
+}
