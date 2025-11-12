@@ -79,10 +79,40 @@ export default function LogsTab() {
     return date.toLocaleDateString('en-US', options)
   }
 
-  // Format time from created_at
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  // Format date for log entry (just the date, no time)
+  const formatLogDate = (dateString) => {
+    const date = new Date(dateString + 'T00:00:00')
+    return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })
+  }
+
+  // Group logs by topic and goal
+  const groupLogsByTopicAndGoal = (logs) => {
+    const grouped = {}
+
+    logs.forEach(log => {
+      if (!log.goals || !log.goals.topics) return
+
+      const topicName = log.goals.topics.name
+      const goalId = log.goals.id
+      const goalNumber = log.goals.goal_number || ''
+      const goalDescription = log.goals.description
+
+      if (!grouped[topicName]) {
+        grouped[topicName] = {}
+      }
+
+      if (!grouped[topicName][goalId]) {
+        grouped[topicName][goalId] = {
+          goalNumber,
+          goalDescription,
+          logs: []
+        }
+      }
+
+      grouped[topicName][goalId].logs.push(log)
+    })
+
+    return grouped
   }
 
   // Check if current date is today
@@ -211,61 +241,47 @@ export default function LogsTab() {
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          {logs.map((log) => (
-            <div
-              key={log.id}
-              className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
-            >
-              {/* Log Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  {log.goals && (
-                    <div className="flex items-center gap-2 mb-2">
-                      {log.goals.topics && (
-                        <Badge variant="outline" className="bg-primary-50 text-primary-700 border-primary-200">
-                          {log.goals.topics.name}
-                        </Badge>
-                      )}
-                      <span className="text-sm font-medium text-gray-900">{log.goals.description}</span>
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs text-gray-500">{formatTime(log.created_at)}</span>
-              </div>
+        <div className="space-y-6">
+          {Object.entries(groupLogsByTopicAndGoal(logs)).map(([topicName, goals]) => (
+            <div key={topicName} className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+              {/* Topic Heading */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{topicName}</h2>
 
-              {/* Log Entry */}
-              <p className="text-gray-700 whitespace-pre-wrap mb-4">{log.entry}</p>
+              {/* Goals */}
+              {Object.entries(goals).map(([goalId, goalData]) => (
+                <div key={goalId} className="mb-6 last:mb-0">
+                  {/* Goal Subheading */}
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                    {goalData.goalNumber && `${goalData.goalNumber}: `}{goalData.goalDescription}
+                  </h3>
 
-              {/* Content and Repertoire Tags */}
-              {(log.content?.length > 0 || log.repertoire?.length > 0) && (
-                <div className="flex gap-4 flex-wrap">
-                  {log.content?.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-500">Content:</span>
-                      <div className="flex gap-1 flex-wrap">
-                        {log.content.map((item) => (
-                          <Badge key={item.id} variant="secondary" className="text-xs">
-                            {item.title}
-                          </Badge>
-                        ))}
+                  {/* Logs */}
+                  <div className="space-y-2">
+                    {goalData.logs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-2 text-sm text-gray-700">
+                        <span className="text-gray-500 shrink-0">{formatLogDate(log.date)}</span>
+                        <span className="flex-1">{log.entry}</span>
+
+                        {/* Content and Repertoire inline */}
+                        {(log.content?.length > 0 || log.repertoire?.length > 0) && (
+                          <span className="shrink-0 flex gap-1 flex-wrap">
+                            {log.content?.map((item) => (
+                              <Badge key={item.id} variant="secondary" className="text-xs">
+                                {item.title}
+                              </Badge>
+                            ))}
+                            {log.repertoire?.map((item) => (
+                              <Badge key={item.id} variant="secondary" className="text-xs">
+                                {item.title}
+                              </Badge>
+                            ))}
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  )}
-                  {log.repertoire?.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-500">Repertoire:</span>
-                      <div className="flex gap-1 flex-wrap">
-                        {log.repertoire.map((item) => (
-                          <Badge key={item.id} variant="secondary" className="text-xs">
-                            {item.title}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           ))}
         </div>
