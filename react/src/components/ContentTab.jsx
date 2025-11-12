@@ -113,11 +113,9 @@ export default function ContentTab() {
       if (formData.id) {
         // Edit existing content
         await updateContent(formData.id, formData)
-        alert('Content updated successfully!')
       } else {
         // Create new content
         await createContent(formData)
-        alert('Content created successfully!')
       }
 
       // Refresh content list
@@ -135,7 +133,6 @@ export default function ContentTab() {
 
     try {
       await deleteContent(item.id)
-      alert('Content deleted successfully!')
 
       // Refresh content list
       await loadContent()
