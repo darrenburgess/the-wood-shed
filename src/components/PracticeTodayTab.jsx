@@ -942,6 +942,23 @@ function GoalCard({
             </div>
           )}
 
+          {/* Add Log Form */}
+          <div className="mb-4">
+            <Textarea
+              id={`log-input-${goal.id}`}
+              placeholder="What did you practice?"
+              value={newLogInputs[goal.id] || ''}
+              onChange={(e) => setNewLogInputs(prev => ({ ...prev, [goal.id]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  onAddLog(goal.id)
+                }
+              }}
+              className="bg-gray-50 border border-gray-300 rounded-lg p-2.5 w-full h-9 min-h-9 max-h-9 resize-none overflow-hidden"
+            />
+          </div>
+
           {/* Logs Section */}
           <div className="space-y-3">
             {displayLogs && displayLogs.length > 0 ? (
@@ -989,23 +1006,6 @@ function GoalCard({
               </Button>
             </div>
           )}
-
-          {/* Add Log Form */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <Textarea
-              id={`log-input-${goal.id}`}
-              placeholder="What did you practice?"
-              value={newLogInputs[goal.id] || ''}
-              onChange={(e) => setNewLogInputs(prev => ({ ...prev, [goal.id]: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  onAddLog(goal.id)
-                }
-              }}
-              className="bg-gray-50 border border-gray-300 rounded-lg p-2.5 w-full h-9 min-h-9 max-h-9 resize-none overflow-hidden"
-            />
-          </div>
         </div>
       </details>
     </div>

@@ -729,17 +729,39 @@ export default function TopicsTab() {
 
                   {/* Topic Content */}
                   <div className="px-6 py-4">
+                    {/* Add Goal Inline Form */}
+                    <div className="mb-4">
+                      <Input
+                        type="text"
+                        placeholder="New goal description..."
+                        value={newGoalInputs[topic.id] || ''}
+                        onChange={(e) => setNewGoalInputs(prev => ({
+                          ...prev,
+                          [topic.id]: e.target.value
+                        }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCreateGoal(topic.id)
+                          }
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+
                     {/* Active Goals */}
                     {activeGoals.map(goal => (
                       <div key={goal.id} className="border-b border-gray-100 last:border-b-0 py-3 relative">
                         <details
                           open={openGoals[goal.id]}
-                          onToggle={(e) => setOpenGoals(prev => ({
-                            ...prev,
-                            [goal.id]: e.target.open
-                          }))}
+                          onToggle={(e) => {
+                            e.stopPropagation()
+                            setOpenGoals(prev => ({
+                              ...prev,
+                              [goal.id]: e.target.open
+                            }))
+                          }}
                         >
-                          <summary className="flex justify-between items-start gap-2 cursor-pointer list-none">
+                          <summary className="flex justify-between items-start gap-2 cursor-pointer list-none" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-start gap-2 flex-1">
                               <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -840,9 +862,26 @@ export default function TopicsTab() {
                               </div>
                             )}
 
+                            {/* Add Log Inline Form */}
+                            <Textarea
+                              placeholder="Log your progress..."
+                              value={newLogInputs[goal.id] || ''}
+                              onChange={(e) => setNewLogInputs(prev => ({
+                                ...prev,
+                                [goal.id]: e.target.value
+                              }))}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  handleCreateLog(goal.id)
+                                }
+                              }}
+                              className="bg-gray-50 border border-gray-300 rounded-lg p-2.5 w-full h-9 min-h-9 max-h-9 resize-none overflow-hidden"
+                            />
+
                             {/* Logs */}
                             {goal.logs && goal.logs.length > 0 ? (
-                              <div className="space-y-2">
+                              <div className="space-y-2 mt-3">
                                 {goal.logs.slice(0, logsToShow[goal.id] || 5).map(log => (
                                   <div key={log.id} className="relative">
                                     <div className="flex items-start gap-2 text-sm">
@@ -1011,25 +1050,8 @@ export default function TopicsTab() {
                                 )}
                               </div>
                             ) : (
-                              <p className="text-sm text-gray-500 italic">No logs yet for this goal.</p>
+                              <p className="text-sm text-gray-500 italic mt-3">No logs yet for this goal.</p>
                             )}
-
-                            {/* Add Log Inline Form */}
-                            <Textarea
-                              placeholder="Log your progress..."
-                              value={newLogInputs[goal.id] || ''}
-                              onChange={(e) => setNewLogInputs(prev => ({
-                                ...prev,
-                                [goal.id]: e.target.value
-                              }))}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault()
-                                  handleCreateLog(goal.id)
-                                }
-                              }}
-                              className="w-full h-9 min-h-9 max-h-9 resize-none overflow-hidden"
-                            />
                           </div>
                         </details>
 
@@ -1178,25 +1200,6 @@ export default function TopicsTab() {
                         </details>
                       </div>
                     )}
-
-                    {/* Add Goal Inline Form */}
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <Input
-                        type="text"
-                        placeholder="New goal description..."
-                        value={newGoalInputs[topic.id] || ''}
-                        onChange={(e) => setNewGoalInputs(prev => ({
-                          ...prev,
-                          [topic.id]: e.target.value
-                        }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleCreateGoal(topic.id)
-                          }
-                        }}
-                        className="w-full"
-                      />
-                    </div>
                   </div>
                 </details>
               </div>
