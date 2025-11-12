@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import TagInput from './TagInput'
 
-export default function RepertoireModal({ open, onClose, repertoireData, onSave }) {
+export default function RepertoireModal({ open, onClose, repertoireData, onSave, onDelete }) {
   const [formData, setFormData] = useState({
     title: '',
     composer: '',
@@ -80,6 +80,13 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave 
     onClose()
   }
 
+  const handleDelete = () => {
+    if (confirm(`Are you sure you want to delete "${formData.title}"?`)) {
+      onDelete(repertoireData.id)
+      onClose()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
@@ -151,16 +158,27 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave 
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="bg-primary-600 hover:bg-primary-700"
-          >
-            {repertoireData ? 'Update' : 'Create'}
-          </Button>
+        <DialogFooter className="flex justify-between items-center">
+          {repertoireData && (
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="mr-auto"
+            >
+              Delete
+            </Button>
+          )}
+          <div className="flex gap-2 ml-auto">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-primary-600 hover:bg-primary-700"
+            >
+              {repertoireData ? 'Update' : 'Create'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -15,14 +15,22 @@ import {
   updateLog,
   deleteLog,
   fetchGoalContent,
+  fetchGoalRepertoire,
+  fetchLogContent,
+  fetchLogRepertoire,
   searchContentForLinking,
   searchRepertoireForLinking,
   linkContentToGoal,
   unlinkContentFromGoal,
+  linkRepertoireToGoal,
+  unlinkRepertoireFromGoal,
+  linkContentToLog,
+  unlinkContentFromLog,
   linkRepertoireToLog,
   unlinkRepertoireFromLog,
   fetchTodaySession,
-  addGoalToSession
+  addGoalToSession,
+  removeGoalFromSession
 } from '@/lib/queries'
 import TopicModal from './TopicModal'
 import GoalModal from './GoalModal'
@@ -51,9 +59,13 @@ export default function TopicsTab() {
   const [newGoalInputs, setNewGoalInputs] = useState({}) // topicId -> text
   const [newLogInputs, setNewLogInputs] = useState({}) // goalId -> text
 
-  // Content/Repertoire search states
+  // Content/Repertoire search states (for goals)
   const [contentSearches, setContentSearches] = useState({}) // goalId -> { open, query, results }
-  const [repertoireSearches, setRepertoireSearches] = useState({}) // logId -> { open, query, results }
+  const [repertoireSearches, setRepertoireSearches] = useState({}) // goalId -> { open, query, results }
+
+  // Content/Repertoire search states (for logs)
+  const [logContentSearches, setLogContentSearches] = useState({}) // logId -> { open, query, results }
+  const [logRepertoireSearches, setLogRepertoireSearches] = useState({}) // logId -> { open, query, results }
 
   // Session state
   const [sessionGoalIds, setSessionGoalIds] = useState(new Set())
@@ -308,17 +320,54 @@ export default function TopicsTab() {
     }
   }
 
-  // Repertoire linking handlers
-  const handleRepertoireSearch = useCallback(async (logId, query) => {
+  // Repertoire linking to goals handlers
+  const handleLinkRepertoireToGoal = async (goalId, repertoireId, repertoireData) => {
+    try {
+      await linkRepertoireToGoal(goalId, repertoireId)
+      // Reload goal repertoire
+      const repertoire = await fetchGoalRepertoire(goalId)
+      setTopics(prev => prev.map(topic => ({
+        ...topic,
+        goals: topic.goals.map(g =>
+          g.id === goalId ? { ...g, repertoire } : g
+        )
+      })))
+      setRepertoireSearches(prev => ({
+        ...prev,
+        [goalId]: { open: false, query: '', results: [] }
+      }))
+    } catch (err) {
+      alert('Failed to link repertoire: ' + err.message)
+    }
+  }
+
+  const handleUnlinkRepertoireFromGoal = async (goalId, repertoireId) => {
+    try {
+      await unlinkRepertoireFromGoal(goalId, repertoireId)
+      setTopics(prev => prev.map(topic => ({
+        ...topic,
+        goals: topic.goals.map(g =>
+          g.id === goalId
+            ? { ...g, repertoire: g.repertoire?.filter(r => r.id !== repertoireId) }
+            : g
+        )
+      })))
+    } catch (err) {
+      alert('Failed to unlink repertoire: ' + err.message)
+    }
+  }
+
+  // Repertoire linking handlers (works for both goals and logs)
+  const handleRepertoireSearch = useCallback(async (entityId, query) => {
     setRepertoireSearches(prev => ({
       ...prev,
-      [logId]: { ...prev[logId], query }
+      [entityId]: { ...prev[entityId], query }
     }))
 
     if (query.length < 2) {
       setRepertoireSearches(prev => ({
         ...prev,
-        [logId]: { ...prev[logId], results: [] }
+        [entityId]: { ...prev[entityId], results: [] }
       }))
       return
     }
@@ -327,7 +376,7 @@ export default function TopicsTab() {
       const results = await searchRepertoireForLinking(query)
       setRepertoireSearches(prev => ({
         ...prev,
-        [logId]: { ...prev[logId], results }
+        [entityId]: { ...prev[entityId], results }
       }))
     } catch (err) {
       console.error('Repertoire search error:', err)
@@ -376,6 +425,139 @@ export default function TopicsTab() {
     }
   }
 
+  // Log-level content linking handlers
+  const handleLogContentSearch = useCallback(async (logId, query) => {
+    setLogContentSearches(prev => ({
+      ...prev,
+      [logId]: { ...prev[logId], query }
+    }))
+
+    if (query.length < 2) {
+      setLogContentSearches(prev => ({
+        ...prev,
+        [logId]: { ...prev[logId], results: [] }
+      }))
+      return
+    }
+
+    try {
+      const results = await searchContentForLinking(query)
+      setLogContentSearches(prev => ({
+        ...prev,
+        [logId]: { ...prev[logId], results }
+      }))
+    } catch (err) {
+      console.error('Content search error:', err)
+    }
+  }, [])
+
+  const handleLinkContentToLog = async (logId, contentId) => {
+    try {
+      await linkContentToLog(logId, contentId)
+      const content = await fetchLogContent(logId)
+      setTopics(prev => prev.map(topic => ({
+        ...topic,
+        goals: topic.goals.map(g => ({
+          ...g,
+          logs: g.logs?.map(log =>
+            log.id === logId ? { ...log, content } : log
+          )
+        }))
+      })))
+      setLogContentSearches(prev => ({
+        ...prev,
+        [logId]: { open: false, query: '', results: [] }
+      }))
+    } catch (err) {
+      alert('Failed to link content: ' + err.message)
+    }
+  }
+
+  const handleUnlinkContentFromLog = async (logId, contentId) => {
+    try {
+      await unlinkContentFromLog(logId, contentId)
+      setTopics(prev => prev.map(topic => ({
+        ...topic,
+        goals: topic.goals.map(g => ({
+          ...g,
+          logs: g.logs?.map(log =>
+            log.id === logId
+              ? { ...log, content: log.content?.filter(c => c.id !== contentId) }
+              : log
+          )
+        }))
+      })))
+    } catch (err) {
+      alert('Failed to unlink content: ' + err.message)
+    }
+  }
+
+  const handleLogRepertoireSearch = useCallback(async (logId, query) => {
+    setLogRepertoireSearches(prev => ({
+      ...prev,
+      [logId]: { ...prev[logId], query }
+    }))
+
+    if (query.length < 2) {
+      setLogRepertoireSearches(prev => ({
+        ...prev,
+        [logId]: { ...prev[logId], results: [] }
+      }))
+      return
+    }
+
+    try {
+      const results = await searchRepertoireForLinking(query)
+      setLogRepertoireSearches(prev => ({
+        ...prev,
+        [logId]: { ...prev[logId], results }
+      }))
+    } catch (err) {
+      console.error('Repertoire search error:', err)
+    }
+  }, [])
+
+  const handleLinkRepertoireToLog = async (logId, repertoireId) => {
+    try {
+      await linkRepertoireToLog(logId, repertoireId)
+      const repertoire = await fetchLogRepertoire(logId)
+      setTopics(prev => prev.map(topic => ({
+        ...topic,
+        goals: topic.goals.map(g => ({
+          ...g,
+          logs: g.logs?.map(log =>
+            log.id === logId ? { ...log, repertoire } : log
+          )
+        }))
+      })))
+      setLogRepertoireSearches(prev => ({
+        ...prev,
+        [logId]: { open: false, query: '', results: [] }
+      }))
+    } catch (err) {
+      alert('Failed to link repertoire: ' + err.message)
+    }
+  }
+
+  const handleUnlinkRepertoireFromLog = async (logId, repertoireId) => {
+    try {
+      await unlinkRepertoireFromLog(logId, repertoireId)
+      setTopics(prev => prev.map(topic => ({
+        ...topic,
+        goals: topic.goals.map(g => ({
+          ...g,
+          logs: g.logs?.map(log =>
+            log.id === logId
+              ? { ...log, repertoire: log.repertoire?.filter(r => r.id !== repertoireId) }
+              : log
+          )
+        }))
+      })))
+    } catch (err) {
+      alert('Failed to unlink repertoire: ' + err.message)
+    }
+  }
+
   // Session handlers
   const handleAddToSession = async (goalId) => {
     try {
@@ -383,6 +565,19 @@ export default function TopicsTab() {
       setSessionGoalIds(prev => new Set([...prev, goalId]))
     } catch (err) {
       alert('Failed to add to session: ' + err.message)
+    }
+  }
+
+  const handleRemoveFromSession = async (goalId) => {
+    try {
+      await removeGoalFromSession(goalId)
+      setSessionGoalIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(goalId)
+        return newSet
+      })
+    } catch (err) {
+      alert('Failed to remove from session: ' + err.message)
     }
   }
 
@@ -501,24 +696,26 @@ export default function TopicsTab() {
                         Topic {topic.topic_number}: {topic.title}
                       </h2>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <button
                       onClick={(e) => {
                         e.preventDefault()
                         setEditingTopic(topic)
                         setTopicModalOpen(true)
                       }}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="Edit topic"
                     >
-                      Edit
-                    </Button>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
                   </summary>
 
                   {/* Topic Content */}
                   <div className="px-6 py-4">
                     {/* Active Goals */}
                     {activeGoals.map(goal => (
-                      <div key={goal.id} className="border-b border-gray-100 last:border-b-0 py-3">
+                      <div key={goal.id} className="border-b border-gray-100 last:border-b-0 py-3 relative">
                         <details
                           open={openGoals[goal.id]}
                           onToggle={(e) => setOpenGoals(prev => ({
@@ -540,9 +737,13 @@ export default function TopicsTab() {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.preventDefault()}>
+                            <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                               {sessionGoalIds.has(goal.id) ? (
-                                <button className="text-green-600 cursor-default px-2 py-1" title="In session">
+                                <button
+                                  onClick={() => handleRemoveFromSession(goal.id)}
+                                  className="text-green-600 hover:text-green-700 px-2 py-1 cursor-pointer"
+                                  title="Remove from session"
+                                >
                                   ✓
                                 </button>
                               ) : (
@@ -554,85 +755,67 @@ export default function TopicsTab() {
                                   +
                                 </button>
                               )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setContentSearches(prev => ({
-                                    ...prev,
-                                    [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
-                                  }))
-                                }}
+                              {/* Content count button */}
+                              <button
+                                onClick={() => setContentSearches(prev => ({
+                                  ...prev,
+                                  [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
+                                }))}
+                                className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
+                                title={`Content (${goal.content?.length || 0})`}
                               >
-                                + Content
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
+                                {goal.content?.length || 0}
+                              </button>
+
+                              {/* Repertoire count button */}
+                              <button
+                                onClick={() => setRepertoireSearches(prev => ({
+                                  ...prev,
+                                  [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
+                                }))}
+                                className="w-6 h-6 rounded-full bg-green-600 text-white text-xs font-medium flex items-center justify-center hover:bg-green-700"
+                                title={`Repertoire (${goal.repertoire?.length || 0})`}
+                              >
+                                {goal.repertoire?.length || 0}
+                              </button>
+
+                              <button
                                 onClick={() => {
                                   setEditingGoal(goal)
                                   setGoalModalOpen(true)
                                 }}
+                                className="text-gray-600 hover:text-gray-800 p-1"
+                                title="Edit goal"
                               >
-                                Edit
-                              </Button>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
                             </div>
                           </summary>
 
                           {/* Goal Content */}
                           <div className="ml-6 mt-3 space-y-4">
-                            {/* Content Search Dropdown */}
-                            {contentSearches[goal.id]?.open && (
-                              <div className="relative z-50">
-                                <div className="absolute top-0 left-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
-                                  <Input
-                                    type="text"
-                                    placeholder="Search content..."
-                                    value={contentSearches[goal.id]?.query || ''}
-                                    onChange={(e) => handleContentSearch(goal.id, e.target.value)}
-                                    autoFocus
-                                  />
-                                  {contentSearches[goal.id]?.results?.length > 0 && (
-                                    <div className="mt-2 max-h-60 overflow-y-auto">
-                                      {contentSearches[goal.id].results.map(content => {
-                                        const alreadyLinked = goal.content?.some(c => c.id === content.id)
-                                        return (
-                                          <button
-                                            key={content.id}
-                                            onClick={() => !alreadyLinked && handleLinkContent(goal.id, content.id)}
-                                            disabled={alreadyLinked}
-                                            className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                          >
-                                            {content.title}
-                                          </button>
-                                        )
-                                      })}
-                                    </div>
-                                  )}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-2 w-full"
-                                    onClick={() => setContentSearches(prev => ({
-                                      ...prev,
-                                      [goal.id]: { open: false, query: '', results: [] }
-                                    }))}
-                                  >
-                                    Close
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Linked Content */}
-                            {goal.content && goal.content.length > 0 && (
+                            {/* Linked Content and Repertoire */}
+                            {((goal.content && goal.content.length > 0) || (goal.repertoire && goal.repertoire.length > 0)) && (
                               <div className="flex flex-wrap gap-1">
-                                {goal.content.map(content => (
+                                {goal.content?.map(content => (
                                   <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
                                     {content.title}
                                     <button
                                       onClick={() => handleUnlinkContent(goal.id, content.id)}
                                       className="ml-1 hover:text-blue-900"
+                                    >
+                                      ×
+                                    </button>
+                                  </Badge>
+                                ))}
+                                {goal.repertoire?.map(rep => (
+                                  <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
+                                    {rep.title} - {rep.artist}
+                                    <button
+                                      onClick={() => handleUnlinkRepertoireFromGoal(goal.id, rep.id)}
+                                      className="ml-1 hover:text-green-900"
                                     >
                                       ×
                                     </button>
@@ -645,37 +828,153 @@ export default function TopicsTab() {
                             {goal.logs && goal.logs.length > 0 ? (
                               <div className="space-y-2">
                                 {goal.logs.slice(0, logsToShow[goal.id] || 5).map(log => (
-                                  <div key={log.id} className="flex items-start gap-2 text-sm">
-                                    <span className="text-gray-500 shrink-0">{formatDate(log.date)}</span>
-                                    <span className="flex-1">{log.entry}</span>
+                                  <div key={log.id} className="relative">
+                                    <div className="flex items-start gap-2 text-sm">
+                                      <span className="text-gray-500 shrink-0">{formatDate(log.date)}</span>
+                                      <span className="flex-1">{log.entry}</span>
 
-                                    {/* Content and Repertoire badges inline */}
-                                    {(log.content?.length > 0 || log.repertoire?.length > 0) && (
-                                      <span className="shrink-0 flex gap-1 flex-wrap">
-                                        {log.content?.map(item => (
-                                          <Badge key={item.id} variant="secondary" className="text-xs bg-blue-100 text-blue-800">
-                                            {item.title}
-                                          </Badge>
-                                        ))}
-                                        {log.repertoire?.map(item => (
-                                          <Badge key={item.id} variant="secondary" className="text-xs bg-green-100 text-green-800">
-                                            {item.title} - {item.artist}
-                                          </Badge>
-                                        ))}
-                                      </span>
+                                      {/* Circular count buttons for content and repertoire */}
+                                      <div className="shrink-0 flex gap-2 items-center">
+                                        {/* Content count button */}
+                                        <button
+                                          onClick={() => setLogContentSearches(prev => ({
+                                            ...prev,
+                                            [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
+                                          }))}
+                                          className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
+                                          title={`Content (${log.content?.length || 0})`}
+                                        >
+                                          {log.content?.length || 0}
+                                        </button>
+
+                                        {/* Repertoire count button */}
+                                        <button
+                                          onClick={() => setLogRepertoireSearches(prev => ({
+                                            ...prev,
+                                            [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
+                                          }))}
+                                          className="w-6 h-6 rounded-full bg-green-600 text-white text-xs font-medium flex items-center justify-center hover:bg-green-700"
+                                          title={`Repertoire (${log.repertoire?.length || 0})`}
+                                        >
+                                          {log.repertoire?.length || 0}
+                                        </button>
+
+                                        <button
+                                          onClick={() => {
+                                            setEditingLog(log)
+                                            setLogModalOpen(true)
+                                          }}
+                                          className="text-gray-600 hover:text-gray-800 p-1"
+                                          title="Edit log"
+                                        >
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Content Search Dropdown */}
+                                    {logContentSearches[log.id]?.open && (
+                                      <div className="relative z-50 mt-2">
+                                        <div className="absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                                          <h4 className="text-sm font-medium mb-2">Linked Content</h4>
+                                          {log.content && log.content.length > 0 && (
+                                            <div className="mb-3 flex flex-wrap gap-1">
+                                              {log.content.map(item => (
+                                                <Badge key={item.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                                  {item.title}
+                                                  <button onClick={() => handleUnlinkContentFromLog(log.id, item.id)}
+                                                    className="ml-1 hover:text-blue-900">×</button>
+                                                </Badge>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <Input
+                                            type="text"
+                                            placeholder="Search content..."
+                                            value={logContentSearches[log.id]?.query || ''}
+                                            onChange={(e) => handleLogContentSearch(log.id, e.target.value)}
+                                            autoFocus
+                                          />
+                                          {logContentSearches[log.id]?.results?.length > 0 && (
+                                            <div className="mt-2 max-h-60 overflow-y-auto">
+                                              {logContentSearches[log.id].results.map(content => {
+                                                const alreadyLinked = log.content?.some(c => c.id === content.id)
+                                                return (
+                                                  <button
+                                                    key={content.id}
+                                                    onClick={() => !alreadyLinked && handleLinkContentToLog(log.id, content.id)}
+                                                    disabled={alreadyLinked}
+                                                    className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                  >
+                                                    {content.title}
+                                                  </button>
+                                                )
+                                              })}
+                                            </div>
+                                          )}
+                                          <Button variant="outline" size="sm" className="mt-2 w-full"
+                                            onClick={() => setLogContentSearches(prev => ({
+                                              ...prev,
+                                              [log.id]: { open: false, query: '', results: [] }
+                                            }))}>
+                                            Close
+                                          </Button>
+                                        </div>
+                                      </div>
                                     )}
 
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setEditingLog(log)
-                                        setLogModalOpen(true)
-                                      }}
-                                      className="shrink-0"
-                                    >
-                                      Edit
-                                    </Button>
+                                    {/* Repertoire Search Dropdown */}
+                                    {logRepertoireSearches[log.id]?.open && (
+                                      <div className="relative z-50 mt-2">
+                                        <div className="absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                                          <h4 className="text-sm font-medium mb-2">Linked Repertoire</h4>
+                                          {log.repertoire && log.repertoire.length > 0 && (
+                                            <div className="mb-3 flex flex-wrap gap-1">
+                                              {log.repertoire.map(item => (
+                                                <Badge key={item.id} className="bg-green-100 text-green-800 flex items-center gap-1">
+                                                  {item.title} - {item.artist}
+                                                  <button onClick={() => handleUnlinkRepertoireFromLog(log.id, item.id)}
+                                                    className="ml-1 hover:text-green-900">×</button>
+                                                </Badge>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <Input
+                                            type="text"
+                                            placeholder="Search repertoire..."
+                                            value={logRepertoireSearches[log.id]?.query || ''}
+                                            onChange={(e) => handleLogRepertoireSearch(log.id, e.target.value)}
+                                            autoFocus
+                                          />
+                                          {logRepertoireSearches[log.id]?.results?.length > 0 && (
+                                            <div className="mt-2 max-h-60 overflow-y-auto">
+                                              {logRepertoireSearches[log.id].results.map(rep => {
+                                                const alreadyLinked = log.repertoire?.some(r => r.id === rep.id)
+                                                return (
+                                                  <button
+                                                    key={rep.id}
+                                                    onClick={() => !alreadyLinked && handleLinkRepertoireToLog(log.id, rep.id)}
+                                                    disabled={alreadyLinked}
+                                                    className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                  >
+                                                    {rep.title} - {rep.artist}
+                                                  </button>
+                                                )
+                                              })}
+                                            </div>
+                                          )}
+                                          <Button variant="outline" size="sm" className="mt-2 w-full"
+                                            onClick={() => setLogRepertoireSearches(prev => ({
+                                              ...prev,
+                                              [log.id]: { open: false, query: '', results: [] }
+                                            }))}>
+                                            Close
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
 
@@ -721,6 +1020,104 @@ export default function TopicsTab() {
                             </div>
                           </div>
                         </details>
+
+                        {/* Content Search Dropdown - positioned relative to goal wrapper */}
+                        {contentSearches[goal.id]?.open && (
+                          <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                            <h4 className="text-sm font-medium mb-2">Linked Content</h4>
+                            {goal.content && goal.content.length > 0 && (
+                              <div className="mb-3 flex flex-wrap gap-1">
+                                {goal.content.map(item => (
+                                  <Badge key={item.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                    {item.title}
+                                    <button onClick={() => handleUnlinkContent(goal.id, item.id)}
+                                      className="ml-1 hover:text-blue-900">×</button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            <Input
+                              type="text"
+                              placeholder="Search content..."
+                              value={contentSearches[goal.id]?.query || ''}
+                              onChange={(e) => handleContentSearch(goal.id, e.target.value)}
+                              autoFocus
+                            />
+                            {contentSearches[goal.id]?.results?.length > 0 && (
+                              <div className="mt-2 max-h-60 overflow-y-auto">
+                                {contentSearches[goal.id].results.map(content => {
+                                  const alreadyLinked = goal.content?.some(c => c.id === content.id)
+                                  return (
+                                    <button
+                                      key={content.id}
+                                      onClick={() => !alreadyLinked && handleLinkContent(goal.id, content.id)}
+                                      disabled={alreadyLinked}
+                                      className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                      {content.title}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            )}
+                            <Button variant="outline" size="sm" className="mt-2 w-full"
+                              onClick={() => setContentSearches(prev => ({
+                                ...prev,
+                                [goal.id]: { open: false, query: '', results: [] }
+                              }))}>
+                              Close
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Repertoire Search Dropdown - positioned relative to goal wrapper */}
+                        {repertoireSearches[goal.id]?.open && (
+                          <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                            <h4 className="text-sm font-medium mb-2">Linked Repertoire</h4>
+                            {goal.repertoire && goal.repertoire.length > 0 && (
+                              <div className="mb-3 flex flex-wrap gap-1">
+                                {goal.repertoire.map(item => (
+                                  <Badge key={item.id} className="bg-green-100 text-green-800 flex items-center gap-1">
+                                    {item.title} - {item.artist}
+                                    <button onClick={() => handleUnlinkRepertoireFromGoal(goal.id, item.id)}
+                                      className="ml-1 hover:text-green-900">×</button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            <Input
+                              type="text"
+                              placeholder="Search repertoire..."
+                              value={repertoireSearches[goal.id]?.query || ''}
+                              onChange={(e) => handleRepertoireSearch(goal.id, e.target.value)}
+                              autoFocus
+                            />
+                            {repertoireSearches[goal.id]?.results?.length > 0 && (
+                              <div className="mt-2 max-h-60 overflow-y-auto">
+                                {repertoireSearches[goal.id].results.map(rep => {
+                                  const alreadyLinked = goal.repertoire?.some(r => r.id === rep.id)
+                                  return (
+                                    <button
+                                      key={rep.id}
+                                      onClick={() => !alreadyLinked && handleLinkRepertoireToGoal(goal.id, rep.id, rep)}
+                                      disabled={alreadyLinked}
+                                      className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                      {rep.title} - {rep.artist}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            )}
+                            <Button variant="outline" size="sm" className="mt-2 w-full"
+                              onClick={() => setRepertoireSearches(prev => ({
+                                ...prev,
+                                [goal.id]: { open: false, query: '', results: [] }
+                              }))}>
+                              Close
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ))}
 
@@ -751,16 +1148,18 @@ export default function TopicsTab() {
                                     </span>
                                   )}
                                 </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
+                                <button
                                   onClick={() => {
                                     setEditingGoal(goal)
                                     setGoalModalOpen(true)
                                   }}
+                                  className="text-gray-600 hover:text-gray-800 p-1"
+                                  title="Edit goal"
                                 >
-                                  Edit
-                                </Button>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
                               </div>
                             ))}
                           </div>

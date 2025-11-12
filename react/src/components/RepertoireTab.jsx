@@ -123,13 +123,9 @@ export default function RepertoireTab() {
     }
   }
 
-  const handleDeleteRepertoire = async (item) => {
-    if (!confirm(`Are you sure you want to delete "${item.title}"?`)) {
-      return
-    }
-
+  const handleDeleteRepertoire = async (itemId) => {
     try {
-      await deleteRepertoire(item.id)
+      await deleteRepertoire(itemId)
 
       // Refresh repertoire list
       await loadRepertoire()
@@ -321,24 +317,14 @@ export default function RepertoireTab() {
                     <span className="text-sm text-gray-600">{formatDate(item.last_practiced)}</span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8"
-                        onClick={() => handleEditRepertoire(item)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteRepertoire(item)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => handleEditRepertoire(item)}
+                    >
+                      Edit
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -374,6 +360,7 @@ export default function RepertoireTab() {
         onClose={handleCloseModal}
         repertoireData={editingItem}
         onSave={handleSaveRepertoire}
+        onDelete={handleDeleteRepertoire}
       />
     </div>
   )

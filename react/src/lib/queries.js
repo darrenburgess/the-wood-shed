@@ -672,6 +672,11 @@ export async function fetchTopicsWithGoalsAndLogs() {
         is_complete,
         date_completed,
         created_at,
+        repertoire_id,
+        repertoire (*),
+        goal_content (
+          content (*)
+        ),
         logs (
           id,
           entry,
@@ -707,10 +712,15 @@ export async function fetchTopicsWithGoalsAndLogs() {
       })
 
       for (const goal of topic.goals) {
+        // Flatten goal content array
+        goal.content = goal.goal_content?.map(gc => gc.content).filter(Boolean) || []
+        // Goal has a single repertoire (direct foreign key), convert to array for consistent UI
+        goal.repertoire = goal.repertoire ? [goal.repertoire] : []
+
         if (goal.logs) {
           for (const log of goal.logs) {
             log.isToday = log.date === today
-            // Flatten content and repertoire arrays
+            // Flatten log content and repertoire arrays
             log.content = log.log_content?.map(lc => lc.content).filter(Boolean) || []
             log.repertoire = log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || []
           }
@@ -1099,6 +1109,88 @@ export async function unlinkRepertoireFromLog(logId, repertoireId) {
 }
 
 /**
+ * Link content to a log
+ * @param {number} logId - Log ID
+ * @param {number} contentId - Content ID
+ * @returns {Promise<void>}
+ */
+export async function linkContentToLog(logId, contentId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('log_content')
+    .insert({ log_id: logId, content_id: contentId })
+
+  // Ignore duplicate errors
+  if (error && error.code !== '23505') {
+    console.error('Error linking content to log:', error)
+    throw error
+  }
+}
+
+/**
+ * Unlink content from a log
+ * @param {number} logId - Log ID
+ * @param {number} contentId - Content ID
+ * @returns {Promise<void>}
+ */
+export async function unlinkContentFromLog(logId, contentId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('log_content')
+    .delete()
+    .match({ log_id: logId, content_id: contentId })
+
+  if (error) {
+    console.error('Error unlinking content from log:', error)
+    throw error
+  }
+}
+
+/**
+ * Fetch content linked to a log
+ * @param {number} logId - Log ID
+ * @returns {Promise<Array>} Array of content items
+ */
+export async function fetchLogContent(logId) {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('log_content')
+    .select('content(*)')
+    .eq('log_id', logId)
+
+  if (error) {
+    console.error('Error fetching log content:', error)
+    throw error
+  }
+
+  return data?.map(item => item.content).filter(Boolean) || []
+}
+
+/**
+ * Fetch repertoire linked to a log
+ * @param {number} logId - Log ID
+ * @returns {Promise<Array>} Array of repertoire items
+ */
+export async function fetchLogRepertoire(logId) {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('log_repertoire')
+    .select('repertoire(*)')
+    .eq('log_id', logId)
+
+  if (error) {
+    console.error('Error fetching log repertoire:', error)
+    throw error
+  }
+
+  return data?.map(item => item.repertoire).filter(Boolean) || []
+}
+
+/**
  * Fetch today's practice session
  * @returns {Promise<Object|null>} Session with session_goals or null
  */
@@ -1188,6 +1280,46 @@ export async function addGoalToSession(goalId) {
 }
 
 /**
+ * Remove a goal from today's session
+ * @param {number} goalId - Goal ID to remove
+ * @returns {Promise<void>}
+ */
+export async function removeGoalFromSession(goalId) {
+  const supabase = getSupabaseClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  // Get today's session
+  const { data: session, error: sessionError } = await supabase
+    .from('sessions')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('session_date', today)
+    .single()
+
+  if (sessionError) {
+    console.error('Error fetching session:', sessionError)
+    return // Session doesn't exist, nothing to remove
+  }
+
+  // Remove goal from session
+  const { error } = await supabase
+    .from('session_goals')
+    .delete()
+    .match({ session_id: session.id, goal_id: goalId })
+
+  if (error) {
+    console.error('Error removing goal from session:', error)
+    throw error
+  }
+}
+
+/**
  * Fetch content linked to a specific goal
  * @param {number} goalId - Goal ID
  * @returns {Promise<Array>} Array of content items
@@ -1206,4 +1338,69 @@ export async function fetchGoalContent(goalId) {
   }
 
   return data?.map(item => item.content).filter(Boolean) || []
+}
+
+/**
+ * Link repertoire to a goal
+ * @param {number} goalId - Goal ID
+ * @param {number} repertoireId - Repertoire ID
+ * @returns {Promise<void>}
+ */
+export async function linkRepertoireToGoal(goalId, repertoireId) {
+  const supabase = getSupabaseClient()
+
+  // Update the goal's repertoire_id (direct foreign key)
+  const { error } = await supabase
+    .from('goals')
+    .update({ repertoire_id: repertoireId })
+    .eq('id', goalId)
+
+  if (error) {
+    console.error('Error linking repertoire to goal:', error)
+    throw error
+  }
+}
+
+/**
+ * Unlink repertoire from a goal
+ * @param {number} goalId - Goal ID
+ * @param {number} repertoireId - Repertoire ID (not used, kept for API compatibility)
+ * @returns {Promise<void>}
+ */
+export async function unlinkRepertoireFromGoal(goalId, repertoireId) {
+  const supabase = getSupabaseClient()
+
+  // Set the goal's repertoire_id to null
+  const { error } = await supabase
+    .from('goals')
+    .update({ repertoire_id: null })
+    .eq('id', goalId)
+
+  if (error) {
+    console.error('Error unlinking repertoire from goal:', error)
+    throw error
+  }
+}
+
+/**
+ * Fetch repertoire linked to a specific goal
+ * @param {number} goalId - Goal ID
+ * @returns {Promise<Array>} Array with single repertoire item (or empty)
+ */
+export async function fetchGoalRepertoire(goalId) {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('goals')
+    .select('repertoire(*)')
+    .eq('id', goalId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching goal repertoire:', error)
+    throw error
+  }
+
+  // Return as array for consistent UI handling (0 or 1 items)
+  return data?.repertoire ? [data.repertoire] : []
 }

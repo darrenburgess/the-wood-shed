@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import TagInput from './TagInput'
 
-export default function ContentModal({ open, onClose, contentData, onSave }) {
+export default function ContentModal({ open, onClose, contentData, onSave, onDelete }) {
   const [formData, setFormData] = useState({
     title: '',
     url: '',
@@ -88,6 +88,13 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
 
   const handleCancel = () => {
     onClose()
+  }
+
+  const handleDelete = () => {
+    if (confirm(`Are you sure you want to delete "${formData.title}"?`)) {
+      onDelete(contentData.id)
+      onClose()
+    }
   }
 
   return (
@@ -185,16 +192,27 @@ export default function ContentModal({ open, onClose, contentData, onSave }) {
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="bg-primary-600 hover:bg-primary-700"
-          >
-            {contentData ? 'Update' : 'Create'}
-          </Button>
+        <DialogFooter className="flex justify-between items-center">
+          {contentData && (
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="mr-auto"
+            >
+              Delete
+            </Button>
+          )}
+          <div className="flex gap-2 ml-auto">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-primary-600 hover:bg-primary-700"
+            >
+              {contentData ? 'Update' : 'Create'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -126,13 +126,9 @@ export default function ContentTab() {
     }
   }
 
-  const handleDeleteContent = async (item) => {
-    if (!confirm(`Are you sure you want to delete "${item.title}"?`)) {
-      return
-    }
-
+  const handleDeleteContent = async (itemId) => {
     try {
-      await deleteContent(item.id)
+      await deleteContent(itemId)
 
       // Refresh content list
       await loadContent()
@@ -328,24 +324,14 @@ export default function ContentTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8"
-                        onClick={() => handleEditContent(item)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteContent(item)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => handleEditContent(item)}
+                    >
+                      Edit
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -381,6 +367,7 @@ export default function ContentTab() {
         onClose={handleCloseModal}
         contentData={editingContent}
         onSave={handleSaveContent}
+        onDelete={handleDeleteContent}
       />
     </div>
   )
