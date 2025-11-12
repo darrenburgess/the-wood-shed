@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import PracticeTodayTab from './components/PracticeTodayTab'
 import ContentTab from './components/ContentTab'
 import RepertoireTab from './components/RepertoireTab'
 import LogsTab from './components/LogsTab'
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button'
 
 function AppContent() {
   const { user, loading, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState('content') // 'content', 'repertoire', 'logs', or 'topics'
+  const [activeTab, setActiveTab] = useState('practice') // 'practice', 'content', 'repertoire', 'logs', or 'topics'
 
   if (loading) {
     return (
@@ -41,6 +42,20 @@ function AppContent() {
         {/* Tab Navigation */}
         <div className="flex gap-2">
           <Button
+            variant={activeTab === 'practice' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('practice')}
+            className={activeTab === 'practice' ? 'bg-primary-600' : ''}
+          >
+            Practice Today
+          </Button>
+          <Button
+            variant={activeTab === 'topics' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('topics')}
+            className={activeTab === 'topics' ? 'bg-primary-600' : ''}
+          >
+            Topics
+          </Button>
+          <Button
             variant={activeTab === 'content' ? 'default' : 'outline'}
             onClick={() => setActiveTab('content')}
             className={activeTab === 'content' ? 'bg-primary-600' : ''}
@@ -61,19 +76,13 @@ function AppContent() {
           >
             Logs
           </Button>
-          <Button
-            variant={activeTab === 'topics' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('topics')}
-            className={activeTab === 'topics' ? 'bg-primary-600' : ''}
-          >
-            Topics
-          </Button>
         </div>
       </div>
+      {activeTab === 'practice' && <PracticeTodayTab />}
+      {activeTab === 'topics' && <TopicsTab />}
       {activeTab === 'content' && <ContentTab />}
       {activeTab === 'repertoire' && <RepertoireTab />}
       {activeTab === 'logs' && <LogsTab />}
-      {activeTab === 'topics' && <TopicsTab />}
     </div>
   )
 }

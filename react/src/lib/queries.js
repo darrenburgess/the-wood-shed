@@ -1404,3 +1404,214 @@ export async function fetchGoalRepertoire(goalId) {
   // Return as array for consistent UI handling (0 or 1 items)
   return data?.repertoire ? [data.repertoire] : []
 }
+
+// ============================================================================
+// Practice Today / Sessions
+// ============================================================================
+
+/**
+ * Fetch session by date with all goals and logs
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<Object|null>} Session with goals or null if no session exists
+ */
+export async function fetchSessionByDate(date) {
+  const supabase = getSupabaseClient()
+
+  const { data: session, error } = await supabase
+    .from('sessions')
+    .select(`
+      id,
+      session_date,
+      created_at,
+      session_goals (
+        id,
+        added_at,
+        goals (
+          id,
+          description,
+          goal_number,
+          is_complete,
+          created_at,
+          topic_id,
+          repertoire_id,
+          repertoire (
+            id,
+            title,
+            artist
+          ),
+          topics (
+            id,
+            title,
+            topic_number
+          ),
+          goal_content (
+            content (
+              id,
+              title,
+              url,
+              type
+            )
+          ),
+          logs (
+            id,
+            entry,
+            date,
+            created_at,
+            log_content (
+              content (
+                id,
+                title,
+                url,
+                type
+              )
+            ),
+            log_repertoire (
+              repertoire (
+                id,
+                title,
+                artist
+              )
+            )
+          )
+        )
+      )
+    `)
+    .eq('session_date', date)
+    .order('added_at', { foreignTable: 'session_goals', ascending: true })
+    .order('date', { foreignTable: 'session_goals.goals.logs', ascending: false })
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error fetching session:', error)
+    throw error
+  }
+
+  if (!session) {
+    return null
+  }
+
+  // Transform data structure for easier use in UI
+  const transformedSession = {
+    ...session,
+    goals: session.session_goals?.map(sg => {
+      const goal = sg.goals
+      return {
+        ...goal,
+        session_goal_id: sg.id,
+        topic: goal.topics,
+        content: goal.goal_content?.map(gc => gc.content).filter(Boolean) || [],
+        repertoire: goal.repertoire ? [goal.repertoire] : [],
+        logs: goal.logs?.map(log => ({
+          ...log,
+          content: log.log_content?.map(lc => lc.content).filter(Boolean) || [],
+          repertoire: log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || []
+        })) || []
+      }
+    }) || []
+  }
+
+  return transformedSession
+}
+
+/**
+ * Create a new session for a specific date
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<Object>} Created session
+ */
+export async function createSession(date) {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('sessions')
+    .insert({
+      session_date: date
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating session:', error)
+    throw error
+  }
+
+  return data
+}
+
+/**
+ * Delete a session and all its session_goals
+ * @param {number} sessionId - Session ID
+ * @returns {Promise<void>}
+ */
+export async function deleteSession(sessionId) {
+  const supabase = getSupabaseClient()
+
+  // Delete session_goals first (cascading might handle this, but being explicit)
+  const { error: sessionGoalsError } = await supabase
+    .from('session_goals')
+    .delete()
+    .eq('session_id', sessionId)
+
+  if (sessionGoalsError) {
+    console.error('Error deleting session goals:', sessionGoalsError)
+    throw sessionGoalsError
+  }
+
+  // Delete the session
+  const { error } = await supabase
+    .from('sessions')
+    .delete()
+    .eq('id', sessionId)
+
+  if (error) {
+    console.error('Error deleting session:', error)
+    throw error
+  }
+}
+
+/**
+ * Remove a goal from a specific session (by session ID)
+ * @param {number} sessionId - Session ID
+ * @param {number} goalId - Goal ID
+ * @returns {Promise<void>}
+ */
+export async function removeGoalFromSessionById(sessionId, goalId) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('session_goals')
+    .delete()
+    .eq('session_id', sessionId)
+    .eq('goal_id', goalId)
+
+  if (error) {
+    console.error('Error removing goal from session:', error)
+    throw error
+  }
+}
+
+/**
+ * Search repertoire by title or artist
+ * @param {string} searchTerm - Search term
+ * @returns {Promise<Array>} Array of matching repertoire items
+ */
+export async function searchRepertoire(searchTerm) {
+  const supabase = getSupabaseClient()
+
+  if (!searchTerm || searchTerm.length < 2) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('repertoire')
+    .select('id, title, artist')
+    .or(`title.ilike.%${searchTerm}%,artist.ilike.%${searchTerm}%`)
+    .order('title', { ascending: true })
+    .limit(20)
+
+  if (error) {
+    console.error('Error searching repertoire:', error)
+    throw error
+  }
+
+  return data || []
+}
