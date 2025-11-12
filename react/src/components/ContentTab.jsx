@@ -17,6 +17,28 @@ export default function ContentTab() {
   const [selectedTags, setSelectedTags] = useState([])
   const [loading, setLoading] = useState(false)
 
+  // Helper function to truncate URL
+  const truncateUrl = (url, maxLength = 30) => {
+    if (url.length <= maxLength) return url
+    return url.substring(0, maxLength) + '...'
+  }
+
+  // Helper function to get type icon
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case 'youtube':
+        return '▶️'
+      case 'article':
+        return '📄'
+      case 'video':
+        return '🎬'
+      case 'pdf':
+        return '📕'
+      default:
+        return '🔗'
+    }
+  }
+
   // Extract unique tags from content
   const availableTags = [...new Set(content.flatMap(item => item.tags))].sort()
 
@@ -135,16 +157,26 @@ export default function ContentTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40%]">Title</TableHead>
-              <TableHead className="w-[30%]">URL</TableHead>
-              <TableHead className="w-[15%]">Type</TableHead>
-              <TableHead className="w-[15%]">Tags</TableHead>
+              <TableHead className="w-[30%]">Title</TableHead>
+              <TableHead className="w-[25%]">URL</TableHead>
+              <TableHead className="w-[20%]">Tags</TableHead>
+              <TableHead className="w-[12%]">Type</TableHead>
+              <TableHead className="w-[13%]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredContent.length === 0 ? (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
+                    <span>Loading content...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredContent.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-gray-500 py-8">
                   {hasActiveFilters
                     ? 'No content found matching your filters. Try adjusting your search or tags.'
                     : 'No content yet. Add your first item!'}
@@ -159,24 +191,43 @@ export default function ContentTab() {
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary-600 hover:text-primary-700 hover:underline truncate block max-w-xs"
+                      className="text-primary-600 hover:text-primary-700 hover:underline"
+                      title={item.url}
                     >
-                      {item.url}
+                      {truncateUrl(item.url)}
                     </a>
                   </TableCell>
                   <TableCell>
+                    <div className="flex gap-1 flex-wrap">
+                      {item.tags.length > 0 ? (
+                        item.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-gray-400 text-xs">No tags</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant="secondary" className="capitalize">
+                      <span className="mr-1">{getTypeIcon(item.type)}</span>
                       {item.type}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1 flex-wrap">
-                      {item.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => {
+                        // TODO: Implement edit functionality
+                        console.log('Edit content:', item.id)
+                      }}
+                    >
+                      Edit
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
