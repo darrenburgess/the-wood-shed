@@ -259,25 +259,59 @@ export default function PracticeTodayTab() {
   // Link content to goal
   async function handleLinkContentToGoal(goalId, contentId) {
     try {
-      await linkContentToGoal(goalId, contentId)
+      // Get the content item from search results
+      const contentItem = goalContentSearches[goalId]?.results?.find(c => c.id === contentId)
+      if (!contentItem) return
+
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal =>
+            goal.id === goalId
+              ? { ...goal, content: [...(goal.content || []), contentItem] }
+              : goal
+          )
+        }
+      })
+
       // Close dropdown
       setGoalContentSearches(prev => ({ ...prev, [goalId]: { open: false, query: '', results: [] } }))
-      // Reload session
-      await loadSession()
+
+      // Update database in background
+      await linkContentToGoal(goalId, contentId)
     } catch (err) {
       alert('Failed to link content: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
   // Unlink content from goal
   async function handleUnlinkContentFromGoal(goalId, contentId) {
     try {
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal =>
+            goal.id === goalId
+              ? { ...goal, content: goal.content?.filter(c => c.id !== contentId) || [] }
+              : goal
+          )
+        }
+      })
+
+      // Update database in background
       await unlinkContentFromGoal(goalId, contentId)
-      await loadSession()
     } catch (err) {
       alert('Failed to unlink content: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
@@ -306,25 +340,59 @@ export default function PracticeTodayTab() {
   // Link repertoire to goal
   async function handleLinkRepertoireToGoal(goalId, repertoireId) {
     try {
-      await linkRepertoireToGoal(goalId, repertoireId)
+      // Get the repertoire item from search results
+      const repertoireItem = goalRepertoireSearches[goalId]?.results?.find(r => r.id === repertoireId)
+      if (!repertoireItem) return
+
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal =>
+            goal.id === goalId
+              ? { ...goal, repertoire: [...(goal.repertoire || []), repertoireItem] }
+              : goal
+          )
+        }
+      })
+
       // Close dropdown
       setGoalRepertoireSearches(prev => ({ ...prev, [goalId]: { open: false, query: '', results: [] } }))
-      // Reload session
-      await loadSession()
+
+      // Update database in background
+      await linkRepertoireToGoal(goalId, repertoireId)
     } catch (err) {
       alert('Failed to link repertoire: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
   // Unlink repertoire from goal
   async function handleUnlinkRepertoireFromGoal(goalId, repertoireId) {
     try {
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal =>
+            goal.id === goalId
+              ? { ...goal, repertoire: goal.repertoire?.filter(r => r.id !== repertoireId) || [] }
+              : goal
+          )
+        }
+      })
+
+      // Update database in background
       await unlinkRepertoireFromGoal(goalId, repertoireId)
-      await loadSession()
     } catch (err) {
       alert('Failed to unlink repertoire: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
@@ -385,23 +453,65 @@ export default function PracticeTodayTab() {
   // Link content to log
   async function handleLinkContentToLog(logId, contentId) {
     try {
-      await linkContentToLog(logId, contentId)
+      // Get the content item from search results
+      const contentItem = logContentSearches[logId]?.results?.find(c => c.id === contentId)
+      if (!contentItem) return
+
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal => ({
+            ...goal,
+            logs: goal.logs?.map(log =>
+              log.id === logId
+                ? { ...log, content: [...(log.content || []), contentItem] }
+                : log
+            ) || []
+          }))
+        }
+      })
+
+      // Close dropdown
       setLogContentSearches(prev => ({ ...prev, [logId]: { open: false, query: '', results: [] } }))
-      await loadSession()
+
+      // Update database in background
+      await linkContentToLog(logId, contentId)
     } catch (err) {
       alert('Failed to link content: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
   // Unlink content from log
   async function handleUnlinkContentFromLog(logId, contentId) {
     try {
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal => ({
+            ...goal,
+            logs: goal.logs?.map(log =>
+              log.id === logId
+                ? { ...log, content: log.content?.filter(c => c.id !== contentId) || [] }
+                : log
+            ) || []
+          }))
+        }
+      })
+
+      // Update database in background
       await unlinkContentFromLog(logId, contentId)
-      await loadSession()
     } catch (err) {
       alert('Failed to unlink content: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
@@ -430,23 +540,65 @@ export default function PracticeTodayTab() {
   // Link repertoire to log
   async function handleLinkRepertoireToLog(logId, repertoireId) {
     try {
-      await linkRepertoireToLog(logId, repertoireId)
+      // Get the repertoire item from search results
+      const repertoireItem = logRepertoireSearches[logId]?.results?.find(r => r.id === repertoireId)
+      if (!repertoireItem) return
+
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal => ({
+            ...goal,
+            logs: goal.logs?.map(log =>
+              log.id === logId
+                ? { ...log, repertoire: [...(log.repertoire || []), repertoireItem] }
+                : log
+            ) || []
+          }))
+        }
+      })
+
+      // Close dropdown
       setLogRepertoireSearches(prev => ({ ...prev, [logId]: { open: false, query: '', results: [] } }))
-      await loadSession()
+
+      // Update database in background
+      await linkRepertoireToLog(logId, repertoireId)
     } catch (err) {
       alert('Failed to link repertoire: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
   // Unlink repertoire from log
   async function handleUnlinkRepertoireFromLog(logId, repertoireId) {
     try {
+      // Optimistically update UI
+      setSession(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          goals: prev.goals.map(goal => ({
+            ...goal,
+            logs: goal.logs?.map(log =>
+              log.id === logId
+                ? { ...log, repertoire: log.repertoire?.filter(r => r.id !== repertoireId) || [] }
+                : log
+            ) || []
+          }))
+        }
+      })
+
+      // Update database in background
       await unlinkRepertoireFromLog(logId, repertoireId)
-      await loadSession()
     } catch (err) {
       alert('Failed to unlink repertoire: ' + err.message)
       console.error(err)
+      // Reload on error to sync state
+      await loadSession()
     }
   }
 
