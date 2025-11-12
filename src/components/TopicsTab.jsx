@@ -637,7 +637,10 @@ export default function TopicsTab() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold text-gray-900">Topics</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Topics</h1>
+            <p className="text-sm text-gray-500 mt-1">Track your areas of practice focus</p>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExpandAll}>
               Expand All
@@ -761,12 +764,12 @@ export default function TopicsTab() {
                             }))
                           }}
                         >
-                          <summary className="flex justify-between items-start gap-2 cursor-pointer list-none" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-start gap-2 flex-1">
+                          <summary className="flex justify-between items-center gap-3 cursor-pointer list-none" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-start gap-2 flex-1 min-w-0">
                               <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <span className="font-medium text-gray-900">
                                   {goal.goal_number}: {goal.description}
                                 </span>
@@ -775,7 +778,40 @@ export default function TopicsTab() {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                            {/* Linked Content and Repertoire Badges */}
+                            {((goal.content && goal.content.length > 0) || (goal.repertoire && goal.repertoire.length > 0)) && (
+                              <div className="flex flex-wrap gap-1 items-center" onClick={(e) => e.stopPropagation()}>
+                                {goal.content?.map(content => (
+                                  <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                    {content.title}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleUnlinkContent(goal.id, content.id)
+                                      }}
+                                      className="ml-1 hover:text-blue-900"
+                                    >
+                                      ×
+                                    </button>
+                                  </Badge>
+                                ))}
+                                {goal.repertoire?.map(rep => (
+                                  <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
+                                    {rep.title}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleUnlinkRepertoireFromGoal(goal.id, rep.id)
+                                      }}
+                                      className="ml-1 hover:text-green-900"
+                                    >
+                                      ×
+                                    </button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 flex-shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
                               {sessionGoalIds.has(goal.id) ? (
                                 <button
                                   onClick={() => handleRemoveFromSession(goal.id)}
@@ -834,33 +870,6 @@ export default function TopicsTab() {
 
                           {/* Goal Content */}
                           <div className="ml-6 mt-3 space-y-4">
-                            {/* Linked Content and Repertoire */}
-                            {((goal.content && goal.content.length > 0) || (goal.repertoire && goal.repertoire.length > 0)) && (
-                              <div className="flex flex-wrap gap-1">
-                                {goal.content?.map(content => (
-                                  <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                                    {content.title}
-                                    <button
-                                      onClick={() => handleUnlinkContent(goal.id, content.id)}
-                                      className="ml-1 hover:text-blue-900"
-                                    >
-                                      ×
-                                    </button>
-                                  </Badge>
-                                ))}
-                                {goal.repertoire?.map(rep => (
-                                  <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
-                                    {rep.title} - {rep.artist}
-                                    <button
-                                      onClick={() => handleUnlinkRepertoireFromGoal(goal.id, rep.id)}
-                                      className="ml-1 hover:text-green-900"
-                                    >
-                                      ×
-                                    </button>
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
 
                             {/* Add Log Inline Form */}
                             <Textarea

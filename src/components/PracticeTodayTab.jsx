@@ -745,8 +745,8 @@ function GoalCard({
       >
         <summary className="p-6 cursor-pointer list-none">
           {/* Goal Header */}
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
+          <div className="flex justify-between items-center gap-3">
+            <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-gray-900">
                 {goal.goal_number ? `${goal.goal_number}: ` : ''}{goal.description}
                 {goal.topic && (
@@ -754,7 +754,40 @@ function GoalCard({
                 )}
               </h3>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            {/* Linked Content and Repertoire Badges */}
+            {((goal.content && goal.content.length > 0) || (goal.repertoire && goal.repertoire.length > 0)) && (
+              <div className="flex flex-wrap gap-1 items-center" onClick={(e) => e.stopPropagation()}>
+                {goal.content?.map(content => (
+                  <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1 cursor-pointer hover:bg-blue-200" onClick={() => onContentClick(content)}>
+                    {content.title}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onUnlinkContentFromGoal(goal.id, content.id)
+                      }}
+                      className="ml-1 hover:text-blue-900"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+                {goal.repertoire?.map(rep => (
+                  <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
+                    {rep.title}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onUnlinkRepertoireFromGoal(goal.id, rep.id)
+                      }}
+                      className="ml-1 hover:text-green-900"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2 flex-shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
               {/* Content count button */}
               <button
                 onClick={() => setGoalContentSearches(prev => ({
@@ -921,33 +954,6 @@ function GoalCard({
             </div>
           )}
 
-          {/* Linked Content and Repertoire Badges */}
-          {((goal.content && goal.content.length > 0) || (goal.repertoire && goal.repertoire.length > 0)) && (
-            <div className="flex flex-wrap gap-1 mb-4">
-              {goal.content?.map(content => (
-                <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                  {content.title}
-                  <button
-                    onClick={() => onUnlinkContentFromGoal(goal.id, content.id)}
-                    className="ml-1 hover:text-blue-900"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
-              {goal.repertoire?.map(rep => (
-                <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
-                  {rep.title} - {rep.artist}
-                  <button
-                    onClick={() => onUnlinkRepertoireFromGoal(goal.id, rep.id)}
-                    className="ml-1 hover:text-green-900"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
 
           {/* Add Log Form */}
           <div className="mb-4">

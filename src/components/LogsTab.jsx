@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { fetchLogsByDateRange } from '@/lib/queries'
 
 export default function LogsTab() {
@@ -130,37 +131,62 @@ export default function LogsTab() {
   }
 
   return (
-    <div className="p-8">
-      {/* Header with Date Navigation */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={prevDay}
-              disabled={searchStartDate && searchEndDate}
-            >
-              ←
-            </Button>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {getViewTitle()}
-            </h1>
-            <Button
-              variant="outline"
-              onClick={nextDay}
-              disabled={searchStartDate && searchEndDate}
-            >
-              →
-            </Button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b px-8 py-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Practice Logs</h1>
+            <p className="text-sm text-gray-500 mt-1">A summary of your work by date</p>
           </div>
-          <Button
-            className={isToday ? 'bg-gray-400' : 'bg-primary-600 hover:bg-primary-700'}
-            onClick={goToToday}
-            disabled={isToday && !searchStartDate && !searchEndDate}
-          >
-            Today
-          </Button>
         </div>
+      </div>
+
+      {/* Date Navigation */}
+      <div className="bg-white border-b px-8 py-6">
+        <div className="flex items-center justify-center gap-4 max-w-md mx-auto">
+          <button
+            onClick={prevDay}
+            disabled={searchStartDate && searchEndDate}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Previous day"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            <input
+              type="date"
+              value={currentDate}
+              onChange={(e) => { setCurrentDate(e.target.value); clearSearch(); }}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            />
+          </div>
+
+          <button
+            onClick={nextDay}
+            disabled={searchStartDate && searchEndDate}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Next day"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+
+          {!isToday && !searchStartDate && !searchEndDate && (
+            <button
+              onClick={goToToday}
+              className="ml-4 text-blue-600 hover:text-blue-800 font-medium text-sm"
+            >
+              ← Today
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Date Range Search Section */}
+      <div className="px-8 py-6">
+        <div className="mb-6">
 
         {/* Date Range Search */}
         <div className="flex gap-4 items-center bg-white border border-gray-200 rounded-lg shadow-sm p-4">
@@ -196,106 +222,111 @@ export default function LogsTab() {
             </Button>
           )}
         </div>
+        </div>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-red-800">Error loading logs</h3>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+        <div className="px-8 pt-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-red-800">Error loading logs</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+              <button
+                onClick={() => searchStartDate && searchEndDate ? handleSearch() : loadLogs(currentDate, currentDate)}
+                className="text-sm text-red-600 hover:text-red-800 font-medium"
+              >
+                Try again
+              </button>
             </div>
-            <button
-              onClick={() => searchStartDate && searchEndDate ? handleSearch() : loadLogs(currentDate, currentDate)}
-              className="text-sm text-red-600 hover:text-red-800 font-medium"
-            >
-              Try again
-            </button>
           </div>
         </div>
       )}
 
       {/* Logs Display */}
-      {loading ? (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-12 text-center">
-          <div className="flex flex-col items-center justify-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <span className="text-sm font-medium text-gray-500">Loading logs...</span>
-          </div>
-        </div>
-      ) : logs.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-12 text-center">
-          <div className="flex flex-col items-center justify-center gap-3">
-            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <div>
-              <p className="font-medium text-gray-900">No logs found</p>
-              <p className="text-sm text-gray-500 mt-1">
-                {searchStartDate && searchEndDate
-                  ? 'Try a different date range'
-                  : 'No practice logs for this date'}
-              </p>
+      <div className="px-8">
+        {loading ? (
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-12 text-center">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <span className="text-sm font-medium text-gray-500">Loading logs...</span>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(groupLogsByTopicAndGoal(logs)).map(([topicName, goals]) => (
-            <div key={topicName} className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-              {/* Topic Heading */}
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{topicName}</h2>
+        ) : logs.length === 0 ? (
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-12 text-center">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <div>
+                <p className="font-medium text-gray-900">No logs found</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {searchStartDate && searchEndDate
+                    ? 'Try a different date range'
+                    : 'No practice logs for this date'}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupLogsByTopicAndGoal(logs)).map(([topicName, goals]) => (
+              <div key={topicName} className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+                {/* Topic Heading */}
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">{topicName}</h2>
 
-              {/* Goals */}
-              {Object.entries(goals).map(([goalId, goalData]) => (
-                <div key={goalId} className="mb-6 last:mb-0">
-                  {/* Goal Subheading */}
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                    {goalData.goalNumber && `${goalData.goalNumber}: `}{goalData.goalDescription}
-                  </h3>
+                {/* Goals */}
+                {Object.entries(goals).map(([goalId, goalData]) => (
+                  <div key={goalId} className="mb-6 last:mb-0">
+                    {/* Goal Subheading */}
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                      {goalData.goalNumber && `${goalData.goalNumber}: `}{goalData.goalDescription}
+                    </h3>
 
-                  {/* Logs */}
-                  <div className="space-y-2">
-                    {goalData.logs.map((log) => (
-                      <div key={log.id} className="flex items-start gap-2 text-sm text-gray-700">
-                        <span className="text-gray-500 shrink-0">{formatLogDate(log.date)}</span>
-                        <span className="flex-1">{log.entry}</span>
+                    {/* Logs */}
+                    <div className="space-y-2">
+                      {goalData.logs.map((log) => (
+                        <div key={log.id} className="flex items-start gap-2 text-sm text-gray-700">
+                          <span className="text-gray-500 shrink-0">{formatLogDate(log.date)}</span>
+                          <span className="flex-1">{log.entry}</span>
 
-                        {/* Content and Repertoire inline */}
-                        {(log.content?.length > 0 || log.repertoire?.length > 0) && (
-                          <span className="shrink-0 flex gap-1 flex-wrap">
-                            {log.content?.map((item) => (
-                              <Badge key={item.id} variant="secondary" className="text-xs">
-                                {item.title}
-                              </Badge>
-                            ))}
-                            {log.repertoire?.map((item) => (
-                              <Badge key={item.id} variant="secondary" className="text-xs">
-                                {item.title}
-                              </Badge>
-                            ))}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                          {/* Content and Repertoire inline */}
+                          {(log.content?.length > 0 || log.repertoire?.length > 0) && (
+                            <span className="shrink-0 flex gap-1 flex-wrap">
+                              {log.content?.map((item) => (
+                                <Badge key={item.id} variant="secondary" className="text-xs">
+                                  {item.title}
+                                </Badge>
+                              ))}
+                              {log.repertoire?.map((item) => (
+                                <Badge key={item.id} variant="secondary" className="text-xs">
+                                  {item.title}
+                                </Badge>
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* Summary */}
-      {!loading && logs.length > 0 && (
-        <div className="mt-4 text-sm text-gray-500">
-          {logs.length} {logs.length === 1 ? 'log' : 'logs'} found
-        </div>
-      )}
+        {/* Summary */}
+        {!loading && logs.length > 0 && (
+          <div className="mt-4 text-sm text-gray-500">
+            {logs.length} {logs.length === 1 ? 'log' : 'logs'} found
+          </div>
+        )}
+      </div>
     </div>
   )
 }
