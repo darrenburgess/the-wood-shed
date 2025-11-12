@@ -1,0 +1,12 @@
+[build]
+  # Directory to publish (where the built files are)
+  publish = "dist"
+
+  # Since you're manually building and committing dist,
+  # we don't need a build command here
+  # command = "npm run build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
