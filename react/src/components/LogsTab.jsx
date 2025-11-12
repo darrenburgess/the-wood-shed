@@ -90,9 +90,12 @@ export default function LogsTab() {
     const grouped = {}
 
     logs.forEach(log => {
-      if (!log.goals || !log.goals.topics) return
+      // Skip logs without goals or topics
+      if (!log.goals || !log.goals.topics) {
+        return
+      }
 
-      const topicName = log.goals.topics.name
+      const topicName = log.goals.topics.title
       const goalId = log.goals.id
       const goalNumber = log.goals.goal_number || ''
       const goalDescription = log.goals.description
