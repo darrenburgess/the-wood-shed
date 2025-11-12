@@ -8,7 +8,6 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave 
   const [formData, setFormData] = useState({
     title: '',
     composer: '',
-    url: '',
     tags: []
   })
   const [errors, setErrors] = useState({})
@@ -23,7 +22,6 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave 
         setFormData({
           title: repertoireData.title || '',
           composer: repertoireData.composer || '',
-          url: repertoireData.url || '',
           tags: repertoireData.tags || []
         })
       } else {
@@ -31,7 +29,6 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave 
         setFormData({
           title: '',
           composer: '',
-          url: '',
           tags: []
         })
       }
@@ -50,15 +47,6 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave 
 
     if (!formData.composer.trim()) {
       newErrors.composer = 'Composer is required'
-    }
-
-    // URL is optional, but if provided, must be valid
-    if (formData.url.trim()) {
-      try {
-        new URL(formData.url)
-      } catch {
-        newErrors.url = 'Please enter a valid URL'
-      }
     }
 
     setErrors(newErrors)
@@ -141,28 +129,6 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave 
             {errors.composer && (
               <p id="composer-error" className="text-sm text-red-600" role="alert">
                 {errors.composer}
-              </p>
-            )}
-          </div>
-
-          {/* URL Field */}
-          <div className="space-y-2">
-            <label htmlFor="url" className="text-sm font-medium text-gray-700">
-              URL (optional)
-            </label>
-            <Input
-              id="url"
-              type="url"
-              placeholder="https://..."
-              value={formData.url}
-              onChange={(e) => handleInputChange('url', e.target.value)}
-              className={errors.url ? 'border-red-500 focus:ring-red-500' : ''}
-              aria-invalid={!!errors.url}
-              aria-describedby={errors.url ? 'url-error' : undefined}
-            />
-            {errors.url && (
-              <p id="url-error" className="text-sm text-red-600" role="alert">
-                {errors.url}
               </p>
             )}
           </div>

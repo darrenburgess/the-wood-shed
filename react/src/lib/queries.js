@@ -428,7 +428,7 @@ export async function fetchRepertoire() {
 
 /**
  * Create a new repertoire item
- * @param {Object} repertoireData - Repertoire data {title, composer, url, tags}
+ * @param {Object} repertoireData - Repertoire data {title, composer, tags}
  * @returns {Promise<Object|null>} Created repertoire item or null
  */
 export async function createRepertoire(repertoireData) {
@@ -440,13 +440,12 @@ export async function createRepertoire(repertoireData) {
     throw new Error('User not authenticated')
   }
 
-  // Insert into repertoire table
+  // Insert into repertoire table (note: using 'artist' column name in DB)
   const { data: newRepertoire, error } = await supabase
     .from('repertoire')
     .insert({
       title: repertoireData.title,
-      composer: repertoireData.composer,
-      url: repertoireData.url || null,
+      artist: repertoireData.composer, // DB column is 'artist' but UI uses 'composer'
       practice_count: 0,
       last_practiced: null,
       user_id: user.id
@@ -475,19 +474,18 @@ export async function createRepertoire(repertoireData) {
 /**
  * Update an existing repertoire item
  * @param {number} id - Repertoire ID
- * @param {Object} repertoireData - Updated repertoire data {title, composer, url, tags}
+ * @param {Object} repertoireData - Updated repertoire data {title, composer, tags}
  * @returns {Promise<Object|null>} Updated repertoire item or null
  */
 export async function updateRepertoire(id, repertoireData) {
   const supabase = getSupabaseClient()
 
-  // Update repertoire
+  // Update repertoire (note: using 'artist' column name in DB)
   const { data: updatedRepertoire, error } = await supabase
     .from('repertoire')
     .update({
       title: repertoireData.title,
-      composer: repertoireData.composer,
-      url: repertoireData.url || null
+      artist: repertoireData.composer // DB column is 'artist' but UI uses 'composer'
     })
     .eq('id', id)
     .select()

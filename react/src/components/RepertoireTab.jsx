@@ -43,7 +43,12 @@ export default function RepertoireTab() {
       setLoading(true)
       setError(null)
       const data = await fetchRepertoire()
-      setRepertoire(data)
+      // Map 'artist' from DB to 'composer' for UI
+      const mappedData = data.map(item => ({
+        ...item,
+        composer: item.artist
+      }))
+      setRepertoire(mappedData)
     } catch (err) {
       setError('Failed to load repertoire: ' + err.message)
       console.error(err)
