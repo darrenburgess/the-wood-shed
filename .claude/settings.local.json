@@ -16,7 +16,12 @@
       "Bash(nvm list:*)",
       "Bash(nvm use:*)",
       "Bash(find:*)",
-      "Bash(npx tailwindcss init -p)"
+      "Bash(npx tailwindcss init -p)",
+      "Bash(npx shadcn@latest init)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add button -y)",
+      "Bash(npx shadcn@latest add input:*)",
+      "Bash(npx shadcn@latest add:*)"
     ],
     "deny": [],
     "ask": []
