@@ -3,19 +3,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import ContentModal from './ContentModal'
+import { fetchContent, createContent, updateContent, deleteContent } from '@/lib/queries'
 
 export default function ContentTab() {
   // State management
-  const [content, setContent] = useState([
-    { id: 1, title: 'Sample Video', url: 'https://youtube.com/watch?v=example', type: 'youtube', tags: ['jazz', 'bebop'] },
-    { id: 2, title: 'Sample Article', url: 'https://example.com', type: 'article', tags: ['theory'] },
-    { id: 3, title: 'Another Video', url: 'https://youtube.com/watch?v=example2', type: 'youtube', tags: ['jazz', 'improvisation'] },
-    { id: 4, title: 'Music Theory Basics', url: 'https://example.com/theory', type: 'article', tags: ['theory', 'fundamentals'] },
-    { id: 5, title: 'Bebop Scales Tutorial', url: 'https://youtube.com/watch?v=bebop', type: 'youtube', tags: ['bebop', 'scales'] },
-  ])
+  const [content, setContent] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingContent, setEditingContent] = useState(null)
+  const [error, setError] = useState(null)
 
   // Helper function to truncate URL
   const truncateUrl = (url, maxLength = 30) => {
@@ -44,9 +43,22 @@ export default function ContentTab() {
 
   // Fetch content on mount
   useEffect(() => {
-    // TODO: Implement actual data fetching
-    // fetchContent().then(data => setContent(data))
+    loadContent()
   }, [])
+
+  const loadContent = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await fetchContent()
+      setContent(data)
+    } catch (err) {
+      setError('Failed to load content: ' + err.message)
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Filter content based on search and tags
   const filteredContent = content.filter(item => {
@@ -80,6 +92,59 @@ export default function ContentTab() {
   // Check if any filters are active
   const hasActiveFilters = searchQuery !== '' || selectedTags.length > 0
 
+  // Modal handlers
+  const handleAddContent = () => {
+    setEditingContent(null)
+    setModalOpen(true)
+  }
+
+  const handleEditContent = (item) => {
+    setEditingContent(item)
+    setModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setEditingContent(null)
+  }
+
+  const handleSaveContent = async (formData) => {
+    try {
+      if (formData.id) {
+        // Edit existing content
+        await updateContent(formData.id, formData)
+        alert('Content updated successfully!')
+      } else {
+        // Create new content
+        await createContent(formData)
+        alert('Content created successfully!')
+      }
+
+      // Refresh content list
+      await loadContent()
+    } catch (err) {
+      alert('Failed to save content: ' + err.message)
+      console.error(err)
+    }
+  }
+
+  const handleDeleteContent = async (item) => {
+    if (!confirm(`Are you sure you want to delete "${item.title}"?`)) {
+      return
+    }
+
+    try {
+      await deleteContent(item.id)
+      alert('Content deleted successfully!')
+
+      // Refresh content list
+      await loadContent()
+    } catch (err) {
+      alert('Failed to delete content: ' + err.message)
+      console.error(err)
+    }
+  }
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -88,7 +153,10 @@ export default function ContentTab() {
           <h1 className="text-3xl font-bold text-gray-900">Content Library</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your learning resources</p>
         </div>
-        <Button className="bg-primary-600 hover:bg-primary-700">
+        <Button
+          className="bg-primary-600 hover:bg-primary-700"
+          onClick={handleAddContent}
+        >
           Add Content
         </Button>
       </div>
@@ -217,17 +285,24 @@ export default function ContentTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8"
-                      onClick={() => {
-                        // TODO: Implement edit functionality
-                        console.log('Edit content:', item.id)
-                      }}
-                    >
-                      Edit
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => handleEditContent(item)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDeleteContent(item)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -256,6 +331,14 @@ export default function ContentTab() {
           </div>
         )}
       </div>
+
+      {/* Content Modal */}
+      <ContentModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        contentData={editingContent}
+        onSave={handleSaveContent}
+      />
     </div>
   )
 }
