@@ -62,6 +62,9 @@ export default function PracticeTodayTab() {
     return saved ? JSON.parse(saved) : {}
   })
 
+  // Show all logs state (per goal) - default to false (show only today's logs)
+  const [showAllLogs, setShowAllLogs] = useState({})
+
   // Helper function to get today's date in YYYY-MM-DD format
   function getTodayDate() {
     const today = new Date()
@@ -610,6 +613,8 @@ export default function PracticeTodayTab() {
               setLogRepertoireSearches={setLogRepertoireSearches}
               openGoals={openGoals}
               setOpenGoals={setOpenGoals}
+              showAllLogs={showAllLogs}
+              setShowAllLogs={setShowAllLogs}
               onRemoveFromSession={handleRemoveGoalFromSession}
               onAddLog={handleAddLog}
               onEditLog={handleEditLog}
@@ -695,6 +700,8 @@ function GoalCard({
   setLogRepertoireSearches,
   openGoals,
   setOpenGoals,
+  showAllLogs,
+  setShowAllLogs,
   onRemoveFromSession,
   onAddLog,
   onEditLog,
@@ -715,6 +722,16 @@ function GoalCard({
   onContentClick,
   formatLogDateTime
 }) {
+  // Filter logs by current date
+  const todaysLogs = goal.logs?.filter(log => {
+    const logDate = new Date(log.date).toISOString().split('T')[0]
+    return logDate === currentDate
+  }) || []
+
+  // Determine which logs to display
+  const displayLogs = showAllLogs[goal.id] ? goal.logs : todaysLogs
+  const totalLogs = goal.logs?.length || 0
+  const todaysLogsCount = todaysLogs.length
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
       <details
@@ -927,8 +944,8 @@ function GoalCard({
 
           {/* Logs Section */}
           <div className="space-y-3">
-            {goal.logs && goal.logs.length > 0 ? (
-              goal.logs.map(log => (
+            {displayLogs && displayLogs.length > 0 ? (
+              displayLogs.map(log => (
                 <LogEntry
                   key={log.id}
                   log={log}
@@ -950,10 +967,28 @@ function GoalCard({
               ))
             ) : (
               <p className="text-sm text-gray-500 italic pl-4 border-l-2 border-gray-200 py-2">
-                No logs yet for this goal
+                {showAllLogs[goal.id] ? 'No logs yet for this goal' : 'No logs for today'}
               </p>
             )}
           </div>
+
+          {/* Show All / Show Less Button */}
+          {totalLogs > todaysLogsCount && (
+            <div className="mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllLogs(prev => ({
+                  ...prev,
+                  [goal.id]: !prev[goal.id]
+                }))}
+              >
+                {showAllLogs[goal.id]
+                  ? 'Show Less'
+                  : `Show All (${totalLogs})`}
+              </Button>
+            </div>
+          )}
 
           {/* Add Log Form */}
           <div className="mt-4 pt-4 border-t border-gray-200">
