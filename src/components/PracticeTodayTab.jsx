@@ -600,8 +600,8 @@ function GoalCard({
         </button>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 mb-4 relative">
+      {/* Goal Header with Content Count Button */}
+      <div className="flex justify-between items-center mb-4 relative">
         <Button
           onClick={() => {
             const textarea = document.getElementById(`log-input-${goal.id}`)
@@ -613,21 +613,37 @@ function GoalCard({
           Add Log
         </Button>
 
+        {/* Content count button (right-aligned) */}
         <button
           onClick={() => setGoalContentSearches(prev => ({
             ...prev,
             [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
           }))}
-          className="border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg px-4 py-2 flex items-center gap-2"
+          className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
+          title={`Content (${goal.content?.length || 0})`}
         >
-          <LinkIcon className="w-4 h-4" />
-          + Content
+          {goal.content?.length || 0}
         </button>
 
         {/* Goal Content Search Dropdown */}
         {goalContentSearches[goal.id]?.open && (
-          <div className="absolute top-12 left-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
-            <h4 className="text-sm font-medium mb-2">Link Content</h4>
+          <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+            <h4 className="text-sm font-medium mb-2">Linked Content</h4>
+            {goal.content && goal.content.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1">
+                {goal.content.map(content => (
+                  <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                    {content.title}
+                    <button
+                      onClick={() => onUnlinkContentFromGoal(goal.id, content.id)}
+                      className="ml-1 hover:text-blue-900"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
             <Input
               type="text"
               placeholder="Search content..."
@@ -664,30 +680,6 @@ function GoalCard({
           </div>
         )}
       </div>
-
-      {/* Linked Content */}
-      {goal.content && goal.content.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-1">
-          {goal.content.map(content => (
-            <Badge
-              key={content.id}
-              className="bg-blue-100 text-blue-800 flex items-center gap-1 cursor-pointer hover:bg-blue-200"
-              onClick={() => onContentClick(content)}
-            >
-              {content.title}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onUnlinkContentFromGoal(goal.id, content.id)
-                }}
-                className="ml-1 hover:text-blue-900"
-              >
-                ×
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
 
       {/* Logs Section */}
       <div className="space-y-3">
@@ -765,170 +757,163 @@ function LogEntry({
   formatLogDateTime
 }) {
   return (
-    <div className="pl-4 border-l-2 border-primary-200 py-2 relative">
-      <div className="flex items-start gap-3 mb-2">
-        <p className="text-sm text-gray-700 flex-1">{log.entry}</p>
-        <div className="flex items-center gap-2 text-xs">
+    <div className="relative">
+      {/* Single line with log text, count buttons, and edit icon */}
+      <div className="flex items-start gap-2 text-sm">
+        <span className="text-gray-500 shrink-0 text-xs">{formatLogDateTime(log.date)}</span>
+        <span className="flex-1 truncate">{log.entry}</span>
+
+        {/* Circular count buttons and edit icon (right-aligned) */}
+        <div className="shrink-0 flex gap-2 items-center">
+          {/* Content count button */}
+          <button
+            onClick={() => setLogContentSearches(prev => ({
+              ...prev,
+              [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
+            }))}
+            className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
+            title={`Content (${log.content?.length || 0})`}
+          >
+            {log.content?.length || 0}
+          </button>
+
+          {/* Repertoire count button */}
+          <button
+            onClick={() => setLogRepertoireSearches(prev => ({
+              ...prev,
+              [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
+            }))}
+            className="w-6 h-6 rounded-full bg-green-600 text-white text-xs font-medium flex items-center justify-center hover:bg-green-700"
+            title={`Repertoire (${log.repertoire?.length || 0})`}
+          >
+            {log.repertoire?.length || 0}
+          </button>
+
+          {/* Edit icon */}
           <button
             onClick={() => onEditLog(log)}
-            className="text-primary-600 hover:text-primary-700"
+            className="text-gray-600 hover:text-gray-800 p-1"
+            title="Edit log"
           >
-            Edit
-          </button>
-          <button
-            onClick={() => onDeleteLog(log.id)}
-            className="text-red-600 hover:text-red-700"
-          >
-            Delete
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
           </button>
         </div>
       </div>
 
-      <p className="text-xs text-gray-500 mb-2">{formatLogDateTime(log.date)}</p>
-
-      {/* Linked Content */}
-      {log.content && log.content.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2">
-          {log.content.map(content => (
-            <Badge
-              key={content.id}
-              className="bg-blue-100 text-blue-800 flex items-center gap-1 text-xs cursor-pointer hover:bg-blue-200"
-              onClick={() => onContentClick(content)}
-            >
-              {content.title}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onUnlinkContentFromLog(log.id, content.id)
-                }}
-                className="ml-1 hover:text-blue-900"
-              >
-                ×
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {/* Linked Repertoire */}
-      {log.repertoire && log.repertoire.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2">
-          {log.repertoire.map(rep => (
-            <Badge
-              key={rep.id}
-              className="bg-green-100 text-green-800 flex items-center gap-1 text-xs"
-            >
-              {rep.title} - {rep.artist}
-              <button
-                onClick={() => onUnlinkRepertoireFromLog(log.id, rep.id)}
-                className="ml-1 hover:text-green-900"
-              >
-                ×
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {/* Link Buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setLogContentSearches(prev => ({
-            ...prev,
-            [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
-          }))}
-          className="text-xs text-blue-600 hover:text-blue-800"
-        >
-          + Content
-        </button>
-        <button
-          onClick={() => setLogRepertoireSearches(prev => ({
-            ...prev,
-            [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
-          }))}
-          className="text-xs text-green-600 hover:text-green-800"
-        >
-          + Repertoire
-        </button>
-      </div>
-
-      {/* Log Content Search Dropdown */}
+      {/* Content Search Dropdown */}
       {logContentSearches[log.id]?.open && (
-        <div className="absolute top-0 left-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
-          <h4 className="text-sm font-medium mb-2">Link Content</h4>
-          <Input
-            type="text"
-            placeholder="Search content..."
-            value={logContentSearches[log.id]?.query || ''}
-            onChange={(e) => onLogContentSearch(log.id, e.target.value)}
-            autoFocus
-            className="mb-2"
-          />
-          {logContentSearches[log.id]?.results?.length > 0 && (
-            <div className="max-h-60 overflow-y-auto space-y-1">
-              {logContentSearches[log.id].results.map(content => {
-                const alreadyLinked = log.content?.some(c => c.id === content.id)
-                return (
-                  <button
-                    key={content.id}
-                    onClick={() => !alreadyLinked && onLinkContentToLog(log.id, content.id)}
-                    disabled={alreadyLinked}
-                    className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
+        <div className="relative z-50 mt-2">
+          <div className="absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+            <h4 className="text-sm font-medium mb-2">Linked Content</h4>
+            {log.content && log.content.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1">
+                {log.content.map(content => (
+                  <Badge key={content.id} className="bg-blue-100 text-blue-800 flex items-center gap-1 cursor-pointer hover:bg-blue-200" onClick={() => onContentClick(content)}>
                     {content.title}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 w-full"
-            onClick={() => setLogContentSearches(prev => ({ ...prev, [log.id]: { open: false, query: '', results: [] } }))}
-          >
-            Close
-          </Button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onUnlinkContentFromLog(log.id, content.id)
+                      }}
+                      className="ml-1 hover:text-blue-900"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <Input
+              type="text"
+              placeholder="Search content..."
+              value={logContentSearches[log.id]?.query || ''}
+              onChange={(e) => onLogContentSearch(log.id, e.target.value)}
+              autoFocus
+            />
+            {logContentSearches[log.id]?.results?.length > 0 && (
+              <div className="mt-2 max-h-60 overflow-y-auto">
+                {logContentSearches[log.id].results.map(content => {
+                  const alreadyLinked = log.content?.some(c => c.id === content.id)
+                  return (
+                    <button
+                      key={content.id}
+                      onClick={() => !alreadyLinked && onLinkContentToLog(log.id, content.id)}
+                      disabled={alreadyLinked}
+                      className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {content.title}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={() => setLogContentSearches(prev => ({ ...prev, [log.id]: { open: false, query: '', results: [] } }))}
+            >
+              Close
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Log Repertoire Search Dropdown */}
+      {/* Repertoire Search Dropdown */}
       {logRepertoireSearches[log.id]?.open && (
-        <div className="absolute top-0 left-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
-          <h4 className="text-sm font-medium mb-2">Link Repertoire</h4>
-          <Input
-            type="text"
-            placeholder="Search repertoire..."
-            value={logRepertoireSearches[log.id]?.query || ''}
-            onChange={(e) => onLogRepertoireSearch(log.id, e.target.value)}
-            autoFocus
-            className="mb-2"
-          />
-          {logRepertoireSearches[log.id]?.results?.length > 0 && (
-            <div className="max-h-60 overflow-y-auto space-y-1">
-              {logRepertoireSearches[log.id].results.map(rep => {
-                const alreadyLinked = log.repertoire?.some(r => r.id === rep.id)
-                return (
-                  <button
-                    key={rep.id}
-                    onClick={() => !alreadyLinked && onLinkRepertoireToLog(log.id, rep.id)}
-                    disabled={alreadyLinked}
-                    className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
+        <div className="relative z-50 mt-2">
+          <div className="absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+            <h4 className="text-sm font-medium mb-2">Linked Repertoire</h4>
+            {log.repertoire && log.repertoire.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1">
+                {log.repertoire.map(rep => (
+                  <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
                     {rep.title} - {rep.artist}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 w-full"
-            onClick={() => setLogRepertoireSearches(prev => ({ ...prev, [log.id]: { open: false, query: '', results: [] } }))}
-          >
-            Close
-          </Button>
+                    <button
+                      onClick={() => onUnlinkRepertoireFromLog(log.id, rep.id)}
+                      className="ml-1 hover:text-green-900"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <Input
+              type="text"
+              placeholder="Search repertoire..."
+              value={logRepertoireSearches[log.id]?.query || ''}
+              onChange={(e) => onLogRepertoireSearch(log.id, e.target.value)}
+              autoFocus
+            />
+            {logRepertoireSearches[log.id]?.results?.length > 0 && (
+              <div className="mt-2 max-h-60 overflow-y-auto">
+                {logRepertoireSearches[log.id].results.map(rep => {
+                  const alreadyLinked = log.repertoire?.some(r => r.id === rep.id)
+                  return (
+                    <button
+                      key={rep.id}
+                      onClick={() => !alreadyLinked && onLinkRepertoireToLog(log.id, rep.id)}
+                      disabled={alreadyLinked}
+                      className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {rep.title} - {rep.artist}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={() => setLogRepertoireSearches(prev => ({ ...prev, [log.id]: { open: false, query: '', results: [] } }))}
+            >
+              Close
+            </Button>
+          </div>
         </div>
       )}
     </div>
