@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Pencil, ChevronUp, ChevronDown } from 'lucide-react'
 import RepertoireModal from './RepertoireModal'
 import { fetchRepertoire, createRepertoire, updateRepertoire, deleteRepertoire } from '@/lib/queries'
 
@@ -15,19 +16,18 @@ export default function RepertoireTab() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [error, setError] = useState(null)
+  const [sortField, setSortField] = useState(null)
+  const [sortDirection, setSortDirection] = useState('asc')
 
   // Helper function to format date
   const formatDate = (dateString) => {
     if (!dateString) return 'Never'
-    const date = new Date(dateString)
-    const today = new Date()
-    const diffTime = today - date
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) return 'Today'
-    if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays} days ago`
-    return date.toLocaleDateString()
+    const date = new Date(dateString + 'T00:00:00')
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
   }
 
   // Extract unique tags from repertoire
@@ -57,6 +57,16 @@ export default function RepertoireTab() {
     }
   }
 
+  // Handle sort
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
   // Filter repertoire based on search and tags
   const filteredRepertoire = repertoire.filter(item => {
     // Search in title and composer
@@ -69,6 +79,31 @@ export default function RepertoireTab() {
       selectedTags.every(tag => item.tags.includes(tag))
 
     return matchesSearch && matchesTags
+  }).sort((a, b) => {
+    if (!sortField) return 0
+
+    let aValue, bValue
+
+    // Handle different field types
+    if (sortField === 'artist') {
+      aValue = a.composer?.toLowerCase() || ''
+      bValue = b.composer?.toLowerCase() || ''
+    } else if (sortField === 'practice_count') {
+      aValue = a.practice_count || 0
+      bValue = b.practice_count || 0
+    } else if (sortField === 'last_practiced') {
+      aValue = a.last_practiced || ''
+      bValue = b.last_practiced || ''
+    } else {
+      aValue = typeof a[sortField] === 'string' ? a[sortField].toLowerCase() : a[sortField]
+      bValue = typeof b[sortField] === 'string' ? b[sortField].toLowerCase() : b[sortField]
+    }
+
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : -1
+    } else {
+      return aValue < bValue ? 1 : -1
+    }
   })
 
   // Toggle tag filter
@@ -152,7 +187,7 @@ export default function RepertoireTab() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Repertoire</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Repertoire</h1>
           <p className="text-sm text-gray-500 mt-1">Track pieces you're learning</p>
         </div>
         <Button
@@ -250,12 +285,52 @@ export default function RepertoireTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[25%]">Title</TableHead>
-              <TableHead className="w-[20%]">Composer</TableHead>
+              <TableHead className="w-[25%]">
+                <button
+                  onClick={() => handleSort('title')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Title
+                  {sortField === 'title' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="w-[20%]">
+                <button
+                  onClick={() => handleSort('artist')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Composer
+                  {sortField === 'artist' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead className="w-[20%]">Tags</TableHead>
-              <TableHead className="w-[15%]">Practice Count</TableHead>
-              <TableHead className="w-[15%]">Last Practiced</TableHead>
-              <TableHead className="w-[5%]">Actions</TableHead>
+              <TableHead className="w-[15%]">
+                <button
+                  onClick={() => handleSort('practice_count')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Practice Count
+                  {sortField === 'practice_count' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="w-[15%]">
+                <button
+                  onClick={() => handleSort('last_practiced')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Last Practiced
+                  {sortField === 'last_practiced' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="w-[5%]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -330,12 +405,12 @@ export default function RepertoireTab() {
                   </TableCell>
                   <TableCell>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="h-8"
+                      className="h-8 w-8 p-0"
                       onClick={() => handleEditRepertoire(item)}
                     >
-                      Edit
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

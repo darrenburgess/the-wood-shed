@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from './ConfirmDialog'
+import { getTodayDateET } from '@/lib/dateUtils'
 
 export default function LogModal({ open, onClose, logData, onSave, onDelete }) {
   const [entry, setEntry] = useState('')
@@ -16,7 +17,7 @@ export default function LogModal({ open, onClose, logData, onSave, onDelete }) {
     if (open && logData) {
       setError('')
       setEntry(logData.entry || '')
-      setDate(logData.date || new Date().toISOString().split('T')[0])
+      setDate(logData.date || getTodayDateET())
       // Focus entry input when modal opens
       setTimeout(() => entryRef.current?.focus(), 100)
     }

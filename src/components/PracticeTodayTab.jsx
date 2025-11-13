@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Calendar, Plus, Link as LinkIcon, X } from '
 import GoalModal from './GoalModal'
 import YouTubeModal from './YouTubeModal'
 import { ConfirmDialog } from './ConfirmDialog'
+import { getTodayDateET } from '@/lib/dateUtils'
 import {
   fetchSessionByDate,
   createSession,
@@ -32,7 +33,7 @@ import {
 
 export default function PracticeTodayTab() {
   // State management
-  const [currentDate, setCurrentDate] = useState(getTodayDate())
+  const [currentDate, setCurrentDate] = useState(getTodayDateET())
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -67,15 +68,9 @@ export default function PracticeTodayTab() {
   // Show all logs state (per goal) - default to false (show only today's logs)
   const [showAllLogs, setShowAllLogs] = useState({})
 
-  // Helper function to get today's date in YYYY-MM-DD format
-  function getTodayDate() {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
-  }
-
   // Helper function to check if viewing today
   function isToday() {
-    return currentDate === getTodayDate()
+    return currentDate === getTodayDateET()
   }
 
   // Format date for display
@@ -139,7 +134,7 @@ export default function PracticeTodayTab() {
 
   // Navigate to today
   function handleGoToToday() {
-    setCurrentDate(getTodayDate())
+    setCurrentDate(getTodayDateET())
   }
 
   // Load session for current date

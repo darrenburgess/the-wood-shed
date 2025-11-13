@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase'
+import { getTodayDateET } from './dateUtils'
 
 /**
  * Fetch all content items for the current user with their tags
@@ -700,7 +701,7 @@ export async function fetchTopicsWithGoalsAndLogs() {
   }
 
   // Transform and sort data
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayDateET()
 
   for (const topic of topics) {
     if (topic.goals) {
@@ -1202,7 +1203,7 @@ export async function fetchTodaySession() {
     throw new Error('User not authenticated')
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayDateET()
 
   const { data, error } = await supabase
     .from('sessions')
@@ -1232,7 +1233,7 @@ export async function addGoalToSession(goalId) {
     throw new Error('User not authenticated')
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayDateET()
 
   // Get or create today's session
   let { data: session, error: sessionError } = await supabase
@@ -1292,7 +1293,7 @@ export async function removeGoalFromSession(goalId) {
     throw new Error('User not authenticated')
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayDateET()
 
   // Get today's session
   const { data: session, error: sessionError } = await supabase

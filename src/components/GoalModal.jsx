@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from './ConfirmDialog'
+import { getTodayDateET } from '@/lib/dateUtils'
 
 export default function GoalModal({ open, onClose, goalData, onSave, onDelete }) {
   const [description, setDescription] = useState('')
@@ -30,7 +31,7 @@ export default function GoalModal({ open, onClose, goalData, onSave, onDelete })
     const updateData = {
       description: description.trim(),
       is_complete: isComplete,
-      date_completed: isComplete ? (goalData.date_completed || new Date().toISOString().split('T')[0]) : null
+      date_completed: isComplete ? (goalData.date_completed || getTodayDateET()) : null
     }
 
     onSave(goalData.id, updateData)

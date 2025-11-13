@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Pencil, ChevronUp, ChevronDown } from 'lucide-react'
 import ContentModal from './ContentModal'
 import YouTubeModal from './YouTubeModal'
 import { fetchContent, createContent, updateContent, deleteContent } from '@/lib/queries'
@@ -18,6 +19,8 @@ export default function ContentTab() {
   const [error, setError] = useState(null)
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false)
   const [selectedYoutubeContent, setSelectedYoutubeContent] = useState(null)
+  const [sortField, setSortField] = useState(null)
+  const [sortDirection, setSortDirection] = useState('asc')
 
   // Helper function to truncate URL
   const truncateUrl = (url, maxLength = 30) => {
@@ -80,6 +83,16 @@ export default function ContentTab() {
     }
   }
 
+  // Handle sort
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
   // Filter content based on search and tags
   const filteredContent = content.filter(item => {
     // Search in title and URL
@@ -92,6 +105,23 @@ export default function ContentTab() {
       selectedTags.every(tag => item.tags.includes(tag))
 
     return matchesSearch && matchesTags
+  }).sort((a, b) => {
+    if (!sortField) return 0
+
+    let aValue = a[sortField]
+    let bValue = b[sortField]
+
+    // Handle string comparison
+    if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase()
+      bValue = bValue.toLowerCase()
+    }
+
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : -1
+    } else {
+      return aValue < bValue ? 1 : -1
+    }
   })
 
   // Toggle tag filter
@@ -175,7 +205,7 @@ export default function ContentTab() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Content Library</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Content Library</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your learning resources</p>
         </div>
         <Button
@@ -271,11 +301,31 @@ export default function ContentTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[30%]">Title</TableHead>
+              <TableHead className="w-[30%]">
+                <button
+                  onClick={() => handleSort('title')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Title
+                  {sortField === 'title' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead className="w-[25%]">URL</TableHead>
               <TableHead className="w-[20%]">Tags</TableHead>
-              <TableHead className="w-[12%]">Type</TableHead>
-              <TableHead className="w-[13%]">Actions</TableHead>
+              <TableHead className="w-[12%]">
+                <button
+                  onClick={() => handleSort('type')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Type
+                  {sortField === 'type' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="w-[13%]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -367,12 +417,12 @@ export default function ContentTab() {
                   </TableCell>
                   <TableCell>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="h-8"
+                      className="h-8 w-8 p-0"
                       onClick={() => handleEditContent(item)}
                     >
-                      Edit
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

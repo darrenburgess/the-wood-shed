@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { getTodayDateET } from '@/lib/dateUtils'
 import { fetchLogsByDateRange } from '@/lib/queries'
 
 export default function LogsTab() {
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayDateET()
 
   // State management
   const [logs, setLogs] = useState([])
