@@ -87,7 +87,7 @@ export default function PracticeTodayTab() {
 
   // Format date for logs
   function formatLogDateTime(dateString) {
-    const logDate = new Date(dateString)
+    const logDate = new Date(dateString + 'T00:00:00')
     return logDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
@@ -956,8 +956,7 @@ function GoalCard({
 }) {
   // Filter logs by current date
   const todaysLogs = goal.logs?.filter(log => {
-    const logDate = new Date(log.date).toISOString().split('T')[0]
-    return logDate === currentDate
+    return log.date === currentDate
   }) || []
 
   // Determine which logs to display
