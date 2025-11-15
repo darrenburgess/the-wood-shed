@@ -947,8 +947,9 @@ function GoalCard({
   const displayLogs = showAllLogs[goal.id] ? goal.logs : todaysLogs
   const totalLogs = goal.logs?.length || 0
   const todaysLogsCount = todaysLogs.length
+  const hasLogsToday = todaysLogsCount > 0
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+    <div className={`rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition ${hasLogsToday ? 'bg-gray-200' : 'bg-white'}`}>
       <details
         open={openGoals[goal.id]}
         onToggle={(e) => setOpenGoals(prev => ({
@@ -964,6 +965,9 @@ function GoalCard({
                 {goal.goal_number ? `${goal.goal_number}: ` : ''}{goal.description}
                 {goal.topic && (
                   <span className="text-sm text-gray-500 font-normal ml-2">| {goal.topic.title}</span>
+                )}
+                {todaysLogsCount > 0 && (
+                  <span className="text-sm text-gray-500 font-normal ml-2">({todaysLogsCount} {todaysLogsCount === 1 ? 'log' : 'logs'})</span>
                 )}
               </h3>
             </div>
