@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, Calendar, Plus, Link as LinkIcon, X } from '
 import GoalModal from './GoalModal'
 import YouTubeModal from './YouTubeModal'
 import { ConfirmDialog } from './ConfirmDialog'
-import { getTodayDateET } from '@/lib/dateUtils'
+import { getTodayDateET, addDaysET } from '@/lib/dateUtils'
 import {
   fetchSessionByDate,
   createSession,
@@ -73,6 +73,11 @@ export default function PracticeTodayTab() {
     return currentDate === getTodayDateET()
   }
 
+  // Get the actual date to use for operations (use session date if available, otherwise currentDate)
+  function getEffectiveDate() {
+    return session?.session_date || currentDate
+  }
+
   // Format date for display
   function formatDateDisplay(dateString) {
     const date = new Date(dateString + 'T00:00:00')
@@ -120,16 +125,12 @@ export default function PracticeTodayTab() {
 
   // Navigate to previous day
   function handlePreviousDay() {
-    const date = new Date(currentDate + 'T00:00:00')
-    date.setDate(date.getDate() - 1)
-    setCurrentDate(date.toISOString().split('T')[0])
+    setCurrentDate(addDaysET(currentDate, -1))
   }
 
   // Navigate to next day
   function handleNextDay() {
-    const date = new Date(currentDate + 'T00:00:00')
-    date.setDate(date.getDate() + 1)
-    setCurrentDate(date.toISOString().split('T')[0])
+    setCurrentDate(addDaysET(currentDate, 1))
   }
 
   // Navigate to today
@@ -196,7 +197,7 @@ export default function PracticeTodayTab() {
 
     try {
       // Create log and get the new log data
-      const newLog = await createLog(goalId, logText, currentDate)
+      const newLog = await createLog(goalId, logText, getEffectiveDate())
 
       // Optimistically update UI
       setSession(prev => {
@@ -205,7 +206,7 @@ export default function PracticeTodayTab() {
           ...prev,
           goals: prev.goals.map(goal =>
             goal.id === goalId
-              ? { ...goal, logs: [...(goal.logs || []), newLog] }
+              ? { ...goal, logs: [newLog, ...(goal.logs || [])] }
               : goal
           )
         }

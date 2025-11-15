@@ -34,3 +34,27 @@ export function getTodayET() {
   // Create date with explicit time to avoid timezone issues
   return new Date(todayString + 'T00:00:00')
 }
+
+/**
+ * Add or subtract days from a date string, staying in Eastern timezone
+ * @param {string} dateString - Date in YYYY-MM-DD format
+ * @param {number} days - Number of days to add (positive) or subtract (negative)
+ * @returns {string} New date in YYYY-MM-DD format
+ */
+export function addDaysET(dateString, days) {
+  // Parse the date string
+  const [year, month, day] = dateString.split('-').map(Number)
+
+  // Create a date object (this will be in local timezone, but we just use it for math)
+  const date = new Date(year, month - 1, day)
+
+  // Add/subtract days
+  date.setDate(date.getDate() + days)
+
+  // Format back to YYYY-MM-DD
+  const newYear = date.getFullYear()
+  const newMonth = String(date.getMonth() + 1).padStart(2, '0')
+  const newDay = String(date.getDate()).padStart(2, '0')
+
+  return `${newYear}-${newMonth}-${newDay}`
+}

@@ -48,7 +48,8 @@ export default function ContentTab() {
   const isYouTubeUrl = (url) => {
     try {
       const urlObj = new URL(url)
-      return urlObj.hostname.includes('youtube.com') || urlObj.hostname === 'youtu.be'
+      const isYouTubeDomain = urlObj.hostname.includes('youtube.com') || urlObj.hostname === 'youtu.be'
+      return isYouTubeDomain
     } catch {
       return false
     }

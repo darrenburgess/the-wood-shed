@@ -30,7 +30,8 @@ import {
   unlinkRepertoireFromLog,
   fetchTodaySession,
   addGoalToSession,
-  removeGoalFromSession
+  removeGoalFromSession,
+  getTodayDateET
 } from '@/lib/queries'
 import TopicModal from './TopicModal'
 import GoalModal from './GoalModal'
@@ -226,7 +227,7 @@ export default function TopicsTab() {
     if (!entry) return
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = getTodayDateET()
       const newLog = await createLog(goalId, entry, today)
 
       setTopics(prev => prev.map(topic => ({

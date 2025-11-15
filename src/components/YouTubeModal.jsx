@@ -14,15 +14,20 @@ export default function YouTubeModal({ open, onClose, url, title }) {
         return urlObj.pathname.slice(1)
       }
 
-      // youtube.com/watch?v=VIDEO_ID
-      if (urlObj.hostname.includes('youtube.com')) {
-        const searchParams = new URLSearchParams(urlObj.search)
-        return searchParams.get('v')
+      // youtube.com/shorts/VIDEO_ID (check before watch parameter)
+      if (urlObj.pathname.startsWith('/shorts/')) {
+        return urlObj.pathname.split('/')[2]
       }
 
       // youtube.com/embed/VIDEO_ID
       if (urlObj.pathname.startsWith('/embed/')) {
         return urlObj.pathname.split('/')[2]
+      }
+
+      // youtube.com/watch?v=VIDEO_ID
+      if (urlObj.hostname.includes('youtube.com')) {
+        const searchParams = new URLSearchParams(urlObj.search)
+        return searchParams.get('v')
       }
     } catch (e) {
       console.error('Error parsing YouTube URL:', e)

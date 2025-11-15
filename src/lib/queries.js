@@ -1,6 +1,8 @@
 import { getSupabaseClient } from './supabase'
 import { getTodayDateET } from './dateUtils'
 
+export { getTodayDateET }
+
 /**
  * Fetch all content items for the current user with their tags
  * @returns {Promise<Array>} Array of content items with tags
