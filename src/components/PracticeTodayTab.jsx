@@ -685,6 +685,16 @@ export default function PracticeTodayTab() {
     localStorage.setItem('openGoalsPracticeToday', JSON.stringify(openGoals))
   }, [openGoals])
 
+  // Listen for session updates from other components (e.g., Topics tab)
+  useEffect(() => {
+    const handleSessionUpdate = () => {
+      loadSession()
+    }
+
+    window.addEventListener('session-updated', handleSessionUpdate)
+    return () => window.removeEventListener('session-updated', handleSessionUpdate)
+  }, [currentDate])
+
   // Expand/collapse all functions
   function handleExpandAll() {
     if (!session || !session.goals) return

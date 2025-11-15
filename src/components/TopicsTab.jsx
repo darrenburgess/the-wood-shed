@@ -645,6 +645,11 @@ export default function TopicsTab() {
     try {
       await addGoalToSession(goalId)
       setSessionGoalIds(prev => new Set([...prev, goalId]))
+
+      // Notify other components that session was updated
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('session-updated'))
+      }
     } catch (err) {
       alert('Failed to add to session: ' + err.message)
     }
@@ -658,6 +663,11 @@ export default function TopicsTab() {
         newSet.delete(goalId)
         return newSet
       })
+
+      // Notify other components that session was updated
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('session-updated'))
+      }
     } catch (err) {
       alert('Failed to remove from session: ' + err.message)
     }
