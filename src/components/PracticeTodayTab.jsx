@@ -12,7 +12,6 @@ import { getTodayDateET, addDaysET } from '@/lib/dateUtils'
 import {
   fetchSessionByDate,
   createSession,
-  deleteSession,
   removeGoalFromSessionById,
   createLog,
   updateLog,
@@ -153,18 +152,6 @@ export default function PracticeTodayTab() {
     }
   }
 
-  // Clear session
-  async function handleClearSession() {
-    if (!session) return
-
-    try {
-      await deleteSession(session.id)
-      setSession(null)
-    } catch (err) {
-      alert('Failed to clear session: ' + err.message)
-      console.error(err)
-    }
-  }
 
   // Remove goal from session
   async function handleRemoveGoalFromSession(goalId) {
@@ -736,19 +723,6 @@ export default function PracticeTodayTab() {
                 >
                   Collapse All
                 </Button>
-                <ConfirmDialog
-                  title="Clear Session?"
-                  description="This will remove all goals from this practice session. Goals and logs will not be deleted, just removed from today's session."
-                  confirmText="Clear Session"
-                  onConfirm={handleClearSession}
-                  variant="destructive"
-                >
-                  <Button
-                    className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2"
-                  >
-                    Clear Session
-                  </Button>
-                </ConfirmDialog>
               </>
             )}
           </div>
