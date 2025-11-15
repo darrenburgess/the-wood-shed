@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Repertoire Stats Migration</title>
+</head>
+<body>
+  <h1>Repertoire Stats Migration</h1>
+  <button id="runMigration">Run Migration</button>
+  <pre id="output"></pre>
+
+  <script type="module">
+    import { recalculateAllRepertoireStats } from './src/lib/queries.js'
+
+    document.getElementById('runMigration').addEventListener('click', async () => {
+      const output = document.getElementById('output')
+      output.textContent = 'Starting migration...\n'
+
+      try {
+        const result = await recalculateAllRepertoireStats()
+        output.textContent += '\nMigration complete!\n'
+        output.textContent += JSON.stringify(result, null, 2)
+      } catch (error) {
+        output.textContent += '\nError: ' + error.message
+        console.error(error)
+      }
+    })
+  </script>
+</body>
+</html>

@@ -38,6 +38,23 @@ export default function RepertoireTab() {
     loadRepertoire()
   }, [])
 
+  // Listen for repertoire stats updates from other components
+  useEffect(() => {
+    const handleStatsUpdate = (event) => {
+      const { repertoireId, stats } = event.detail
+      if (stats) {
+        setRepertoire(prev => prev.map(item =>
+          item.id === repertoireId
+            ? { ...item, practice_count: stats.practiceCount, last_practiced: stats.lastPracticed }
+            : item
+        ))
+      }
+    }
+
+    window.addEventListener('repertoire-stats-updated', handleStatsUpdate)
+    return () => window.removeEventListener('repertoire-stats-updated', handleStatsUpdate)
+  }, [])
+
   const loadRepertoire = async () => {
     try {
       setLoading(true)

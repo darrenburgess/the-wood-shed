@@ -616,6 +616,165 @@ export async function syncRepertoireTags(repertoireId, newTagNames) {
 }
 
 // ============================================================================
+// REPERTOIRE STATS FUNCTIONS
+// ============================================================================
+
+/**
+ * Update repertoire statistics based on linked logs
+ * This function calculates practice_count and last_practiced from all logs
+ * linked to this repertoire (both directly via log_repertoire and indirectly via goals)
+ * @param {number} repertoireId - Repertoire ID
+ * @returns {Promise<void>}
+ */
+export async function updateRepertoireStats(repertoireId) {
+  const supabase = getSupabaseClient()
+
+  try {
+    // Collect all unique log IDs from both sources
+    const allLogIds = new Set()
+
+    // 1. Get log IDs from direct log_repertoire links
+    const { data: directLinks, error: directError } = await supabase
+      .from('log_repertoire')
+      .select('log_id')
+      .eq('repertoire_id', repertoireId)
+
+    if (directError) {
+      console.error('Error fetching direct log links:', directError)
+      throw directError
+    }
+
+    directLinks?.forEach(link => {
+      if (link.log_id) {
+        allLogIds.add(link.log_id)
+      }
+    })
+
+    // 2. Get log IDs from goals with this repertoire
+    const { data: goals, error: goalsError } = await supabase
+      .from('goals')
+      .select('id')
+      .eq('repertoire_id', repertoireId)
+
+    if (goalsError) {
+      console.error('Error fetching goals:', goalsError)
+      throw goalsError
+    }
+
+    if (goals && goals.length > 0) {
+      const goalIds = goals.map(g => g.id)
+      const { data: goalLogIds, error: goalLogsError } = await supabase
+        .from('logs')
+        .select('id')
+        .in('goal_id', goalIds)
+
+      if (goalLogsError) {
+        console.error('Error fetching goal logs:', goalLogsError)
+        throw goalLogsError
+      }
+
+      goalLogIds?.forEach(log => {
+        allLogIds.add(log.id)
+      })
+    }
+
+    // 3. Get actual log data for all unique log IDs
+    let practiceCount = 0
+    let lastPracticed = null
+
+    if (allLogIds.size > 0) {
+      const logIdsArray = Array.from(allLogIds)
+      const { data: logs, error: logsError } = await supabase
+        .from('logs')
+        .select('id, date')
+        .in('id', logIdsArray)
+        .order('date', { ascending: false })
+
+      if (logsError) {
+        console.error('Error fetching logs:', logsError)
+        throw logsError
+      }
+
+      practiceCount = logs?.length || 0
+      lastPracticed = logs && logs.length > 0 ? logs[0].date : null
+    }
+
+    // Update the repertoire record
+    const { error: updateError } = await supabase
+      .from('repertoire')
+      .update({
+        practice_count: practiceCount,
+        last_practiced: lastPracticed
+      })
+      .eq('id', repertoireId)
+
+    if (updateError) {
+      console.error('Error updating repertoire stats:', updateError)
+      throw updateError
+    }
+
+    return { practiceCount, lastPracticed }
+  } catch (error) {
+    console.error(`Failed to update stats for repertoire ${repertoireId}:`, error)
+    // Don't throw - we want other operations to continue even if stats update fails
+    return null
+  }
+}
+
+/**
+ * Recalculate statistics for all repertoire items
+ * This is a migration/maintenance function to fix existing data
+ * @returns {Promise<Object>} Summary of the operation {total, successful, failed, errors}
+ */
+export async function recalculateAllRepertoireStats() {
+  const supabase = getSupabaseClient()
+
+  console.log('Starting recalculation of all repertoire stats...')
+
+  // Fetch all repertoire IDs
+  const { data: repertoireItems, error } = await supabase
+    .from('repertoire')
+    .select('id, title')
+    .order('id', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching repertoire items:', error)
+    throw error
+  }
+
+  const total = repertoireItems.length
+  let successful = 0
+  let failed = 0
+  const errors = []
+
+  console.log(`Found ${total} repertoire items to process`)
+
+  // Process each repertoire item
+  for (const item of repertoireItems) {
+    try {
+      await updateRepertoireStats(item.id)
+      successful++
+      console.log(`[${successful + failed}/${total}] Updated: ${item.title}`)
+    } catch (error) {
+      failed++
+      const errorMsg = `Failed to update ${item.title} (ID: ${item.id}): ${error.message}`
+      console.error(errorMsg)
+      errors.push(errorMsg)
+    }
+  }
+
+  const summary = {
+    total,
+    successful,
+    failed,
+    errors
+  }
+
+  console.log('Recalculation complete:', summary)
+  return summary
+}
+
+// ============================================================================
 // LOGS FUNCTIONS
 // ============================================================================
 
@@ -891,6 +1050,41 @@ export async function updateGoal(goalId, data) {
 export async function deleteGoal(goalId) {
   const supabase = getSupabaseClient()
 
+  // Before deletion, collect all repertoire IDs that will be affected
+  const repertoireIds = new Set()
+
+  // 1. Get the goal's direct repertoire link
+  const { data: goalData, error: goalError } = await supabase
+    .from('goals')
+    .select('repertoire_id')
+    .eq('id', goalId)
+    .single()
+
+  if (!goalError && goalData?.repertoire_id) {
+    repertoireIds.add(goalData.repertoire_id)
+  }
+
+  // 2. Get all logs for this goal and their linked repertoire
+  const { data: logs, error: logsError } = await supabase
+    .from('logs')
+    .select('id, log_repertoire(repertoire_id)')
+    .eq('goal_id', goalId)
+
+  if (!logsError && logs) {
+    logs.forEach(log => {
+      if (log.log_repertoire && Array.isArray(log.log_repertoire)) {
+        log.log_repertoire.forEach(lr => {
+          if (lr.repertoire_id) {
+            repertoireIds.add(lr.repertoire_id)
+          }
+        })
+      } else if (log.log_repertoire?.repertoire_id) {
+        repertoireIds.add(log.log_repertoire.repertoire_id)
+      }
+    })
+  }
+
+  // Delete the goal (logs will cascade delete)
   const { error } = await supabase
     .from('goals')
     .delete()
@@ -899,6 +1093,18 @@ export async function deleteGoal(goalId) {
   if (error) {
     console.error('Error deleting goal:', error)
     throw error
+  }
+
+  // Update stats for all affected repertoire
+  for (const repertoireId of repertoireIds) {
+    const stats = await updateRepertoireStats(repertoireId)
+
+    // Dispatch event to notify other components
+    if (typeof window !== 'undefined' && stats) {
+      window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+        detail: { repertoireId, stats }
+      }))
+    }
   }
 }
 
@@ -933,6 +1139,19 @@ export async function createLog(goalId, entry, date) {
     throw error
   }
 
+  // Update stats for repertoire linked to this goal
+  // Get the goal's repertoire (if any)
+  const { data: goal, error: goalError } = await supabase
+    .from('goals')
+    .select('repertoire_id')
+    .eq('id', goalId)
+    .single()
+
+  if (!goalError && goal?.repertoire_id) {
+    // Update stats for this repertoire (async, don't wait)
+    updateRepertoireStats(goal.repertoire_id)
+  }
+
   return { ...newLog, content: [], repertoire: [] }
 }
 
@@ -964,7 +1183,37 @@ export async function updateLog(logId, data) {
 export async function deleteLog(logId) {
   const supabase = getSupabaseClient()
 
-  const { error} = await supabase
+  // Before deletion, get all repertoire linked to this log
+  // 1. Direct links via log_repertoire
+  const { data: directLinks, error: directError } = await supabase
+    .from('log_repertoire')
+    .select('repertoire_id')
+    .eq('log_id', logId)
+
+  // 2. Indirect links via the log's goal
+  const { data: logData, error: logError } = await supabase
+    .from('logs')
+    .select('goal_id, goals(repertoire_id)')
+    .eq('id', logId)
+    .single()
+
+  // Collect all unique repertoire IDs
+  const repertoireIds = new Set()
+
+  if (!directError && directLinks) {
+    directLinks.forEach(link => {
+      if (link.repertoire_id) {
+        repertoireIds.add(link.repertoire_id)
+      }
+    })
+  }
+
+  if (!logError && logData?.goals?.repertoire_id) {
+    repertoireIds.add(logData.goals.repertoire_id)
+  }
+
+  // Delete the log
+  const { error } = await supabase
     .from('logs')
     .delete()
     .eq('id', logId)
@@ -972,6 +1221,18 @@ export async function deleteLog(logId) {
   if (error) {
     console.error('Error deleting log:', error)
     throw error
+  }
+
+  // Update stats for all affected repertoire
+  for (const repertoireId of repertoireIds) {
+    const stats = await updateRepertoireStats(repertoireId)
+
+    // Dispatch event to notify other components
+    if (typeof window !== 'undefined' && stats) {
+      window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+        detail: { repertoireId, stats }
+      }))
+    }
   }
 }
 
@@ -1087,6 +1348,18 @@ export async function linkRepertoireToLog(logId, repertoireId) {
     console.error('Error linking repertoire to log:', error)
     throw error
   }
+
+  // Update stats for this repertoire and return the updated data
+  const stats = await updateRepertoireStats(repertoireId)
+
+  // Dispatch event to notify other components
+  if (typeof window !== 'undefined' && stats) {
+    window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+      detail: { repertoireId, stats }
+    }))
+  }
+
+  return stats
 }
 
 /**
@@ -1107,6 +1380,18 @@ export async function unlinkRepertoireFromLog(logId, repertoireId) {
     console.error('Error unlinking repertoire from log:', error)
     throw error
   }
+
+  // Update stats for this repertoire and return the updated data
+  const stats = await updateRepertoireStats(repertoireId)
+
+  // Dispatch event to notify other components
+  if (typeof window !== 'undefined' && stats) {
+    window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+      detail: { repertoireId, stats }
+    }))
+  }
+
+  return stats
 }
 
 /**
@@ -1205,19 +1490,38 @@ export async function fetchTodaySession() {
 
   const today = getTodayDateET()
 
-  const { data, error } = await supabase
+  // Fetch session without nested query to avoid RLS issues
+  const { data: session, error: sessionError } = await supabase
     .from('sessions')
-    .select('id, session_goals(goal_id)')
+    .select('id')
     .eq('user_id', user.id)
     .eq('session_date', today)
-    .single()
+    .maybeSingle()
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-    console.error('Error fetching today session:', error)
-    throw error
+  if (sessionError) {
+    console.error('Error fetching today session:', sessionError)
+    throw sessionError
   }
 
-  return data
+  if (!session) {
+    return null
+  }
+
+  // Separately fetch session_goals
+  const { data: sessionGoals, error: goalsError } = await supabase
+    .from('session_goals')
+    .select('goal_id')
+    .eq('session_id', session.id)
+
+  if (goalsError) {
+    console.error('Error fetching session goals:', goalsError)
+    throw goalsError
+  }
+
+  return {
+    id: session.id,
+    session_goals: sessionGoals || []
+  }
 }
 
 /**
@@ -1360,6 +1664,18 @@ export async function linkRepertoireToGoal(goalId, repertoireId) {
     console.error('Error linking repertoire to goal:', error)
     throw error
   }
+
+  // Update stats for this repertoire (this will include all logs from this goal)
+  const stats = await updateRepertoireStats(repertoireId)
+
+  // Dispatch event to notify other components
+  if (typeof window !== 'undefined' && stats) {
+    window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+      detail: { repertoireId, stats }
+    }))
+  }
+
+  return stats
 }
 
 /**
@@ -1381,6 +1697,18 @@ export async function unlinkRepertoireFromGoal(goalId, repertoireId) {
     console.error('Error unlinking repertoire from goal:', error)
     throw error
   }
+
+  // Update stats for this repertoire (logs from this goal will no longer count)
+  const stats = await updateRepertoireStats(repertoireId)
+
+  // Dispatch event to notify other components
+  if (typeof window !== 'undefined' && stats) {
+    window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+      detail: { repertoireId, stats }
+    }))
+  }
+
+  return stats
 }
 
 /**
