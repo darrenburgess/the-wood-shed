@@ -18,7 +18,7 @@ export default function RepertoireTab() {
   const [error, setError] = useState(null)
   const [sortField, setSortField] = useState('title')
   const [sortDirection, setSortDirection] = useState('asc')
-  const [practiceHistoryPopover, setPracticeHistoryPopover] = useState({ open: false, repertoireId: null, logs: [], loading: false })
+  const [practiceHistoryPopover, setPracticeHistoryPopover] = useState({ open: false, repertoireId: null, logs: [], loading: false, openAbove: false })
 
   // Helper function to format date
   const formatDate = (dateString) => {
@@ -59,18 +59,24 @@ export default function RepertoireTab() {
 
     // If clicking the same repertoire, close it
     if (practiceHistoryPopover.open && practiceHistoryPopover.repertoireId === repertoireId) {
-      setPracticeHistoryPopover({ open: false, repertoireId: null, logs: [], loading: false })
+      setPracticeHistoryPopover({ open: false, repertoireId: null, logs: [], loading: false, openAbove: false })
       return
     }
 
+    // Check if we should open above or below
+    const rect = e.currentTarget.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const spaceBelow = viewportHeight - rect.bottom
+    const openAbove = spaceBelow < 400 // If less than 400px below, open above
+
     // Open popover and load logs
-    setPracticeHistoryPopover({ open: true, repertoireId, logs: [], loading: true })
+    setPracticeHistoryPopover({ open: true, repertoireId, logs: [], loading: true, openAbove })
     const logs = await fetchLogsForRepertoire(repertoireId, 50) // Reasonable limit
-    setPracticeHistoryPopover({ open: true, repertoireId, logs, loading: false })
+    setPracticeHistoryPopover({ open: true, repertoireId, logs, loading: false, openAbove })
   }
 
   const handleClosePracticeHistory = () => {
-    setPracticeHistoryPopover({ open: false, repertoireId: null, logs: [], loading: false })
+    setPracticeHistoryPopover({ open: false, repertoireId: null, logs: [], loading: false, openAbove: false })
   }
 
   // Extract unique tags from repertoire
@@ -460,7 +466,7 @@ export default function RepertoireTab() {
                                 className="fixed inset-0 z-40"
                                 onClick={handleClosePracticeHistory}
                               />
-                              <div className="absolute right-0 top-6 z-50 w-[900px] bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+                              <div className={`absolute right-0 z-50 w-[900px] bg-white border border-gray-300 rounded-lg shadow-lg p-4 ${practiceHistoryPopover.openAbove ? 'bottom-6' : 'top-6'}`}>
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="text-sm font-semibold text-gray-900">Practice History</div>
                                   <button

@@ -21,7 +21,7 @@ export default function ContentTab() {
   const [selectedYoutubeContent, setSelectedYoutubeContent] = useState(null)
   const [sortField, setSortField] = useState('title')
   const [sortDirection, setSortDirection] = useState('asc')
-  const [practiceHistoryPopover, setPracticeHistoryPopover] = useState({ open: false, contentId: null, logs: [], loading: false })
+  const [practiceHistoryPopover, setPracticeHistoryPopover] = useState({ open: false, contentId: null, logs: [], loading: false, openAbove: false })
 
   // Helper function to format date
   const formatDate = (dateString) => {
@@ -62,18 +62,24 @@ export default function ContentTab() {
 
     // If clicking the same content, close it
     if (practiceHistoryPopover.open && practiceHistoryPopover.contentId === contentId) {
-      setPracticeHistoryPopover({ open: false, contentId: null, logs: [], loading: false })
+      setPracticeHistoryPopover({ open: false, contentId: null, logs: [], loading: false, openAbove: false })
       return
     }
 
+    // Check if we should open above or below
+    const rect = e.currentTarget.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const spaceBelow = viewportHeight - rect.bottom
+    const openAbove = spaceBelow < 400 // If less than 400px below, open above
+
     // Open popover and load logs
-    setPracticeHistoryPopover({ open: true, contentId, logs: [], loading: true })
+    setPracticeHistoryPopover({ open: true, contentId, logs: [], loading: true, openAbove })
     const logs = await fetchLogsForContent(contentId, 50) // Reasonable limit
-    setPracticeHistoryPopover({ open: true, contentId, logs, loading: false })
+    setPracticeHistoryPopover({ open: true, contentId, logs, loading: false, openAbove })
   }
 
   const handleClosePracticeHistory = () => {
-    setPracticeHistoryPopover({ open: false, contentId: null, logs: [], loading: false })
+    setPracticeHistoryPopover({ open: false, contentId: null, logs: [], loading: false, openAbove: false })
   }
 
   // Helper function to truncate URL
@@ -525,7 +531,7 @@ export default function ContentTab() {
                                 className="fixed inset-0 z-40"
                                 onClick={handleClosePracticeHistory}
                               />
-                              <div className="absolute right-0 top-6 z-50 w-[900px] bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+                              <div className={`absolute right-0 z-50 w-[900px] bg-white border border-gray-300 rounded-lg shadow-lg p-4 ${practiceHistoryPopover.openAbove ? 'bottom-6' : 'top-6'}`}>
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="text-sm font-semibold text-gray-900">Practice History</div>
                                   <button
