@@ -1619,6 +1619,145 @@ export async function unlinkContentFromLog(logId, contentId) {
 }
 
 /**
+ * Fetch logs for a specific content item (both direct and via goals)
+ * @param {number} contentId - Content ID
+ * @param {number} limit - Maximum number of logs to return (default 10)
+ * @returns {Promise<Array>} Array of logs with goal and topic info
+ */
+export async function fetchLogsForContent(contentId, limit = 10) {
+  const supabase = getSupabaseClient()
+
+  try {
+    // Collect all unique log IDs from both sources
+    const allLogIds = new Set()
+
+    // 1. Get log IDs from direct log_content links
+    const { data: directLinks, error: directError } = await supabase
+      .from('log_content')
+      .select('log_id')
+      .eq('content_id', contentId)
+
+    if (directError) {
+      console.error('Error fetching direct log links:', directError)
+      throw directError
+    }
+
+    directLinks?.forEach(link => {
+      if (link.log_id) {
+        allLogIds.add(link.log_id)
+      }
+    })
+
+    // 2. Get log IDs from goals with this content (via goal_content join table)
+    const { data: goalLinks, error: goalLinksError } = await supabase
+      .from('goal_content')
+      .select('goal_id')
+      .eq('content_id', contentId)
+
+    if (goalLinksError) {
+      console.error('Error fetching goal content links:', goalLinksError)
+      throw goalLinksError
+    }
+
+    if (goalLinks && goalLinks.length > 0) {
+      const goalIds = goalLinks.map(gl => gl.goal_id)
+      const { data: goalLogIds, error: goalLogsError } = await supabase
+        .from('logs')
+        .select('id')
+        .in('goal_id', goalIds)
+
+      if (goalLogsError) {
+        console.error('Error fetching goal logs:', goalLogsError)
+        throw goalLogsError
+      }
+
+      goalLogIds?.forEach(log => {
+        allLogIds.add(log.id)
+      })
+    }
+
+    // 3. Get full log data with goal and topic info
+    if (allLogIds.size === 0) {
+      return []
+    }
+
+    const logIdsArray = Array.from(allLogIds)
+
+    // Fetch logs with goal_id
+    const { data: logs, error: logsError } = await supabase
+      .from('logs')
+      .select('id, entry, date, goal_id')
+      .in('id', logIdsArray)
+      .order('date', { ascending: false })
+      .limit(limit)
+
+    if (logsError) {
+      console.error('Error fetching logs:', logsError)
+      throw logsError
+    }
+
+    if (!logs || logs.length === 0) {
+      return []
+    }
+
+    // Get unique goal IDs
+    const goalIds = [...new Set(logs.map(log => log.goal_id).filter(Boolean))]
+
+    if (goalIds.length === 0) {
+      return logs.map(log => ({ ...log, goals: null }))
+    }
+
+    // Fetch goals
+    const { data: goals, error: goalsError } = await supabase
+      .from('goals')
+      .select('id, description, topic_id')
+      .in('id', goalIds)
+
+    if (goalsError) {
+      console.error('Error fetching goals:', goalsError)
+      // Return logs without goal data if fetch fails
+      return logs.map(log => ({ ...log, goals: null }))
+    }
+
+    // Get unique topic IDs
+    const topicIds = [...new Set(goals?.map(goal => goal.topic_id).filter(Boolean) || [])]
+
+    let topicsMap = {}
+    if (topicIds.length > 0) {
+      // Fetch topics
+      const { data: topics, error: topicsError } = await supabase
+        .from('topics')
+        .select('id, title')
+        .in('id', topicIds)
+
+      if (!topicsError && topics) {
+        topics.forEach(topic => {
+          topicsMap[topic.id] = topic
+        })
+      }
+    }
+
+    // Create a map of goals with topics attached
+    const goalsMap = {}
+    goals?.forEach(goal => {
+      goalsMap[goal.id] = {
+        ...goal,
+        topics: goal.topic_id ? topicsMap[goal.topic_id] : null
+      }
+    })
+
+    // Attach goal data to logs
+    return logs.map(log => ({
+      ...log,
+      goals: log.goal_id ? goalsMap[log.goal_id] : null
+    }))
+  } catch (error) {
+    console.error(`Failed to fetch logs for content ${contentId}:`, error)
+    return []
+  }
+}
+
+/**
  * Fetch content linked to a log
  * @param {number} logId - Log ID
  * @returns {Promise<Array>} Array of content items
