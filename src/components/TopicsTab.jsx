@@ -96,6 +96,26 @@ export default function TopicsTab() {
     localStorage.setItem('openGoals', JSON.stringify(openGoals))
   }, [openGoals])
 
+  // Close all search popovers when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      // Check if click is inside a search popover or on a toggle button
+      const isClickInsidePopover = e.target.closest('.search-popover')
+      const isClickOnToggleButton = e.target.closest('[data-popover-toggle="true"]')
+
+      if (!isClickInsidePopover && !isClickOnToggleButton) {
+        setContentSearches({})
+        setRepertoireSearches({})
+        setLogContentSearches({})
+        setLogRepertoireSearches({})
+      }
+    }
+
+    // Use mousedown instead of click to avoid timing issues
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const loadTopics = async () => {
     try {
       setLoading(true)
@@ -459,6 +479,13 @@ export default function TopicsTab() {
         ...prev,
         [logId]: { open: false, query: '', results: [] }
       }))
+
+      // Trigger repertoire stats update
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+          detail: { repertoireId }
+        }))
+      }
     } catch (err) {
       alert('Failed to link repertoire: ' + err.message)
     }
@@ -614,6 +641,13 @@ export default function TopicsTab() {
 
       // Update database in background
       await linkRepertoireToLog(logId, repertoireId)
+
+      // Trigger repertoire stats update
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+          detail: { repertoireId }
+        }))
+      }
     } catch (err) {
       alert('Failed to link repertoire: ' + err.message)
       // Reload on error to sync state
@@ -907,6 +941,8 @@ export default function TopicsTab() {
                               )}
                               {/* Content count button */}
                               <button
+                                type="button"
+                                data-popover-toggle="true"
                                 onClick={() => setContentSearches(prev => ({
                                   ...prev,
                                   [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
@@ -919,6 +955,8 @@ export default function TopicsTab() {
 
                               {/* Repertoire count button */}
                               <button
+                                type="button"
+                                data-popover-toggle="true"
                                 onClick={() => setRepertoireSearches(prev => ({
                                   ...prev,
                                   [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
@@ -993,6 +1031,8 @@ export default function TopicsTab() {
                                       <div className="shrink-0 flex gap-2 items-center">
                                         {/* Content count button */}
                                         <button
+                                          type="button"
+                                          data-popover-toggle="true"
                                           onClick={() => setLogContentSearches(prev => ({
                                             ...prev,
                                             [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
@@ -1005,6 +1045,8 @@ export default function TopicsTab() {
 
                                         {/* Repertoire count button */}
                                         <button
+                                          type="button"
+                                          data-popover-toggle="true"
                                           onClick={() => setLogRepertoireSearches(prev => ({
                                             ...prev,
                                             [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
@@ -1033,7 +1075,7 @@ export default function TopicsTab() {
                                     {/* Content Search Dropdown */}
                                     {logContentSearches[log.id]?.open && (
                                       <div className="relative z-50 mt-2">
-                                        <div className="absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                                        <div className="search-popover absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
                                           <h4 className="text-sm font-medium mb-2">Linked Content</h4>
                                           {log.content && log.content.length > 0 && (
                                             <div className="mb-3 flex flex-wrap gap-1">
@@ -1084,13 +1126,13 @@ export default function TopicsTab() {
                                     {/* Repertoire Search Dropdown */}
                                     {logRepertoireSearches[log.id]?.open && (
                                       <div className="relative z-50 mt-2">
-                                        <div className="absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                                        <div className="search-popover absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
                                           <h4 className="text-sm font-medium mb-2">Linked Repertoire</h4>
                                           {log.repertoire && log.repertoire.length > 0 && (
                                             <div className="mb-3 flex flex-wrap gap-1">
                                               {log.repertoire.map(item => (
                                                 <Badge key={item.id} className="bg-green-100 text-green-800 flex items-center gap-1">
-                                                  {item.title} - {item.artist}
+                                                  {item.title}
                                                   <button onClick={() => handleUnlinkRepertoireFromLog(log.id, item.id)}
                                                     className="ml-1 hover:text-green-900">×</button>
                                                 </Badge>
@@ -1115,7 +1157,7 @@ export default function TopicsTab() {
                                                     disabled={alreadyLinked}
                                                     className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                   >
-                                                    {rep.title} - {rep.artist}
+                                                    {rep.title}
                                                   </button>
                                                 )
                                               })}
@@ -1158,7 +1200,7 @@ export default function TopicsTab() {
 
                         {/* Content Search Dropdown - positioned relative to goal wrapper */}
                         {contentSearches[goal.id]?.open && (
-                          <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                          <div className="search-popover absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
                             <h4 className="text-sm font-medium mb-2">Linked Content</h4>
                             {goal.content && goal.content.length > 0 && (
                               <div className="mb-3 flex flex-wrap gap-1">
@@ -1207,13 +1249,13 @@ export default function TopicsTab() {
 
                         {/* Repertoire Search Dropdown - positioned relative to goal wrapper */}
                         {repertoireSearches[goal.id]?.open && (
-                          <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+                          <div className="search-popover absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
                             <h4 className="text-sm font-medium mb-2">Linked Repertoire</h4>
                             {goal.repertoire && goal.repertoire.length > 0 && (
                               <div className="mb-3 flex flex-wrap gap-1">
                                 {goal.repertoire.map(item => (
                                   <Badge key={item.id} className="bg-green-100 text-green-800 flex items-center gap-1">
-                                    {item.title} - {item.artist}
+                                    {item.title}
                                     <button onClick={() => handleUnlinkRepertoireFromGoal(goal.id, item.id)}
                                       className="ml-1 hover:text-green-900">×</button>
                                   </Badge>
@@ -1238,7 +1280,7 @@ export default function TopicsTab() {
                                       disabled={alreadyLinked}
                                       className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
-                                      {rep.title} - {rep.artist}
+                                      {rep.title}
                                     </button>
                                   )
                                 })}

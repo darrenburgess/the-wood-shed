@@ -448,7 +448,7 @@ export async function createRepertoire(repertoireData) {
     .from('repertoire')
     .insert({
       title: repertoireData.title,
-      artist: repertoireData.composer, // DB column is 'artist' but UI uses 'composer'
+      composer: repertoireData.composer,
       practice_count: 0,
       last_practiced: null,
       user_id: user.id
@@ -488,7 +488,7 @@ export async function updateRepertoire(id, repertoireData) {
     .from('repertoire')
     .update({
       title: repertoireData.title,
-      artist: repertoireData.composer // DB column is 'artist' but UI uses 'composer'
+      composer: repertoireData.composer
     })
     .eq('id', id)
     .select()
@@ -1150,8 +1150,8 @@ export async function createLog(goalId, entry, date) {
     .single()
 
   if (!goalError && goal?.repertoire_id) {
-    // Update stats for this repertoire (async, don't wait)
-    updateRepertoireStats(goal.repertoire_id)
+    // Update stats for this repertoire before returning so events see updated data
+    await updateRepertoireStats(goal.repertoire_id)
   }
 
   return { ...newLog, content: [], repertoire: [] }
@@ -1266,7 +1266,7 @@ export async function searchContentForLinking(searchTerm) {
 }
 
 /**
- * Search repertoire by title or artist
+ * Search repertoire by title or composer
  * @param {string} searchTerm - Search term
  * @returns {Promise<Array>} Matching repertoire items
  */
@@ -1279,8 +1279,8 @@ export async function searchRepertoireForLinking(searchTerm) {
 
   const { data, error } = await supabase
     .from('repertoire')
-    .select('id, title, artist')
-    .or(`title.ilike.%${searchTerm}%,artist.ilike.%${searchTerm}%`)
+    .select('id, title, composer')
+    .or(`title.ilike.%${searchTerm}%,composer.ilike.%${searchTerm}%`)
     .order('title', { ascending: true })
     .limit(10)
 
@@ -1527,11 +1527,12 @@ export async function fetchTodaySession() {
 }
 
 /**
- * Add a goal to today's session (creates session if needed)
+ * Add a goal to a session (creates session if needed)
  * @param {number} goalId - Goal ID to add
+ * @param {string} targetDate - Target date in YYYY-MM-DD format (defaults to today)
  * @returns {Promise<void>}
  */
-export async function addGoalToSession(goalId) {
+export async function addGoalToSession(goalId, targetDate = null) {
   const supabase = getSupabaseClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -1539,14 +1540,14 @@ export async function addGoalToSession(goalId) {
     throw new Error('User not authenticated')
   }
 
-  const today = getTodayDateET()
+  const sessionDate = targetDate || getTodayDateET()
 
-  // Get or create today's session
+  // Get or create session for the target date
   let { data: session, error: sessionError } = await supabase
     .from('sessions')
     .select('id')
     .eq('user_id', user.id)
-    .eq('session_date', today)
+    .eq('session_date', sessionDate)
     .single()
 
   if (sessionError && sessionError.code === 'PGRST116') {
@@ -1555,7 +1556,7 @@ export async function addGoalToSession(goalId) {
       .from('sessions')
       .insert({
         user_id: user.id,
-        session_date: today
+        session_date: sessionDate
       })
       .select('id')
       .single()
@@ -1768,7 +1769,7 @@ export async function fetchSessionByDate(date) {
           repertoire (
             id,
             title,
-            artist
+            composer
           ),
           topics (
             id,
@@ -1800,7 +1801,7 @@ export async function fetchSessionByDate(date) {
               repertoire (
                 id,
                 title,
-                artist
+                composer
               )
             )
           )
@@ -1921,7 +1922,7 @@ export async function removeGoalFromSessionById(sessionId, goalId) {
 }
 
 /**
- * Search repertoire by title or artist
+ * Search repertoire by title or composer
  * @param {string} searchTerm - Search term
  * @returns {Promise<Array>} Array of matching repertoire items
  */
@@ -1934,8 +1935,8 @@ export async function searchRepertoire(searchTerm) {
 
   const { data, error } = await supabase
     .from('repertoire')
-    .select('id, title, artist')
-    .or(`title.ilike.%${searchTerm}%,artist.ilike.%${searchTerm}%`)
+    .select('id, title, composer')
+    .or(`title.ilike.%${searchTerm}%,composer.ilike.%${searchTerm}%`)
     .order('title', { ascending: true })
     .limit(20)
 

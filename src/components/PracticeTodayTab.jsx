@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { ChevronLeft, ChevronRight, Calendar, Plus, Link as LinkIcon, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Plus, Link as LinkIcon, X, ArrowRight } from 'lucide-react'
 import GoalModal from './GoalModal'
 import YouTubeModal from './YouTubeModal'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -27,7 +27,8 @@ import {
   linkRepertoireToLog,
   unlinkRepertoireFromLog,
   updateGoal,
-  deleteGoal
+  deleteGoal,
+  addGoalToSession
 } from '@/lib/queries'
 
 export default function PracticeTodayTab() {
@@ -67,9 +68,18 @@ export default function PracticeTodayTab() {
   // Show all logs state (per goal) - default to false (show only today's logs)
   const [showAllLogs, setShowAllLogs] = useState({})
 
+  // Add goal to session state
+  const [addGoalState, setAddGoalState] = useState({ open: false, goalId: null, targetDate: getTodayDateET() })
+
   // Helper function to check if viewing today
   function isToday() {
     return currentDate === getTodayDateET()
+  }
+
+  // Helper function to check if viewing a past session
+  function isPastSession() {
+    const sessionDate = session?.session_date || currentDate
+    return sessionDate < getTodayDateET()
   }
 
   // Get the actual date to use for operations (use session date if available, otherwise currentDate)
@@ -177,6 +187,36 @@ export default function PracticeTodayTab() {
     }
   }
 
+  // Open add goal to session dialog
+  function handleOpenAddGoal(goalId) {
+    setAddGoalState({
+      open: true,
+      goalId,
+      targetDate: getTodayDateET()
+    })
+  }
+
+  // Add goal to another session
+  async function handleAddGoalToSession() {
+    if (!addGoalState.goalId || !addGoalState.targetDate) return
+
+    try {
+      // Call the add function
+      await addGoalToSession(addGoalState.goalId, addGoalState.targetDate)
+
+      // Close the dialog
+      setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET() })
+
+      // If adding to current date, reload the session
+      if (addGoalState.targetDate === currentDate) {
+        await loadSession()
+      }
+    } catch (err) {
+      alert('Failed to add goal to session: ' + err.message)
+      console.error(err)
+    }
+  }
+
   // Add log
   async function handleAddLog(goalId) {
     const logText = newLogInputs[goalId]?.trim()
@@ -201,6 +241,16 @@ export default function PracticeTodayTab() {
 
       // Clear input
       setNewLogInputs(prev => ({ ...prev, [goalId]: '' }))
+
+      // Trigger repertoire stats update if goal has attached repertoire
+      const goal = session?.goals.find(g => g.id === goalId)
+      if (goal?.repertoire && goal.repertoire.length > 0 && typeof window !== 'undefined') {
+        goal.repertoire.forEach(rep => {
+          window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+            detail: { repertoireId: rep.id }
+          }))
+        })
+      }
     } catch (err) {
       alert('Failed to add log: ' + err.message)
       console.error(err)
@@ -638,6 +688,13 @@ export default function PracticeTodayTab() {
 
       // Update database in background
       await linkRepertoireToLog(logId, repertoireId)
+
+      // Trigger repertoire stats update
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+          detail: { repertoireId }
+        }))
+      }
     } catch (err) {
       alert('Failed to link repertoire: ' + err.message)
       console.error(err)
@@ -694,6 +751,26 @@ export default function PracticeTodayTab() {
     window.addEventListener('session-updated', handleSessionUpdate)
     return () => window.removeEventListener('session-updated', handleSessionUpdate)
   }, [currentDate])
+
+  // Close all search popovers when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      // Check if click is inside a search popover or on a toggle button
+      const isClickInsidePopover = e.target.closest('.search-popover')
+      const isClickOnToggleButton = e.target.closest('[data-popover-toggle="true"]')
+
+      if (!isClickInsidePopover && !isClickOnToggleButton) {
+        setGoalContentSearches({})
+        setGoalRepertoireSearches({})
+        setLogContentSearches({})
+        setLogRepertoireSearches({})
+      }
+    }
+
+    // Use mousedown instead of click to avoid timing issues
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Expand/collapse all functions
   function handleExpandAll() {
@@ -860,6 +937,8 @@ export default function PracticeTodayTab() {
               onUnlinkRepertoireFromLog={handleUnlinkRepertoireFromLog}
               onContentClick={handleContentClick}
               formatLogDateTime={formatLogDateTime}
+              isPastSession={isPastSession()}
+              onAddGoal={handleOpenAddGoal}
             />
           ))}
         </div>
@@ -896,6 +975,44 @@ export default function PracticeTodayTab() {
         url={selectedYoutubeContent?.url}
         title={selectedYoutubeContent?.title}
       />
+
+      {/* Add Goal to Session Dialog */}
+      <Dialog open={addGoalState.open} onOpenChange={(open) => !open && setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET() })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Goal to Session</DialogTitle>
+            <DialogDescription>
+              Select the date to add this goal to. The goal will also remain in the current session.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <label htmlFor="target-date" className="block text-sm font-medium text-gray-700 mb-2">
+              Target Date
+            </label>
+            <Input
+              id="target-date"
+              type="date"
+              value={addGoalState.targetDate}
+              onChange={(e) => setAddGoalState(prev => ({ ...prev, targetDate: e.target.value }))}
+              className="w-full"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET() })}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddGoalToSession}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Add to Session
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -936,7 +1053,9 @@ function GoalCard({
   onLinkRepertoireToLog,
   onUnlinkRepertoireFromLog,
   onContentClick,
-  formatLogDateTime
+  formatLogDateTime,
+  isPastSession,
+  onAddGoal
 }) {
   // Filter logs by current date
   const todaysLogs = goal.logs?.filter(log => {
@@ -957,7 +1076,7 @@ function GoalCard({
           [goal.id]: e.target.open
         }))}
       >
-        <summary className="p-6 cursor-pointer list-none">
+        <summary className="p-6 cursor-pointer list-none relative">
           {/* Goal Header */}
           <div className="flex justify-between items-center gap-3">
             <div className="flex-1 min-w-0">
@@ -1007,10 +1126,16 @@ function GoalCard({
             <div className="flex items-center gap-2 flex-shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
               {/* Content count button */}
               <button
-                onClick={() => setGoalContentSearches(prev => ({
-                  ...prev,
-                  [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
-                }))}
+                type="button"
+                data-popover-toggle="true"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setGoalContentSearches(prev => ({
+                    ...prev,
+                    [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
+                  })
+                )}}
                 className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-medium flex items-center justify-center hover:bg-blue-700"
                 title={`Content (${goal.content?.length || 0})`}
               >
@@ -1019,10 +1144,16 @@ function GoalCard({
 
               {/* Repertoire count button */}
               <button
-                onClick={() => setGoalRepertoireSearches(prev => ({
-                  ...prev,
-                  [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
-                }))}
+                type="button"
+                data-popover-toggle="true"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setGoalRepertoireSearches(prev => ({
+                    ...prev,
+                    [goal.id]: { open: !prev[goal.id]?.open, query: '', results: [] }
+                  })
+                )}}
                 className="w-6 h-6 rounded-full bg-green-600 text-white text-xs font-medium flex items-center justify-center hover:bg-green-700"
                 title={`Repertoire (${goal.repertoire?.length || 0})`}
               >
@@ -1039,6 +1170,20 @@ function GoalCard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </button>
+
+              {/* Add to another session button (only shown for past sessions) */}
+              {isPastSession && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAddGoal(goal.id)
+                  }}
+                  className="text-blue-600 hover:text-blue-800 p-1"
+                  title="Add to another session"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              )}
 
               {/* Remove from session button */}
               <ConfirmDialog
@@ -1057,13 +1202,10 @@ function GoalCard({
                 </button>
               </ConfirmDialog>
             </div>
-          </div>
-        </summary>
 
-        <div className="px-6 pb-6 relative">
-          {/* Goal Content Search Dropdown */}
-          {goalContentSearches[goal.id]?.open && (
-            <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+            {/* Goal Content Search Dropdown */}
+            {goalContentSearches[goal.id]?.open && (
+              <div className="search-popover absolute top-full right-6 mt-2 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
               <h4 className="text-sm font-medium mb-2">Linked Content</h4>
               {goal.content && goal.content.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-1">
@@ -1114,17 +1256,17 @@ function GoalCard({
                 Close
               </Button>
             </div>
-          )}
+            )}
 
-          {/* Goal Repertoire Search Dropdown */}
-          {goalRepertoireSearches[goal.id]?.open && (
-            <div className="absolute top-8 right-0 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+            {/* Goal Repertoire Search Dropdown */}
+            {goalRepertoireSearches[goal.id]?.open && (
+              <div className="search-popover absolute top-full right-6 mt-2 z-50 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
               <h4 className="text-sm font-medium mb-2">Linked Repertoire</h4>
               {goal.repertoire && goal.repertoire.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-1">
                   {goal.repertoire.map(rep => (
                     <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
-                      {rep.title} - {rep.artist}
+                      {rep.title}
                       <button
                         onClick={() => onUnlinkRepertoireFromGoal(goal.id, rep.id)}
                         className="ml-1 hover:text-green-900"
@@ -1154,7 +1296,7 @@ function GoalCard({
                         disabled={alreadyLinked}
                         className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        {rep.title} - {rep.artist}
+                        {rep.title}
                       </button>
                     )
                   })}
@@ -1169,9 +1311,11 @@ function GoalCard({
                 Close
               </Button>
             </div>
-          )}
+            )}
+          </div>
+        </summary>
 
-
+        <div className="px-6 pb-6 relative">
           {/* Add Log Form */}
           <div className="mb-4">
             <Textarea
@@ -1287,6 +1431,8 @@ function LogEntry({
         <div className="shrink-0 flex gap-2 items-center">
           {/* Content count button */}
           <button
+            type="button"
+            data-popover-toggle="true"
             onClick={() => setLogContentSearches(prev => ({
               ...prev,
               [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
@@ -1299,6 +1445,8 @@ function LogEntry({
 
           {/* Repertoire count button */}
           <button
+            type="button"
+            data-popover-toggle="true"
             onClick={() => setLogRepertoireSearches(prev => ({
               ...prev,
               [log.id]: { open: !prev[log.id]?.open, query: '', results: [] }
@@ -1325,7 +1473,7 @@ function LogEntry({
       {/* Content Search Dropdown */}
       {logContentSearches[log.id]?.open && (
         <div className="relative z-50 mt-2">
-          <div className="absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+          <div className="search-popover absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
             <h4 className="text-sm font-medium mb-2">Linked Content</h4>
             {log.content && log.content.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-1">
@@ -1384,13 +1532,13 @@ function LogEntry({
       {/* Repertoire Search Dropdown */}
       {logRepertoireSearches[log.id]?.open && (
         <div className="relative z-50 mt-2">
-          <div className="absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
+          <div className="search-popover absolute top-0 right-0 bg-white shadow-lg border border-gray-200 rounded-lg p-4 w-80">
             <h4 className="text-sm font-medium mb-2">Linked Repertoire</h4>
             {log.repertoire && log.repertoire.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-1">
                 {log.repertoire.map(rep => (
                   <Badge key={rep.id} className="bg-green-100 text-green-800 flex items-center gap-1">
-                    {rep.title} - {rep.artist}
+                    {rep.title}
                     <button
                       onClick={() => onUnlinkRepertoireFromLog(log.id, rep.id)}
                       className="ml-1 hover:text-green-900"
@@ -1419,7 +1567,7 @@ function LogEntry({
                       disabled={alreadyLinked}
                       className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded ${alreadyLinked ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      {rep.title} - {rep.artist}
+                      {rep.title}
                     </button>
                   )
                 })}

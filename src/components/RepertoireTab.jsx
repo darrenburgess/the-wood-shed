@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +33,20 @@ export default function RepertoireTab() {
   // Extract unique tags from repertoire
   const availableTags = [...new Set(repertoire.flatMap(item => item.tags))].sort()
 
+  const loadRepertoire = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await fetchRepertoire()
+      setRepertoire(data)
+    } catch (err) {
+      setError('Failed to load repertoire: ' + err.message)
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   // Fetch repertoire on mount
   useEffect(() => {
     loadRepertoire()
@@ -41,38 +55,14 @@ export default function RepertoireTab() {
   // Listen for repertoire stats updates from other components
   useEffect(() => {
     const handleStatsUpdate = (event) => {
-      const { repertoireId, stats } = event.detail
-      if (stats) {
-        setRepertoire(prev => prev.map(item =>
-          item.id === repertoireId
-            ? { ...item, practice_count: stats.practiceCount, last_practiced: stats.lastPracticed }
-            : item
-        ))
-      }
+      loadRepertoire()
     }
 
     window.addEventListener('repertoire-stats-updated', handleStatsUpdate)
-    return () => window.removeEventListener('repertoire-stats-updated', handleStatsUpdate)
-  }, [])
-
-  const loadRepertoire = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await fetchRepertoire()
-      // Map 'artist' from DB to 'composer' for UI
-      const mappedData = data.map(item => ({
-        ...item,
-        composer: item.artist
-      }))
-      setRepertoire(mappedData)
-    } catch (err) {
-      setError('Failed to load repertoire: ' + err.message)
-      console.error(err)
-    } finally {
-      setLoading(false)
+    return () => {
+      window.removeEventListener('repertoire-stats-updated', handleStatsUpdate)
     }
-  }
+  }, [loadRepertoire])
 
   // Handle sort
   const handleSort = (field) => {
