@@ -1,10 +1,13 @@
 [build]
+  # Build command to run on every deployment
+  command = "npm run build"
+
   # Directory to publish (where the built files are)
   publish = "dist"
 
-  # Since you're manually building and committing dist,
-  # we don't need a build command here
-  # command = "npm run build"
+[build.environment]
+  # Specify Node.js version
+  NODE_VERSION = "18"
 
 [[redirects]]
   from = "/*"
