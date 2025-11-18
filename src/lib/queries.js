@@ -1572,6 +1572,23 @@ export async function addGoalToSession(goalId, targetDate = null) {
     throw sessionError
   }
 
+  // Check if goal is already in the session
+  const { data: existingLink, error: checkError } = await supabase
+    .from('session_goals')
+    .select('id')
+    .eq('session_id', session.id)
+    .eq('goal_id', goalId)
+    .maybeSingle()
+
+  if (checkError) {
+    console.error('Error checking for existing goal:', checkError)
+    throw checkError
+  }
+
+  if (existingLink) {
+    throw new Error('This goal is already in the selected session')
+  }
+
   // Add goal to session
   const { error: linkError } = await supabase
     .from('session_goals')
@@ -1580,8 +1597,7 @@ export async function addGoalToSession(goalId, targetDate = null) {
       goal_id: goalId
     })
 
-  // Ignore duplicate errors
-  if (linkError && linkError.code !== '23505') {
+  if (linkError) {
     console.error('Error adding goal to session:', linkError)
     throw linkError
   }

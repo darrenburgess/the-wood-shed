@@ -69,7 +69,7 @@ export default function PracticeTodayTab() {
   const [showAllLogs, setShowAllLogs] = useState({})
 
   // Add goal to session state
-  const [addGoalState, setAddGoalState] = useState({ open: false, goalId: null, targetDate: getTodayDateET() })
+  const [addGoalState, setAddGoalState] = useState({ open: false, goalId: null, targetDate: getTodayDateET(), error: null })
 
   // Helper function to check if viewing today
   function isToday() {
@@ -192,7 +192,8 @@ export default function PracticeTodayTab() {
     setAddGoalState({
       open: true,
       goalId,
-      targetDate: getTodayDateET()
+      targetDate: getTodayDateET(),
+      error: null
     })
   }
 
@@ -201,19 +202,22 @@ export default function PracticeTodayTab() {
     if (!addGoalState.goalId || !addGoalState.targetDate) return
 
     try {
+      // Clear any previous errors
+      setAddGoalState(prev => ({ ...prev, error: null }))
+
       // Call the add function
       await addGoalToSession(addGoalState.goalId, addGoalState.targetDate)
 
       // Close the dialog
-      setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET() })
+      setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET(), error: null })
 
       // If adding to current date, reload the session
       if (addGoalState.targetDate === currentDate) {
         await loadSession()
       }
     } catch (err) {
-      alert('Failed to add goal to session: ' + err.message)
-      console.error(err)
+      // Set error in state - no need to log since it's a user-facing error
+      setAddGoalState(prev => ({ ...prev, error: err.message }))
     }
   }
 
@@ -977,7 +981,7 @@ export default function PracticeTodayTab() {
       />
 
       {/* Add Goal to Session Dialog */}
-      <Dialog open={addGoalState.open} onOpenChange={(open) => !open && setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET() })}>
+      <Dialog open={addGoalState.open} onOpenChange={(open) => !open && setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET(), error: null })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Goal to Session</DialogTitle>
@@ -985,22 +989,29 @@ export default function PracticeTodayTab() {
               Select the date to add this goal to. The goal will also remain in the current session.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <label htmlFor="target-date" className="block text-sm font-medium text-gray-700 mb-2">
-              Target Date
-            </label>
-            <Input
-              id="target-date"
-              type="date"
-              value={addGoalState.targetDate}
-              onChange={(e) => setAddGoalState(prev => ({ ...prev, targetDate: e.target.value }))}
-              className="w-full"
-            />
+          <div className="py-4 space-y-4">
+            <div>
+              <label htmlFor="target-date" className="block text-sm font-medium text-gray-700 mb-2">
+                Target Date
+              </label>
+              <Input
+                id="target-date"
+                type="date"
+                value={addGoalState.targetDate}
+                onChange={(e) => setAddGoalState(prev => ({ ...prev, targetDate: e.target.value, error: null }))}
+                className="w-full"
+              />
+            </div>
+            {addGoalState.error && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-sm text-red-800">{addGoalState.error}</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET() })}
+              onClick={() => setAddGoalState({ open: false, goalId: null, targetDate: getTodayDateET(), error: null })}
             >
               Cancel
             </Button>
