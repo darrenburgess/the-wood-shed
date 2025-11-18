@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Pencil, ChevronUp, ChevronDown } from 'lucide-react'
+import { Pencil, ChevronUp, ChevronDown, Info } from 'lucide-react'
 import RepertoireModal from './RepertoireModal'
-import { fetchRepertoire, createRepertoire, updateRepertoire, deleteRepertoire } from '@/lib/queries'
+import { fetchRepertoire, createRepertoire, updateRepertoire, deleteRepertoire, fetchLogsForRepertoire } from '@/lib/queries'
 
 export default function RepertoireTab() {
   // State management
@@ -18,6 +18,7 @@ export default function RepertoireTab() {
   const [error, setError] = useState(null)
   const [sortField, setSortField] = useState('title')
   const [sortDirection, setSortDirection] = useState('asc')
+  const [practiceHistoryPopover, setPracticeHistoryPopover] = useState({ open: false, repertoireId: null, logs: [], loading: false })
 
   // Helper function to format date
   const formatDate = (dateString) => {
@@ -28,6 +29,48 @@ export default function RepertoireTab() {
       day: 'numeric',
       year: 'numeric'
     })
+  }
+
+  // Helper function to format log entry for display
+  const formatLogEntry = (log) => {
+    const date = new Date(log.date + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+
+    // Handle nested goal and topic data - Supabase returns nested objects
+    const goal = log.goals
+    const topicTitle = goal?.topics?.title || 'No Topic'
+    const goalTitle = goal?.description || 'Unassigned'
+    const logDescription = log.entry || 'No description'
+
+    return {
+      date,
+      topicTitle,
+      goalTitle,
+      logDescription
+    }
+  }
+
+  // Handle practice history popover
+  const handleTogglePracticeHistory = async (e, repertoireId) => {
+    e.stopPropagation()
+
+    // If clicking the same repertoire, close it
+    if (practiceHistoryPopover.open && practiceHistoryPopover.repertoireId === repertoireId) {
+      setPracticeHistoryPopover({ open: false, repertoireId: null, logs: [], loading: false })
+      return
+    }
+
+    // Open popover and load logs
+    setPracticeHistoryPopover({ open: true, repertoireId, logs: [], loading: true })
+    const logs = await fetchLogsForRepertoire(repertoireId, 50) // Reasonable limit
+    setPracticeHistoryPopover({ open: true, repertoireId, logs, loading: false })
+  }
+
+  const handleClosePracticeHistory = () => {
+    setPracticeHistoryPopover({ open: false, repertoireId: null, logs: [], loading: false })
   }
 
   // Extract unique tags from repertoire
@@ -402,9 +445,63 @@ export default function RepertoireTab() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{item.practice_count}</span>
+                    <div className="flex items-center gap-2 relative">
+                      <span className="font-medium text-gray-900">{item.practice_count || 0}</span>
                       <span className="text-xs text-gray-500">sessions</span>
+                      {(item.practice_count || 0) > 0 && (
+                        <div className="relative">
+                          <Info
+                            className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+                            onClick={(e) => handleTogglePracticeHistory(e, item.id)}
+                          />
+                          {practiceHistoryPopover.open && practiceHistoryPopover.repertoireId === item.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={handleClosePracticeHistory}
+                              />
+                              <div className="absolute right-0 top-6 z-50 w-[900px] bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="text-sm font-semibold text-gray-900">Practice History</div>
+                                  <button
+                                    onClick={handleClosePracticeHistory}
+                                    className="text-gray-400 hover:text-gray-600"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                                {practiceHistoryPopover.loading ? (
+                                  <div className="flex items-center justify-center py-4">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                                  </div>
+                                ) : practiceHistoryPopover.logs.length === 0 ? (
+                                  <div className="text-sm text-gray-500 py-4 text-center">No practice history found</div>
+                                ) : (
+                                  <div className="max-h-80 overflow-y-auto">
+                                    <table className="w-full text-xs table-fixed">
+                                      <tbody>
+                                        {practiceHistoryPopover.logs.map((log) => {
+                                          const formatted = formatLogEntry(log)
+                                          return (
+                                            <tr key={log.id} className="border-b border-gray-100 last:border-0">
+                                              <td className="py-2 pr-2 text-gray-600 whitespace-nowrap w-20">{formatted.date}</td>
+                                              <td className="py-2 px-2 text-gray-900 font-medium whitespace-nowrap w-24">{formatted.topicTitle}</td>
+                                              <td className="py-2 px-2 text-gray-700">{formatted.goalTitle}</td>
+                                              <td className="py-2 pl-2 text-gray-600" title={formatted.logDescription}>
+                                                {formatted.logDescription}
+                                              </td>
+                                            </tr>
+                                          )
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>

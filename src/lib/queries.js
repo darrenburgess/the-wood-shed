@@ -1758,6 +1758,145 @@ export async function fetchLogsForContent(contentId, limit = 10) {
 }
 
 /**
+ * Fetch logs for a specific repertoire item
+ * @param {number} repertoireId - Repertoire ID
+ * @param {number} limit - Maximum number of logs to return
+ * @returns {Promise<Array>} Array of logs with goal and topic data
+ */
+export async function fetchLogsForRepertoire(repertoireId, limit = 10) {
+  const supabase = getSupabaseClient()
+
+  try {
+    // Collect all unique log IDs from both sources
+    const allLogIds = new Set()
+
+    // 1. Get log IDs from direct log_repertoire links
+    const { data: directLinks, error: directError } = await supabase
+      .from('log_repertoire')
+      .select('log_id')
+      .eq('repertoire_id', repertoireId)
+
+    if (directError) {
+      console.error('Error fetching direct log links:', directError)
+      throw directError
+    }
+
+    directLinks?.forEach(link => {
+      if (link.log_id) {
+        allLogIds.add(link.log_id)
+      }
+    })
+
+    // 2. Get log IDs from goals with this repertoire (via repertoire_id column)
+    const { data: goalData, error: goalError } = await supabase
+      .from('goals')
+      .select('id')
+      .eq('repertoire_id', repertoireId)
+
+    if (goalError) {
+      console.error('Error fetching goals for repertoire:', goalError)
+      throw goalError
+    }
+
+    if (goalData && goalData.length > 0) {
+      const goalIds = goalData.map(g => g.id)
+      const { data: goalLogIds, error: goalLogsError } = await supabase
+        .from('logs')
+        .select('id')
+        .in('goal_id', goalIds)
+
+      if (goalLogsError) {
+        console.error('Error fetching goal logs:', goalLogsError)
+        throw goalLogsError
+      }
+
+      goalLogIds?.forEach(log => {
+        allLogIds.add(log.id)
+      })
+    }
+
+    // 3. Get log data for all unique log IDs
+    if (allLogIds.size === 0) {
+      return []
+    }
+
+    const logIdsArray = Array.from(allLogIds)
+
+    // Fetch logs with goal_id
+    const { data: logs, error: logsError } = await supabase
+      .from('logs')
+      .select('id, entry, date, goal_id')
+      .in('id', logIdsArray)
+      .order('date', { ascending: false })
+      .limit(limit)
+
+    if (logsError) {
+      console.error('Error fetching logs:', logsError)
+      throw logsError
+    }
+
+    if (!logs || logs.length === 0) {
+      return []
+    }
+
+    // Get unique goal IDs
+    const goalIds = [...new Set(logs.map(log => log.goal_id).filter(Boolean))]
+
+    if (goalIds.length === 0) {
+      return logs.map(log => ({ ...log, goals: null }))
+    }
+
+    // Fetch goals
+    const { data: goals, error: goalsError } = await supabase
+      .from('goals')
+      .select('id, description, topic_id')
+      .in('id', goalIds)
+
+    if (goalsError) {
+      console.error('Error fetching goals:', goalsError)
+      // Return logs without goal data if fetch fails
+      return logs.map(log => ({ ...log, goals: null }))
+    }
+
+    // Get unique topic IDs
+    const topicIds = [...new Set(goals?.map(goal => goal.topic_id).filter(Boolean) || [])]
+
+    let topicsMap = {}
+    if (topicIds.length > 0) {
+      // Fetch topics
+      const { data: topics, error: topicsError } = await supabase
+        .from('topics')
+        .select('id, title')
+        .in('id', topicIds)
+
+      if (!topicsError && topics) {
+        topics.forEach(topic => {
+          topicsMap[topic.id] = topic
+        })
+      }
+    }
+
+    // Create a map of goals with topics attached
+    const goalsMap = {}
+    goals?.forEach(goal => {
+      goalsMap[goal.id] = {
+        ...goal,
+        topics: goal.topic_id ? topicsMap[goal.topic_id] : null
+      }
+    })
+
+    // Attach goal data to logs
+    return logs.map(log => ({
+      ...log,
+      goals: log.goal_id ? goalsMap[log.goal_id] : null
+    }))
+  } catch (error) {
+    console.error(`Failed to fetch logs for repertoire ${repertoireId}:`, error)
+    return []
+  }
+}
+
+/**
  * Fetch content linked to a log
  * @param {number} logId - Log ID
  * @returns {Promise<Array>} Array of content items
