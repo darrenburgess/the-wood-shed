@@ -250,6 +250,16 @@ export default function TopicsTab() {
       const today = getTodayDateET()
       const newLog = await createLog(goalId, entry, today)
 
+      // Find the goal to check for repertoire
+      let goalWithRepertoire = null
+      for (const topic of topics) {
+        const goal = topic.goals?.find(g => g.id === goalId)
+        if (goal) {
+          goalWithRepertoire = goal
+          break
+        }
+      }
+
       setTopics(prev => prev.map(topic => ({
         ...topic,
         goals: topic.goals.map(g => {
@@ -261,6 +271,15 @@ export default function TopicsTab() {
       })))
 
       setNewLogInputs(prev => ({ ...prev, [goalId]: '' }))
+
+      // Trigger repertoire stats update if goal has attached repertoire
+      if (goalWithRepertoire?.repertoire && goalWithRepertoire.repertoire.length > 0 && typeof window !== 'undefined') {
+        goalWithRepertoire.repertoire.forEach(rep => {
+          window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+            detail: { repertoireId: rep.id }
+          }))
+        })
+      }
     } catch (err) {
       alert('Failed to create log: ' + err.message)
     }
