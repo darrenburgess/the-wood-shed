@@ -250,12 +250,12 @@ export default function TopicsTab() {
       const today = getTodayDateET()
       const newLog = await createLog(goalId, entry, today)
 
-      // Find the goal to check for repertoire
-      let goalWithRepertoire = null
+      // Find the goal to check for repertoire and content
+      let goalWithAssets = null
       for (const topic of topics) {
         const goal = topic.goals?.find(g => g.id === goalId)
         if (goal) {
-          goalWithRepertoire = goal
+          goalWithAssets = goal
           break
         }
       }
@@ -272,13 +272,22 @@ export default function TopicsTab() {
 
       setNewLogInputs(prev => ({ ...prev, [goalId]: '' }))
 
-      // Trigger repertoire stats update if goal has attached repertoire
-      if (goalWithRepertoire?.repertoire && goalWithRepertoire.repertoire.length > 0 && typeof window !== 'undefined') {
-        goalWithRepertoire.repertoire.forEach(rep => {
-          window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
-            detail: { repertoireId: rep.id }
-          }))
-        })
+      // Trigger repertoire and content stats update if goal has attached assets
+      if (typeof window !== 'undefined') {
+        if (goalWithAssets?.repertoire && goalWithAssets.repertoire.length > 0) {
+          goalWithAssets.repertoire.forEach(rep => {
+            window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+              detail: { repertoireId: rep.id }
+            }))
+          })
+        }
+        if (goalWithAssets?.content && goalWithAssets.content.length > 0) {
+          goalWithAssets.content.forEach(cont => {
+            window.dispatchEvent(new CustomEvent('content-stats-updated', {
+              detail: { contentId: cont.id }
+            }))
+          })
+        }
       }
     } catch (err) {
       alert('Failed to create log: ' + err.message)

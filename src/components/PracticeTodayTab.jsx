@@ -246,14 +246,23 @@ export default function PracticeTodayTab() {
       // Clear input
       setNewLogInputs(prev => ({ ...prev, [goalId]: '' }))
 
-      // Trigger repertoire stats update if goal has attached repertoire
+      // Trigger repertoire and content stats update if goal has attached repertoire/content
       const goal = session?.goals.find(g => g.id === goalId)
-      if (goal?.repertoire && goal.repertoire.length > 0 && typeof window !== 'undefined') {
-        goal.repertoire.forEach(rep => {
-          window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
-            detail: { repertoireId: rep.id }
-          }))
-        })
+      if (typeof window !== 'undefined') {
+        if (goal?.repertoire && goal.repertoire.length > 0) {
+          goal.repertoire.forEach(rep => {
+            window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
+              detail: { repertoireId: rep.id }
+            }))
+          })
+        }
+        if (goal?.content && goal.content.length > 0) {
+          goal.content.forEach(cont => {
+            window.dispatchEvent(new CustomEvent('content-stats-updated', {
+              detail: { contentId: cont.id }
+            }))
+          })
+        }
       }
     } catch (err) {
       alert('Failed to add log: ' + err.message)

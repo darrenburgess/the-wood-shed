@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -19,8 +19,19 @@ export default function ContentTab() {
   const [error, setError] = useState(null)
   const [youtubeModalOpen, setYoutubeModalOpen] = useState(false)
   const [selectedYoutubeContent, setSelectedYoutubeContent] = useState(null)
-  const [sortField, setSortField] = useState(null)
+  const [sortField, setSortField] = useState('title')
   const [sortDirection, setSortDirection] = useState('asc')
+
+  // Helper function to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Never'
+    const date = new Date(dateString + 'T00:00:00')
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
 
   // Helper function to truncate URL
   const truncateUrl = (url, maxLength = 30) => {
@@ -65,12 +76,7 @@ export default function ContentTab() {
   // Extract unique tags from content
   const availableTags = [...new Set(content.flatMap(item => item.tags))].sort()
 
-  // Fetch content on mount
-  useEffect(() => {
-    loadContent()
-  }, [])
-
-  const loadContent = async () => {
+  const loadContent = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -82,7 +88,24 @@ export default function ContentTab() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // Fetch content on mount
+  useEffect(() => {
+    loadContent()
+  }, [loadContent])
+
+  // Listen for content stats updates from other components
+  useEffect(() => {
+    const handleStatsUpdate = (event) => {
+      loadContent()
+    }
+
+    window.addEventListener('content-stats-updated', handleStatsUpdate)
+    return () => {
+      window.removeEventListener('content-stats-updated', handleStatsUpdate)
+    }
+  }, [loadContent])
 
   // Handle sort
   const handleSort = (field) => {
@@ -109,13 +132,18 @@ export default function ContentTab() {
   }).sort((a, b) => {
     if (!sortField) return 0
 
-    let aValue = a[sortField]
-    let bValue = b[sortField]
+    let aValue, bValue
 
-    // Handle string comparison
-    if (typeof aValue === 'string') {
-      aValue = aValue.toLowerCase()
-      bValue = bValue.toLowerCase()
+    // Handle different field types
+    if (sortField === 'practice_count') {
+      aValue = a.practice_count || 0
+      bValue = b.practice_count || 0
+    } else if (sortField === 'last_practiced') {
+      aValue = a.last_practiced || ''
+      bValue = b.last_practiced || ''
+    } else {
+      aValue = typeof a[sortField] === 'string' ? a[sortField].toLowerCase() : a[sortField]
+      bValue = typeof b[sortField] === 'string' ? b[sortField].toLowerCase() : b[sortField]
     }
 
     if (sortDirection === 'asc') {
@@ -302,7 +330,7 @@ export default function ContentTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[30%]">
+              <TableHead className="w-[22%]">
                 <button
                   onClick={() => handleSort('title')}
                   className="flex items-center gap-1 hover:text-gray-900"
@@ -313,9 +341,9 @@ export default function ContentTab() {
                   )}
                 </button>
               </TableHead>
-              <TableHead className="w-[25%]">URL</TableHead>
-              <TableHead className="w-[20%]">Tags</TableHead>
-              <TableHead className="w-[12%]">
+              <TableHead className="w-[18%]">URL</TableHead>
+              <TableHead className="w-[15%]">Tags</TableHead>
+              <TableHead className="w-[10%]">
                 <button
                   onClick={() => handleSort('type')}
                   className="flex items-center gap-1 hover:text-gray-900"
@@ -326,13 +354,35 @@ export default function ContentTab() {
                   )}
                 </button>
               </TableHead>
-              <TableHead className="w-[13%]"></TableHead>
+              <TableHead className="w-[12%]">
+                <button
+                  onClick={() => handleSort('practice_count')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Practice Count
+                  {sortField === 'practice_count' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="w-[13%]">
+                <button
+                  onClick={() => handleSort('last_practiced')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Last Practiced
+                  {sortField === 'last_practiced' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="w-[10%]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500 py-12">
+                <TableCell colSpan={7} className="text-center text-gray-500 py-12">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                     <span className="text-sm font-medium">Loading content...</span>
@@ -341,7 +391,7 @@ export default function ContentTab() {
               </TableRow>
             ) : filteredContent.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500 py-12">
+                <TableCell colSpan={7} className="text-center text-gray-500 py-12">
                   <div className="flex flex-col items-center justify-center gap-3">
                     {hasActiveFilters ? (
                       <>
@@ -415,6 +465,15 @@ export default function ContentTab() {
                       <span className="mr-1">{getTypeIcon(item.type)}</span>
                       {item.type}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{item.practice_count || 0}</span>
+                      <span className="text-xs text-gray-500">sessions</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-gray-600">{formatDate(item.last_practiced)}</span>
                   </TableCell>
                   <TableCell>
                     <Button

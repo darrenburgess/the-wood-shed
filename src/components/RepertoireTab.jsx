@@ -16,7 +16,7 @@ export default function RepertoireTab() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [error, setError] = useState(null)
-  const [sortField, setSortField] = useState(null)
+  const [sortField, setSortField] = useState('title')
   const [sortDirection, setSortDirection] = useState('asc')
 
   // Helper function to format date

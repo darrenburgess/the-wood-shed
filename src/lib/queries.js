@@ -373,6 +373,108 @@ export async function syncContentTags(contentId, newTagNames) {
   }
 }
 
+/**
+ * Update content statistics based on linked logs
+ * This function calculates practice_count and last_practiced from all logs
+ * linked to this content (both directly via log_content and indirectly via goals)
+ * @param {number} contentId - Content ID
+ * @returns {Promise<Object>} Object with practiceCount and lastPracticed, or null on error
+ */
+export async function updateContentStats(contentId) {
+  const supabase = getSupabaseClient()
+
+  try {
+    // Collect all unique log IDs from both sources
+    const allLogIds = new Set()
+
+    // 1. Get log IDs from direct log_content links
+    const { data: directLinks, error: directError } = await supabase
+      .from('log_content')
+      .select('log_id')
+      .eq('content_id', contentId)
+
+    if (directError) {
+      console.error('Error fetching direct log links:', directError)
+      throw directError
+    }
+
+    directLinks?.forEach(link => {
+      if (link.log_id) {
+        allLogIds.add(link.log_id)
+      }
+    })
+
+    // 2. Get log IDs from goals with this content (via goal_content join table)
+    const { data: goalLinks, error: goalLinksError } = await supabase
+      .from('goal_content')
+      .select('goal_id')
+      .eq('content_id', contentId)
+
+    if (goalLinksError) {
+      console.error('Error fetching goal content links:', goalLinksError)
+      throw goalLinksError
+    }
+
+    if (goalLinks && goalLinks.length > 0) {
+      const goalIds = goalLinks.map(gl => gl.goal_id)
+      const { data: goalLogIds, error: goalLogsError } = await supabase
+        .from('logs')
+        .select('id')
+        .in('goal_id', goalIds)
+
+      if (goalLogsError) {
+        console.error('Error fetching goal logs:', goalLogsError)
+        throw goalLogsError
+      }
+
+      goalLogIds?.forEach(log => {
+        allLogIds.add(log.id)
+      })
+    }
+
+    // 3. Get actual log data for all unique log IDs
+    let practiceCount = 0
+    let lastPracticed = null
+
+    if (allLogIds.size > 0) {
+      const logIdsArray = Array.from(allLogIds)
+      const { data: logs, error: logsError } = await supabase
+        .from('logs')
+        .select('id, date')
+        .in('id', logIdsArray)
+        .order('date', { ascending: false })
+
+      if (logsError) {
+        console.error('Error fetching logs:', logsError)
+        throw logsError
+      }
+
+      practiceCount = logs?.length || 0
+      lastPracticed = logs && logs.length > 0 ? logs[0].date : null
+    }
+
+    // Update the content record
+    const { error: updateError } = await supabase
+      .from('content')
+      .update({
+        practice_count: practiceCount,
+        last_practiced: lastPracticed
+      })
+      .eq('id', contentId)
+
+    if (updateError) {
+      console.error('Error updating content stats:', updateError)
+      throw updateError
+    }
+
+    return { practiceCount, lastPracticed }
+  } catch (error) {
+    console.error(`Failed to update stats for content ${contentId}:`, error)
+    // Don't throw - we want other operations to continue even if stats update fails
+    return null
+  }
+}
+
 // ============================================================================
 // REPERTOIRE FUNCTIONS
 // ============================================================================
@@ -1141,7 +1243,7 @@ export async function createLog(goalId, entry, date) {
     throw error
   }
 
-  // Update stats for repertoire linked to this goal
+  // Update stats for repertoire and content linked to this goal
   // Get the goal's repertoire (if any)
   const { data: goal, error: goalError } = await supabase
     .from('goals')
@@ -1152,6 +1254,19 @@ export async function createLog(goalId, entry, date) {
   if (!goalError && goal?.repertoire_id) {
     // Update stats for this repertoire before returning so events see updated data
     await updateRepertoireStats(goal.repertoire_id)
+  }
+
+  // Get content linked to this goal via goal_content
+  const { data: contentLinks, error: contentError } = await supabase
+    .from('goal_content')
+    .select('content_id')
+    .eq('goal_id', goalId)
+
+  if (!contentError && contentLinks && contentLinks.length > 0) {
+    // Update stats for all linked content
+    for (const link of contentLinks) {
+      await updateContentStats(link.content_id)
+    }
   }
 
   return { ...newLog, content: [], repertoire: [] }
@@ -1185,33 +1300,64 @@ export async function updateLog(logId, data) {
 export async function deleteLog(logId) {
   const supabase = getSupabaseClient()
 
-  // Before deletion, get all repertoire linked to this log
+  // Before deletion, get all repertoire and content linked to this log
   // 1. Direct links via log_repertoire
-  const { data: directLinks, error: directError } = await supabase
+  const { data: directRepLinks, error: directRepError } = await supabase
     .from('log_repertoire')
     .select('repertoire_id')
     .eq('log_id', logId)
 
-  // 2. Indirect links via the log's goal
+  // 2. Direct links via log_content
+  const { data: directContentLinks, error: directContentError } = await supabase
+    .from('log_content')
+    .select('content_id')
+    .eq('log_id', logId)
+
+  // 3. Indirect links via the log's goal
   const { data: logData, error: logError } = await supabase
     .from('logs')
     .select('goal_id, goals(repertoire_id)')
     .eq('id', logId)
     .single()
 
-  // Collect all unique repertoire IDs
+  // Collect all unique repertoire and content IDs
   const repertoireIds = new Set()
+  const contentIds = new Set()
 
-  if (!directError && directLinks) {
-    directLinks.forEach(link => {
+  if (!directRepError && directRepLinks) {
+    directRepLinks.forEach(link => {
       if (link.repertoire_id) {
         repertoireIds.add(link.repertoire_id)
       }
     })
   }
 
+  if (!directContentError && directContentLinks) {
+    directContentLinks.forEach(link => {
+      if (link.content_id) {
+        contentIds.add(link.content_id)
+      }
+    })
+  }
+
   if (!logError && logData?.goals?.repertoire_id) {
     repertoireIds.add(logData.goals.repertoire_id)
+  }
+
+  // Get content linked to this goal via goal_content
+  if (!logError && logData?.goal_id) {
+    const { data: goalContentLinks, error: goalContentError } = await supabase
+      .from('goal_content')
+      .select('content_id')
+      .eq('goal_id', logData.goal_id)
+
+    if (!goalContentError && goalContentLinks) {
+      goalContentLinks.forEach(link => {
+        if (link.content_id) {
+          contentIds.add(link.content_id)
+        }
+      })
+    }
   }
 
   // Delete the log
@@ -1233,6 +1379,18 @@ export async function deleteLog(logId) {
     if (typeof window !== 'undefined' && stats) {
       window.dispatchEvent(new CustomEvent('repertoire-stats-updated', {
         detail: { repertoireId, stats }
+      }))
+    }
+  }
+
+  // Update stats for all affected content
+  for (const contentId of contentIds) {
+    const stats = await updateContentStats(contentId)
+
+    // Dispatch event to notify other components
+    if (typeof window !== 'undefined' && stats) {
+      window.dispatchEvent(new CustomEvent('content-stats-updated', {
+        detail: { contentId, stats }
       }))
     }
   }
@@ -1414,6 +1572,18 @@ export async function linkContentToLog(logId, contentId) {
     console.error('Error linking content to log:', error)
     throw error
   }
+
+  // Update stats for this content and return the updated data
+  const stats = await updateContentStats(contentId)
+
+  // Dispatch event to notify other components
+  if (typeof window !== 'undefined' && stats) {
+    window.dispatchEvent(new CustomEvent('content-stats-updated', {
+      detail: { contentId, stats }
+    }))
+  }
+
+  return stats
 }
 
 /**
@@ -1434,6 +1604,18 @@ export async function unlinkContentFromLog(logId, contentId) {
     console.error('Error unlinking content from log:', error)
     throw error
   }
+
+  // Update stats for this content and return the updated data
+  const stats = await updateContentStats(contentId)
+
+  // Dispatch event to notify other components
+  if (typeof window !== 'undefined' && stats) {
+    window.dispatchEvent(new CustomEvent('content-stats-updated', {
+      detail: { contentId, stats }
+    }))
+  }
+
+  return stats
 }
 
 /**
