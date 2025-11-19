@@ -127,20 +127,20 @@ function AppContent() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto bg-gray-50">
-        <div style={{ display: activeTab === 'practice' ? 'block' : 'none' }}>
+      <div className="flex-1 bg-gray-50">
+        <div className="h-full" style={{ display: activeTab === 'practice' ? 'block' : 'none' }}>
           <PracticeTodayTab />
         </div>
-        <div style={{ display: activeTab === 'topics' ? 'block' : 'none' }}>
+        <div className="h-full" style={{ display: activeTab === 'topics' ? 'block' : 'none' }}>
           <TopicsTab />
         </div>
-        <div style={{ display: activeTab === 'content' ? 'block' : 'none' }}>
+        <div className="h-full" style={{ display: activeTab === 'content' ? 'block' : 'none' }}>
           <ContentTab />
         </div>
-        <div style={{ display: activeTab === 'repertoire' ? 'block' : 'none' }}>
+        <div className="h-full" style={{ display: activeTab === 'repertoire' ? 'block' : 'none' }}>
           <RepertoireTab />
         </div>
-        <div style={{ display: activeTab === 'logs' ? 'block' : 'none' }}>
+        <div className="h-full" style={{ display: activeTab === 'logs' ? 'block' : 'none' }}>
           <LogsTab />
         </div>
       </div>

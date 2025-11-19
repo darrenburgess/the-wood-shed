@@ -151,9 +151,13 @@ export default function RepertoireTab() {
     } else if (sortField === 'last_practiced') {
       aValue = a.last_practiced || ''
       bValue = b.last_practiced || ''
+    } else if (sortField === 'key') {
+      // Treat empty/null keys as empty string (lowest value)
+      aValue = (a.key || '').toLowerCase()
+      bValue = (b.key || '').toLowerCase()
     } else {
-      aValue = typeof a[sortField] === 'string' ? a[sortField].toLowerCase() : a[sortField]
-      bValue = typeof b[sortField] === 'string' ? b[sortField].toLowerCase() : b[sortField]
+      aValue = typeof a[sortField] === 'string' ? a[sortField].toLowerCase() : (a[sortField] || '')
+      bValue = typeof b[sortField] === 'string' ? b[sortField].toLowerCase() : (b[sortField] || '')
     }
 
     if (sortDirection === 'asc') {
