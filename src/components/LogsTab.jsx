@@ -132,19 +132,20 @@ export default function LogsTab() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b px-8 py-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Practice Logs</h1>
-            <p className="text-sm text-gray-500 mt-1">A summary of your work by date</p>
+    <div className="flex flex-col h-full">
+      {/* Fixed Header Section */}
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
+        <div className="p-8 pb-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Practice Logs</h1>
+              <p className="text-sm text-gray-500 mt-1">A summary of your work by date</p>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Date Navigation */}
-      <div className="bg-white border-b px-8 py-6">
+          {/* Date Navigation */}
+          <div className="mb-6">
         <div className="flex items-center justify-center gap-4 max-w-md mx-auto">
           <button
             onClick={prevDay}
@@ -183,14 +184,10 @@ export default function LogsTab() {
             </button>
           )}
         </div>
-      </div>
+          </div>
 
-      {/* Date Range Search Section */}
-      <div className="px-8 py-6">
-        <div className="mb-6">
-
-        {/* Date Range Search */}
-        <div className="flex gap-4 items-center bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+          {/* Date Range Search */}
+          <div className="flex gap-4 items-center bg-white border border-gray-200 rounded-lg shadow-sm p-4">
           <div className="flex items-center gap-2 flex-1">
             <label className="text-sm font-medium text-gray-700">From:</label>
             <Input
@@ -222,13 +219,15 @@ export default function LogsTab() {
               Clear
             </Button>
           )}
-        </div>
+          </div>
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="px-8 pt-6">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-8 pt-6">
+          {/* Error Message */}
+          {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,11 +245,9 @@ export default function LogsTab() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+          )}
 
-      {/* Logs Display */}
-      <div className="px-8">
+          {/* Logs Display */}
         {loading ? (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-12 text-center">
             <div className="flex flex-col items-center justify-center gap-3">
@@ -321,12 +318,13 @@ export default function LogsTab() {
           </div>
         )}
 
-        {/* Summary */}
-        {!loading && logs.length > 0 && (
-          <div className="mt-4 text-sm text-gray-500">
-            {logs.length} {logs.length === 1 ? 'log' : 'logs'} found
-          </div>
-        )}
+          {/* Summary */}
+          {!loading && logs.length > 0 && (
+            <div className="mt-4 text-sm text-gray-500">
+              {logs.length} {logs.length === 1 ? 'log' : 'logs'} found
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

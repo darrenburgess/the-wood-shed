@@ -9,6 +9,7 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave,
   const [formData, setFormData] = useState({
     title: '',
     composer: '',
+    key: '',
     tags: []
   })
   const [errors, setErrors] = useState({})
@@ -23,6 +24,7 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave,
         setFormData({
           title: repertoireData.title || '',
           composer: repertoireData.composer || '',
+          key: repertoireData.key || '',
           tags: repertoireData.tags || []
         })
       } else {
@@ -30,6 +32,7 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave,
         setFormData({
           title: '',
           composer: '',
+          key: '',
           tags: []
         })
       }
@@ -140,6 +143,22 @@ export default function RepertoireModal({ open, onClose, repertoireData, onSave,
                 {errors.composer}
               </p>
             )}
+          </div>
+
+          {/* Key Field */}
+          <div className="space-y-2">
+            <label htmlFor="key" className="text-sm font-medium text-gray-700">
+              Key
+            </label>
+            <Input
+              id="key"
+              placeholder="e.g., C Major, D minor, F#..."
+              value={formData.key}
+              onChange={(e) => handleInputChange('key', e.target.value)}
+            />
+            <p className="text-xs text-gray-500">
+              Optional: Specify the musical key of this piece
+            </p>
           </div>
 
           {/* Tags Field */}

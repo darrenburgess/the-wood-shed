@@ -11,6 +11,7 @@ export default function ContentModal({ open, onClose, contentData, onSave, onDel
     title: '',
     url: '',
     type: 'youtube',
+    tempo: '',
     tags: []
   })
   const [errors, setErrors] = useState({})
@@ -26,6 +27,7 @@ export default function ContentModal({ open, onClose, contentData, onSave, onDel
           title: contentData.title || '',
           url: contentData.url || '',
           type: contentData.type || 'youtube',
+          tempo: contentData.tempo || '',
           tags: contentData.tags || []
         })
       } else {
@@ -34,6 +36,7 @@ export default function ContentModal({ open, onClose, contentData, onSave, onDel
           title: '',
           url: '',
           type: 'youtube',
+          tempo: '',
           tags: []
         })
       }
@@ -174,6 +177,22 @@ export default function ContentModal({ open, onClose, contentData, onSave, onDel
                 <SelectItem value="other">🔗 Other</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Tempo Field */}
+          <div className="space-y-2">
+            <label htmlFor="tempo" className="text-sm font-medium text-gray-700">
+              Tempo
+            </label>
+            <Input
+              id="tempo"
+              placeholder="e.g., Andante, 120 BPM, Slow..."
+              value={formData.tempo}
+              onChange={(e) => handleInputChange('tempo', e.target.value)}
+            />
+            <p className="text-xs text-gray-500">
+              Optional: Specify the tempo or speed for this content
+            </p>
           </div>
 
           {/* Tags Field */}

@@ -279,23 +279,26 @@ export default function ContentTab() {
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Content Library</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your learning resources</p>
-        </div>
-        <Button
-          className="bg-primary-600 hover:bg-primary-700"
-          onClick={handleAddContent}
-        >
-          Add Content
-        </Button>
-      </div>
+    <div className="flex flex-col h-full">
+      {/* Fixed Header Section */}
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
+        <div className="p-8 pb-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Content Library</h1>
+              <p className="text-sm text-gray-500 mt-1">Manage your learning resources</p>
+            </div>
+            <Button
+              className="bg-primary-600 hover:bg-primary-700"
+              onClick={handleAddContent}
+            >
+              Add Content
+            </Button>
+          </div>
 
-      {/* Search and Filter Bar */}
-      <div className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-4 space-y-4">
+          {/* Search and Filter Bar */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 space-y-4">
         {/* Search Input */}
         <div className="flex gap-4">
           <Input
@@ -351,10 +354,15 @@ export default function ContentTab() {
             </div>
           </div>
         )}
+          </div>
+        </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-8 pt-6">
+          {/* Error Message */}
+          {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -403,6 +411,7 @@ export default function ContentTab() {
                   )}
                 </button>
               </TableHead>
+              <TableHead className="w-[10%]">Tempo</TableHead>
               <TableHead className="w-[12%]">
                 <button
                   onClick={() => handleSort('practice_count')}
@@ -516,6 +525,9 @@ export default function ContentTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <span className="text-sm text-gray-700">{item.tempo || '-'}</span>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2 relative">
                       <span className="font-medium text-gray-900">{item.practice_count || 0}</span>
                       <span className="text-xs text-gray-500">sessions</span>
@@ -614,6 +626,8 @@ export default function ContentTab() {
             )}
           </div>
         )}
+      </div>
+        </div>
       </div>
 
       {/* Content Modal */}

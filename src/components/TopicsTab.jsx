@@ -86,6 +86,16 @@ export default function TopicsTab() {
     loadTodaySession()
   }, [])
 
+  // Listen for session updates from other components
+  useEffect(() => {
+    const handleSessionUpdate = () => {
+      loadTodaySession()
+    }
+
+    window.addEventListener('session-updated', handleSessionUpdate)
+    return () => window.removeEventListener('session-updated', handleSessionUpdate)
+  }, [])
+
   // Save openTopics to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('openTopics', JSON.stringify(openTopics))
@@ -771,36 +781,42 @@ export default function TopicsTab() {
   const getCompletedGoals = (goals) => goals?.filter(g => g.is_complete) || []
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Topics</h1>
-            <p className="text-sm text-gray-500 mt-1">Track your areas of practice focus</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExpandAll}>
-              Expand All
-            </Button>
-            <Button variant="outline" onClick={handleCollapseAll}>
-              Collapse All
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingTopic(null)
-                setTopicModalOpen(true)
-              }}
-              className="bg-primary-600 hover:bg-primary-700"
-            >
-              New Topic
-            </Button>
+    <div className="flex flex-col h-full">
+      {/* Fixed Header Section */}
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
+        <div className="p-8 pb-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Topics</h1>
+              <p className="text-sm text-gray-500 mt-1">Track your areas of practice focus</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExpandAll}>
+                Expand All
+              </Button>
+              <Button variant="outline" onClick={handleCollapseAll}>
+                Collapse All
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingTopic(null)
+                  setTopicModalOpen(true)
+                }}
+                className="bg-primary-600 hover:bg-primary-700"
+              >
+                New Topic
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-8 pt-6">
+          {/* Error Message */}
+          {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-sm text-red-700">{error}</p>
         </div>
@@ -1378,6 +1394,8 @@ export default function TopicsTab() {
           })}
         </div>
       )}
+        </div>
+      </div>
 
       {/* Modals */}
       <TopicModal

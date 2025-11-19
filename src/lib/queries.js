@@ -2008,9 +2008,14 @@ export async function addGoalToSession(goalId, targetDate = null) {
     .select('id')
     .eq('user_id', user.id)
     .eq('session_date', sessionDate)
-    .single()
+    .maybeSingle()
 
-  if (sessionError && sessionError.code === 'PGRST116') {
+  if (sessionError) {
+    console.error('Error fetching session:', sessionError)
+    throw sessionError
+  }
+
+  if (!session) {
     // Create session if it doesn't exist
     const { data: newSession, error: createError } = await supabase
       .from('sessions')
@@ -2027,9 +2032,6 @@ export async function addGoalToSession(goalId, targetDate = null) {
     }
 
     session = newSession
-  } else if (sessionError) {
-    console.error('Error fetching session:', sessionError)
-    throw sessionError
   }
 
   // Check if goal is already in the session

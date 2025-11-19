@@ -215,6 +215,11 @@ export default function PracticeTodayTab() {
       if (addGoalState.targetDate === currentDate) {
         await loadSession()
       }
+
+      // If adding to today's session, notify other components (e.g., TopicsTab)
+      if (addGoalState.targetDate === getTodayDateET()) {
+        window.dispatchEvent(new CustomEvent('session-updated'))
+      }
     } catch (err) {
       // Set error in state - no need to log since it's a user-facing error
       setAddGoalState(prev => ({ ...prev, error: err.message }))
@@ -800,37 +805,37 @@ export default function PracticeTodayTab() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Session Header */}
-      <div className="bg-white border-b px-8 py-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Practice Today</h1>
-            <p className="text-sm text-gray-500 mt-1">Your practice session for {formatDateDisplay(currentDate)}</p>
+    <div className="flex flex-col h-full">
+      {/* Fixed Header Section */}
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
+        <div className="p-8 pb-6">
+          {/* Session Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Practice Today</h1>
+              <p className="text-sm text-gray-500 mt-1">Your practice session for {formatDateDisplay(currentDate)}</p>
+            </div>
+            <div className="flex gap-2">
+              {session && session.goals?.length > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleExpandAll}
+                  >
+                    Expand All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCollapseAll}
+                  >
+                    Collapse All
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex gap-2">
-            {session && session.goals?.length > 0 && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleExpandAll}
-                >
-                  Expand All
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleCollapseAll}
-                >
-                  Collapse All
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Date Navigation */}
-      <div className="bg-white border-b px-8 py-6">
+          {/* Date Navigation */}
         <div className="flex items-center justify-center gap-4 max-w-md mx-auto">
           <button
             onClick={handlePreviousDay}
@@ -867,11 +872,14 @@ export default function PracticeTodayTab() {
             </button>
           )}
         </div>
+        </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="px-8 pt-6">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-8 pt-6">
+          {/* Error Message */}
+          {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -889,18 +897,17 @@ export default function PracticeTodayTab() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+          )}
 
-      {/* Loading State */}
-      {loading ? (
-        <div className="p-8 flex flex-col items-center justify-center gap-3 py-12">
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           <span className="text-sm font-medium text-gray-500">Loading practice session...</span>
-        </div>
-      ) : !session || session.goals?.length === 0 ? (
-        /* Empty State */
-        <div className="p-8 flex flex-col items-center justify-center gap-3 py-12">
+            </div>
+          ) : !session || session.goals?.length === 0 ? (
+            /* Empty State */
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
           <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
@@ -908,10 +915,10 @@ export default function PracticeTodayTab() {
             <p className="font-medium text-gray-900">No goals in this session</p>
             <p className="text-sm text-gray-500 mt-1">Go to Topics to add goals to your practice session</p>
           </div>
-        </div>
-      ) : (
-        /* Goal Cards */
-        <div className="p-8 space-y-6">
+            </div>
+          ) : (
+            /* Goal Cards */
+            <div className="space-y-6">
           {session.goals.map(goal => (
             <GoalCard
               key={goal.id}
@@ -954,8 +961,10 @@ export default function PracticeTodayTab() {
               onAddGoal={handleOpenAddGoal}
             />
           ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Log Edit Modal */}
       <LogModal

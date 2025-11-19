@@ -125,10 +125,11 @@ export default function RepertoireTab() {
 
   // Filter repertoire based on search and tags
   const filteredRepertoire = repertoire.filter(item => {
-    // Search in title and composer
+    // Search in title, composer, and key
     const matchesSearch = searchQuery === '' ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.composer.toLowerCase().includes(searchQuery.toLowerCase())
+      item.composer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.key && item.key.toLowerCase().includes(searchQuery.toLowerCase()))
 
     // Match tags (AND logic - item must have all selected tags)
     const matchesTags = selectedTags.length === 0 ||
@@ -202,7 +203,7 @@ export default function RepertoireTab() {
         // Edit existing item - optimistically update
         setRepertoire(prev => prev.map(item =>
           item.id === formData.id
-            ? { ...item, title: formData.title, artist: formData.composer, tags: formData.tags || [] }
+            ? { ...item, title: formData.title, composer: formData.composer, key: formData.key, tags: formData.tags || [] }
             : item
         ))
 
@@ -239,28 +240,31 @@ export default function RepertoireTab() {
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Repertoire</h1>
-          <p className="text-sm text-gray-500 mt-1">Track pieces you're learning</p>
-        </div>
-        <Button
-          className="bg-primary-600 hover:bg-primary-700"
-          onClick={handleAddRepertoire}
-        >
-          Add Repertoire
-        </Button>
-      </div>
+    <div className="flex flex-col h-full">
+      {/* Fixed Header Section */}
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
+        <div className="p-8 pb-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Repertoire</h1>
+              <p className="text-sm text-gray-500 mt-1">Track pieces you're learning</p>
+            </div>
+            <Button
+              className="bg-primary-600 hover:bg-primary-700"
+              onClick={handleAddRepertoire}
+            >
+              Add Repertoire
+            </Button>
+          </div>
 
-      {/* Search and Filter Bar */}
-      <div className="mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-4 space-y-4">
+          {/* Search and Filter Bar */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 space-y-4">
         {/* Search Input */}
         <div className="flex gap-4">
           <Input
             type="text"
-            placeholder="Search by title or composer..."
+            placeholder="Search by title, composer, or key..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1"
@@ -313,10 +317,15 @@ export default function RepertoireTab() {
             </div>
           </div>
         )}
+          </div>
+        </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-8 pt-6">
+          {/* Error Message */}
+          {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -363,7 +372,18 @@ export default function RepertoireTab() {
                   )}
                 </button>
               </TableHead>
-              <TableHead className="w-[20%]">Tags</TableHead>
+              <TableHead className="w-[10%]">
+                <button
+                  onClick={() => handleSort('key')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Key
+                  {sortField === 'key' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="w-[15%]">Tags</TableHead>
               <TableHead className="w-[15%]">
                 <button
                   onClick={() => handleSort('practice_count')}
@@ -392,7 +412,7 @@ export default function RepertoireTab() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-500 py-12">
+                <TableCell colSpan={7} className="text-center text-gray-500 py-12">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                     <span className="text-sm font-medium">Loading repertoire...</span>
@@ -401,7 +421,7 @@ export default function RepertoireTab() {
               </TableRow>
             ) : filteredRepertoire.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-500 py-12">
+                <TableCell colSpan={7} className="text-center text-gray-500 py-12">
                   <div className="flex flex-col items-center justify-center gap-3">
                     {hasActiveFilters ? (
                       <>
@@ -432,6 +452,9 @@ export default function RepertoireTab() {
                 <TableRow key={item.id} className="hover:bg-gray-50">
                   <TableCell className="font-medium">{item.title}</TableCell>
                   <TableCell className="text-gray-600">{item.composer}</TableCell>
+                  <TableCell>
+                    <span className="text-sm text-gray-700">{item.key || '-'}</span>
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
                       {item.tags.length > 0 ? (
@@ -549,6 +572,8 @@ export default function RepertoireTab() {
             )}
           </div>
         )}
+      </div>
+        </div>
       </div>
 
       {/* Repertoire Modal */}
