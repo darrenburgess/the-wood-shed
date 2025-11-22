@@ -864,12 +864,13 @@ export default function PracticeTodayTab() {
           </button>
 
           {!isToday() && (
-            <button
+            <Button
               onClick={handleGoToToday}
-              className="ml-4 text-blue-600 hover:text-blue-800 font-medium text-sm"
+              variant="outline"
+              className="ml-4"
             >
               ← Today
-            </button>
+            </Button>
           )}
         </div>
         </div>
