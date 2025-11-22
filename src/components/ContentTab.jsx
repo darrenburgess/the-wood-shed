@@ -290,7 +290,7 @@ export default function ContentTab() {
               <p className="text-sm text-gray-500 mt-1">Manage your learning resources</p>
             </div>
             <Button
-              className="bg-primary-600 hover:bg-primary-700"
+              className="bg-primary-600 hover:bg-primary-700 w-40"
               onClick={handleAddContent}
             >
               Add Content

@@ -255,7 +255,7 @@ export default function RepertoireTab() {
               <p className="text-sm text-gray-500 mt-1">Track pieces you're learning</p>
             </div>
             <Button
-              className="bg-primary-600 hover:bg-primary-700"
+              className="bg-primary-600 hover:bg-primary-700 w-40"
               onClick={handleAddRepertoire}
             >
               Add Repertoire

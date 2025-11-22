@@ -803,7 +803,7 @@ export default function TopicsTab() {
                   setEditingTopic(null)
                   setTopicModalOpen(true)
                 }}
-                className="bg-primary-600 hover:bg-primary-700"
+                className="bg-primary-600 hover:bg-primary-700 w-40"
               >
                 New Topic
               </Button>
