@@ -579,7 +579,7 @@ export async function createRepertoire(repertoireData) {
 /**
  * Update repertoire progress only
  * @param {number} id - Repertoire ID
- * @param {number|null} progress - Progress value (1-6) or null
+ * @param {string|null} progress - Progress text value like "1 - Backlog" or null
  * @returns {Promise<void>}
  */
 export async function updateRepertoireProgress(id, progress) {

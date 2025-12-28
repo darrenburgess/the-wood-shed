@@ -9,18 +9,17 @@ import { fetchRepertoire, createRepertoire, updateRepertoire, updateRepertoirePr
 
 // Progress options for repertoire
 const PROGRESS_OPTIONS = [
-  { value: 1, label: '1 - Backlog' },
-  { value: 2, label: '2 - Listening' },
-  { value: 3, label: '3 - Started' },
-  { value: 4, label: '4 - Memorized' },
-  { value: 5, label: '5 - Gig Ready' },
-  { value: 6, label: '6 - Off Book' }
+  { value: '1 - Backlog', label: '1 - Backlog' },
+  { value: '2 - Listening', label: '2 - Listening' },
+  { value: '3 - Started', label: '3 - Started' },
+  { value: '4 - Memorized', label: '4 - Memorized' },
+  { value: '5 - Gig Ready', label: '5 - Gig Ready' },
+  { value: '6 - Off Book', label: '6 - Off Book' }
 ]
 
 // Helper to get progress label
 const getProgressLabel = (progress) => {
-  const option = PROGRESS_OPTIONS.find(opt => opt.value === progress)
-  return option ? option.label : ''
+  return progress || ''
 }
 
 export default function RepertoireTab() {
@@ -173,9 +172,9 @@ export default function RepertoireTab() {
       aValue = (a.key || '').toLowerCase()
       bValue = (b.key || '').toLowerCase()
     } else if (sortField === 'progress') {
-      // Treat null/undefined progress as 0 (lowest value)
-      aValue = a.progress || 0
-      bValue = b.progress || 0
+      // Treat null/undefined progress as empty string (lowest value)
+      aValue = (a.progress || '').toLowerCase()
+      bValue = (b.progress || '').toLowerCase()
     } else {
       aValue = typeof a[sortField] === 'string' ? a[sortField].toLowerCase() : (a[sortField] || '')
       bValue = typeof b[sortField] === 'string' ? b[sortField].toLowerCase() : (b[sortField] || '')
@@ -268,11 +267,11 @@ export default function RepertoireTab() {
     try {
       // Optimistically update in list
       setRepertoire(prev => prev.map(item =>
-        item.id === itemId ? { ...item, progress } : item
+        item.id === itemId ? { ...item, progress: progress || null } : item
       ))
 
       // Update database in background
-      await updateRepertoireProgress(itemId, progress)
+      await updateRepertoireProgress(itemId, progress || null)
     } catch (err) {
       alert('Failed to update progress: ' + err.message)
       console.error(err)
@@ -529,7 +528,7 @@ export default function RepertoireTab() {
                   <TableCell>
                     <select
                       value={item.progress || ''}
-                      onChange={(e) => handleUpdateProgress(item.id, e.target.value ? parseInt(e.target.value) : null)}
+                      onChange={(e) => handleUpdateProgress(item.id, e.target.value)}
                       className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="">Select...</option>
