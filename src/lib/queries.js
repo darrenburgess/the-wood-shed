@@ -577,6 +577,26 @@ export async function createRepertoire(repertoireData) {
 }
 
 /**
+ * Update repertoire progress only
+ * @param {number} id - Repertoire ID
+ * @param {number|null} progress - Progress value (1-6) or null
+ * @returns {Promise<void>}
+ */
+export async function updateRepertoireProgress(id, progress) {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from('repertoire')
+    .update({ progress })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error updating repertoire progress:', error)
+    throw error
+  }
+}
+
+/**
  * Update an existing repertoire item
  * @param {number} id - Repertoire ID
  * @param {Object} repertoireData - Updated repertoire data {title, composer, tags}
@@ -585,16 +605,20 @@ export async function createRepertoire(repertoireData) {
 export async function updateRepertoire(id, repertoireData) {
   const supabase = getSupabaseClient()
 
-  // Update repertoire (note: using 'artist' column name in DB)
+  // Build update object with only provided fields
+  const updateData = {}
+  if (repertoireData.title !== undefined) updateData.title = repertoireData.title
+  if (repertoireData.composer !== undefined) updateData.composer = repertoireData.composer
+  if (repertoireData.key !== undefined) updateData.key = repertoireData.key
+  if (repertoireData.progress !== undefined) updateData.progress = repertoireData.progress
+
+  // For full updates, select the result
   const { data: updatedRepertoire, error } = await supabase
     .from('repertoire')
-    .update({
-      title: repertoireData.title,
-      composer: repertoireData.composer
-    })
+    .update(updateData)
     .eq('id', id)
     .select()
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error('Error updating repertoire:', error)

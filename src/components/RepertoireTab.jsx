@@ -5,7 +5,23 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pencil, ChevronUp, ChevronDown, Info } from 'lucide-react'
 import RepertoireModal from './RepertoireModal'
-import { fetchRepertoire, createRepertoire, updateRepertoire, deleteRepertoire, fetchLogsForRepertoire } from '@/lib/queries'
+import { fetchRepertoire, createRepertoire, updateRepertoire, updateRepertoireProgress, deleteRepertoire, fetchLogsForRepertoire } from '@/lib/queries'
+
+// Progress options for repertoire
+const PROGRESS_OPTIONS = [
+  { value: 1, label: '1 - Backlog' },
+  { value: 2, label: '2 - Listening' },
+  { value: 3, label: '3 - Started' },
+  { value: 4, label: '4 - Memorized' },
+  { value: 5, label: '5 - Gig Ready' },
+  { value: 6, label: '6 - Off Book' }
+]
+
+// Helper to get progress label
+const getProgressLabel = (progress) => {
+  const option = PROGRESS_OPTIONS.find(opt => opt.value === progress)
+  return option ? option.label : ''
+}
 
 export default function RepertoireTab() {
   // State management
@@ -125,11 +141,12 @@ export default function RepertoireTab() {
 
   // Filter repertoire based on search and tags
   const filteredRepertoire = repertoire.filter(item => {
-    // Search in title, composer, and key
+    // Search in title, composer, key, and progress
     const matchesSearch = searchQuery === '' ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.composer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.key && item.key.toLowerCase().includes(searchQuery.toLowerCase()))
+      (item.key && item.key.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.progress && getProgressLabel(item.progress).toLowerCase().includes(searchQuery.toLowerCase()))
 
     // Match tags (AND logic - item must have all selected tags)
     const matchesTags = selectedTags.length === 0 ||
@@ -155,6 +172,10 @@ export default function RepertoireTab() {
       // Treat empty/null keys as empty string (lowest value)
       aValue = (a.key || '').toLowerCase()
       bValue = (b.key || '').toLowerCase()
+    } else if (sortField === 'progress') {
+      // Treat null/undefined progress as 0 (lowest value)
+      aValue = a.progress || 0
+      bValue = b.progress || 0
     } else {
       aValue = typeof a[sortField] === 'string' ? a[sortField].toLowerCase() : (a[sortField] || '')
       bValue = typeof b[sortField] === 'string' ? b[sortField].toLowerCase() : (b[sortField] || '')
@@ -243,6 +264,23 @@ export default function RepertoireTab() {
     }
   }
 
+  const handleUpdateProgress = async (itemId, progress) => {
+    try {
+      // Optimistically update in list
+      setRepertoire(prev => prev.map(item =>
+        item.id === itemId ? { ...item, progress } : item
+      ))
+
+      // Update database in background
+      await updateRepertoireProgress(itemId, progress)
+    } catch (err) {
+      alert('Failed to update progress: ' + err.message)
+      console.error(err)
+      // Reload on error to sync state
+      await loadRepertoire()
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Fixed Header Section */}
@@ -268,7 +306,7 @@ export default function RepertoireTab() {
         <div className="flex gap-4">
           <Input
             type="text"
-            placeholder="Search by title, composer, or key..."
+            placeholder="Search by title, composer, key, or progress..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1"
@@ -354,7 +392,7 @@ export default function RepertoireTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[25%]">
+              <TableHead className="w-[20%]">
                 <button
                   onClick={() => handleSort('title')}
                   className="flex items-center gap-1 hover:text-gray-900"
@@ -365,7 +403,7 @@ export default function RepertoireTab() {
                   )}
                 </button>
               </TableHead>
-              <TableHead className="w-[20%]">
+              <TableHead className="w-[15%]">
                 <button
                   onClick={() => handleSort('artist')}
                   className="flex items-center gap-1 hover:text-gray-900"
@@ -376,7 +414,7 @@ export default function RepertoireTab() {
                   )}
                 </button>
               </TableHead>
-              <TableHead className="w-[10%]">
+              <TableHead className="w-[8%]">
                 <button
                   onClick={() => handleSort('key')}
                   className="flex items-center gap-1 hover:text-gray-900"
@@ -387,8 +425,19 @@ export default function RepertoireTab() {
                   )}
                 </button>
               </TableHead>
-              <TableHead className="w-[15%]">Tags</TableHead>
-              <TableHead className="w-[15%]">
+              <TableHead className="w-[12%]">Tags</TableHead>
+              <TableHead className="w-[16%]">
+                <button
+                  onClick={() => handleSort('progress')}
+                  className="flex items-center gap-1 hover:text-gray-900"
+                >
+                  Progress
+                  {sortField === 'progress' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="w-[13%]">
                 <button
                   onClick={() => handleSort('practice_count')}
                   className="flex items-center gap-1 hover:text-gray-900"
@@ -416,7 +465,7 @@ export default function RepertoireTab() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-500 py-12">
+                <TableCell colSpan={8} className="text-center text-gray-500 py-12">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                     <span className="text-sm font-medium">Loading repertoire...</span>
@@ -425,7 +474,7 @@ export default function RepertoireTab() {
               </TableRow>
             ) : filteredRepertoire.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-500 py-12">
+                <TableCell colSpan={8} className="text-center text-gray-500 py-12">
                   <div className="flex flex-col items-center justify-center gap-3">
                     {hasActiveFilters ? (
                       <>
@@ -476,6 +525,20 @@ export default function RepertoireTab() {
                         <span className="text-gray-400 text-xs">No tags</span>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <select
+                      value={item.progress || ''}
+                      onChange={(e) => handleUpdateProgress(item.id, e.target.value ? parseInt(e.target.value) : null)}
+                      className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="">Select...</option>
+                      {PROGRESS_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2 relative">
