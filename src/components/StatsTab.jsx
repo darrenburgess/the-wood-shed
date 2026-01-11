@@ -6,7 +6,7 @@ import ActivityHeatmap from './ActivityHeatmap'
 export default function StatsTab() {
   const { user } = useAuth()
   const [activityData, setActivityData] = useState([])
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedYear, setSelectedYear] = useState(2026)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 

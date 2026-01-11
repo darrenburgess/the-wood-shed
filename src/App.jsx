@@ -81,17 +81,6 @@ function AppContent() {
             Logs
           </button>
           <button
-            onClick={() => setActiveTab('stats')}
-            className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg w-full transition-colors ${
-              activeTab === 'stats'
-                ? 'text-white bg-primary-600'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <BarChart3 className="w-5 h-5" />
-            Stats
-          </button>
-          <button
             onClick={() => setActiveTab('content')}
             className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg w-full transition-colors ${
               activeTab === 'content'
@@ -116,6 +105,17 @@ function AppContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
             </svg>
             Repertoire
+          </button>
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg w-full transition-colors ${
+              activeTab === 'stats'
+                ? 'text-white bg-primary-600'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            Stats
           </button>
         </nav>
 

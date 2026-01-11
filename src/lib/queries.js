@@ -2490,3 +2490,34 @@ export async function fetchActivityData(userId, year) {
 
   return result
 }
+
+/**
+ * Fetch logs for a specific date with content and repertoire
+ * @param {string} userId - User ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<Array>} Array of log items with content and repertoire
+ */
+export async function fetchLogsByDate(userId, date) {
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('logs')
+    .select('*, goals(*, topics(*)), log_content(content(*)), log_repertoire(repertoire(*))')
+    .eq('user_id', userId)
+    .eq('date', date)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching logs by date:', error)
+    throw error
+  }
+
+  // Transform data to flatten content and repertoire arrays
+  return data.map(log => ({
+    ...log,
+    content: log.log_content?.map(lc => lc.content).filter(Boolean) || [],
+    repertoire: log.log_repertoire?.map(lr => lr.repertoire).filter(Boolean) || [],
+    goal: log.goals,
+    topic: log.goals?.topics
+  }))
+}
