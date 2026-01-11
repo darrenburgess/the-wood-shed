@@ -5,12 +5,14 @@ import ContentTab from './components/ContentTab'
 import RepertoireTab from './components/RepertoireTab'
 import LogsTab from './components/LogsTab'
 import TopicsTab from './components/TopicsTab'
+import StatsTab from './components/StatsTab'
 import Auth from './components/Auth'
 import { Button } from '@/components/ui/button'
+import { BarChart3 } from 'lucide-react'
 
 function AppContent() {
   const { user, loading, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState('practice') // 'practice', 'content', 'repertoire', 'logs', or 'topics'
+  const [activeTab, setActiveTab] = useState('practice') // 'practice', 'content', 'repertoire', 'logs', 'topics', or 'stats'
 
   if (loading) {
     return (
@@ -79,6 +81,17 @@ function AppContent() {
             Logs
           </button>
           <button
+            onClick={() => setActiveTab('stats')}
+            className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg w-full transition-colors ${
+              activeTab === 'stats'
+                ? 'text-white bg-primary-600'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            Stats
+          </button>
+          <button
             onClick={() => setActiveTab('content')}
             className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg w-full transition-colors ${
               activeTab === 'content'
@@ -142,6 +155,9 @@ function AppContent() {
         </div>
         <div className="h-full" style={{ display: activeTab === 'logs' ? 'block' : 'none' }}>
           <LogsTab />
+        </div>
+        <div className="h-full" style={{ display: activeTab === 'stats' ? 'block' : 'none' }}>
+          <StatsTab />
         </div>
       </div>
     </div>

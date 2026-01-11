@@ -2449,3 +2449,44 @@ export async function searchRepertoire(searchTerm) {
 
   return data || []
 }
+
+/**
+ * Fetch activity data for heatmap (daily log counts for a specific year)
+ * @param {string} userId - User ID
+ * @param {number} year - Year to fetch data for
+ * @returns {Promise<Array>} Array of {date, count} objects
+ */
+export async function fetchActivityData(userId, year) {
+  const supabase = getSupabaseClient()
+
+  // Build date range for the year
+  const startDate = `${year}-01-01`
+  const endDate = `${year}-12-31`
+
+  const { data, error } = await supabase
+    .from('logs')
+    .select('date')
+    .eq('user_id', userId)
+    .gte('date', startDate)
+    .lte('date', endDate)
+
+  if (error) {
+    console.error('Error fetching activity data:', error)
+    throw error
+  }
+
+  // Count logs per date
+  const dateCounts = {}
+  data.forEach(log => {
+    const date = log.date
+    dateCounts[date] = (dateCounts[date] || 0) + 1
+  })
+
+  // Convert to array format
+  const result = Object.entries(dateCounts).map(([date, count]) => ({
+    date,
+    count
+  }))
+
+  return result
+}
