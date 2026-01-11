@@ -162,13 +162,41 @@ export default function ActivityHeatmap({ data, year, onYearChange }) {
 
     try {
       const logs = await fetchLogsByDate(user.id, dayData.date)
-      setSelectedDateLogs(logs)
+      // Sort logs by topic number
+      const sortedLogs = logs.sort((a, b) => {
+        const topicA = a.topic?.topic_number || 999
+        const topicB = b.topic?.topic_number || 999
+        return topicA - topicB
+      })
+      setSelectedDateLogs(sortedLogs)
     } catch (error) {
       console.error('Error fetching logs for date:', error)
       setSelectedDateLogs([])
     } finally {
       setLoadingLogs(false)
     }
+  }
+
+  // Group logs by topic
+  function groupLogsByTopic(logs) {
+    const grouped = {}
+    logs.forEach(log => {
+      const topicKey = log.topic ? `${log.topic.topic_number}` : 'no-topic'
+      if (!grouped[topicKey]) {
+        grouped[topicKey] = {
+          topic: log.topic,
+          logs: []
+        }
+      }
+      grouped[topicKey].logs.push(log)
+    })
+
+    // Sort by topic number
+    return Object.values(grouped).sort((a, b) => {
+      const numA = a.topic?.topic_number || 999
+      const numB = b.topic?.topic_number || 999
+      return numA - numB
+    })
   }
 
   // Format date for display
@@ -341,37 +369,51 @@ export default function ActivityHeatmap({ data, year, onYearChange }) {
           ) : selectedDateLogs.length === 0 ? (
             <p className="text-sm text-gray-500 py-4">No logs found for this date.</p>
           ) : (
-            <div className="space-y-3">
-              {selectedDateLogs.map(log => (
-                <div key={log.id} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      {/* Show topic and goal if available */}
-                      {log.topic && log.goal && (
-                        <div className="text-xs text-gray-500 mb-1">
-                          {log.topic.title} → {log.goal.description}
-                        </div>
-                      )}
+            <div className="space-y-6">
+              {groupLogsByTopic(selectedDateLogs).map((group, groupIdx) => (
+                <div key={groupIdx}>
+                  {/* Topic Header */}
+                  {group.topic && (
+                    <h4 className="text-sm font-semibold text-gray-800 mb-3">
+                      Topic {group.topic.topic_number}: {group.topic.title}
+                    </h4>
+                  )}
 
-                      {/* Log entry */}
-                      <p className="text-sm text-gray-900">{log.entry}</p>
+                  {/* Logs in this topic */}
+                  <div className="space-y-2">
+                    {group.logs.map(log => (
+                      <div key={log.id} className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1">
+                            {/* Show goal if available */}
+                            {log.goal && (
+                              <div className="text-xs text-gray-500 mb-1">
+                                {log.goal.description}
+                              </div>
+                            )}
 
-                      {/* Content and Repertoire badges */}
-                      {(log.content?.length > 0 || log.repertoire?.length > 0) && (
-                        <div className="flex gap-1 flex-wrap mt-2">
-                          {log.content?.map((item) => (
-                            <Badge key={item.id} className="bg-blue-100 text-blue-800 text-xs">
-                              {item.title}
-                            </Badge>
-                          ))}
-                          {log.repertoire?.map((item) => (
-                            <Badge key={item.id} className="bg-green-100 text-green-800 text-xs">
-                              {item.title}
-                            </Badge>
-                          ))}
+                            {/* Log entry */}
+                            <p className="text-sm text-gray-900">{log.entry}</p>
+
+                            {/* Content and Repertoire badges */}
+                            {(log.content?.length > 0 || log.repertoire?.length > 0) && (
+                              <div className="flex gap-1 flex-wrap mt-2">
+                                {log.content?.map((item) => (
+                                  <Badge key={item.id} className="bg-blue-100 text-blue-800 text-xs">
+                                    {item.title}
+                                  </Badge>
+                                ))}
+                                {log.repertoire?.map((item) => (
+                                  <Badge key={item.id} className="bg-green-100 text-green-800 text-xs">
+                                    {item.title}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
